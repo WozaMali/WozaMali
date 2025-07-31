@@ -50,7 +50,7 @@ const GreenScholarFund = () => {
       {/* Header */}
       <div className="text-center space-y-3 pt-4">
         <div className="flex justify-center">
-          <img src="/lovable-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png" alt="Woza Mali Logo" className="h-16 w-auto" />
+          <img src="/lovable-uploads/9c12d890-c6b5-4b95-a3af-15175c504d86.png" alt="Green Scholar Fund Logo" className="h-16 w-auto" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">Green Scholar Fund</h1>
         <p className="text-muted-foreground">Supporting education through community impact</p>
