@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Coffee, ShoppingBag, Fuel, Clock, Star, Gift } from "lucide-react";
+import { Coffee, ShoppingBag, Fuel, Clock, Star, Gift, ChefHat } from "lucide-react";
 
 const Rewards = () => {
   const rewards = [
@@ -37,6 +37,18 @@ const Rewards = () => {
       timeLeft: "5 days",
       partner: "Shell",
       savings: "R 20",
+    },
+    {
+      id: 4,
+      title: "AmaPelePele Spices",
+      description: "Premium spice blends for authentic flavors",
+      pointsRequired: 40,
+      icon: ChefHat,
+      category: "Food & Spices",
+      timeLeft: "2 weeks",
+      partner: "AmaPelePele",
+      savings: "Free delivery",
+      website: "amapelepele.co.za"
     },
   ];
 
@@ -121,14 +133,26 @@ const Rewards = () => {
                     </div>
                   </div>
                   
-                  <Button 
-                    variant={canRedeem ? "gradient" : "outline"} 
-                    size="sm"
-                    disabled={!canRedeem}
-                    className="min-w-[80px]"
-                  >
-                    {canRedeem ? "Redeem" : "Need More"}
-                  </Button>
+                  {reward.website ? (
+                    <Button 
+                      variant={canRedeem ? "gradient" : "outline"} 
+                      size="sm"
+                      disabled={!canRedeem}
+                      className="min-w-[100px]"
+                      onClick={() => canRedeem && window.open(`https://${reward.website}`, '_blank')}
+                    >
+                      {canRedeem ? "Order Now" : "Need More"}
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant={canRedeem ? "gradient" : "outline"} 
+                      size="sm"
+                      disabled={!canRedeem}
+                      className="min-w-[80px]"
+                    >
+                      {canRedeem ? "Redeem" : "Need More"}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

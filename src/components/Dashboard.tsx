@@ -15,7 +15,7 @@ const Dashboard = () => {
         <div className="flex justify-center">
           <img src="/lovable-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png" alt="Woza Mali Logo" className="h-16 w-auto" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Woza Mali</h1>
+        
         <p className="text-muted-foreground">Recycle • Impact</p>
       </div>
 
