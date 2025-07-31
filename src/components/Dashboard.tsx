@@ -16,7 +16,7 @@ const Dashboard = () => {
           <img src="/lovable-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png" alt="Woza Mali Logo" className="h-16 w-auto" />
         </div>
         
-        <p className="text-muted-foreground">Recycle • Impact</p>
+        <p className="text-muted-foreground">Recycling that Pays</p>
       </div>
 
       {/* Wallet Balance Card */}

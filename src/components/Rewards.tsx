@@ -7,6 +7,18 @@ const Rewards = () => {
   const rewards = [
     {
       id: 1,
+      title: "AmaPelePele Spices for Africa",
+      description: "Premium spice blends for authentic flavors",
+      pointsRequired: 40,
+      icon: ChefHat,
+      category: "Food & Spices",
+      timeLeft: "2 weeks",
+      partner: "AmaPelePele",
+      savings: "Free delivery",
+      website: "amapelepele.co.za"
+    },
+    {
+      id: 2,
       title: "Free Coffee at Bean There",
       description: "Get a free coffee at any Bean There location",
       pointsRequired: 50,
@@ -17,7 +29,7 @@ const Rewards = () => {
       savings: "R 25",
     },
     {
-      id: 2,
+      id: 3,
       title: "10% Off at Woolworths",
       description: "Enjoy 10% discount on your next grocery shop",
       pointsRequired: 75,
@@ -28,7 +40,7 @@ const Rewards = () => {
       savings: "Up to R 200",
     },
     {
-      id: 3,
+      id: 4,
       title: "R20 Fuel Voucher",
       description: "Get R20 off your next fuel purchase",
       pointsRequired: 60,
@@ -37,18 +49,6 @@ const Rewards = () => {
       timeLeft: "5 days",
       partner: "Shell",
       savings: "R 20",
-    },
-    {
-      id: 4,
-      title: "AmaPelePele Spices",
-      description: "Premium spice blends for authentic flavors",
-      pointsRequired: 40,
-      icon: ChefHat,
-      category: "Food & Spices",
-      timeLeft: "2 weeks",
-      partner: "AmaPelePele",
-      savings: "Free delivery",
-      website: "amapelepele.co.za"
     },
   ];
 
