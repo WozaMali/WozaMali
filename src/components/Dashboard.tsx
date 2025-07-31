@@ -11,9 +11,12 @@ const Dashboard = () => {
   return (
     <div className="pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
       {/* Header */}
-      <div className="text-center space-y-2 pt-4">
+      <div className="text-center space-y-3 pt-4">
+        <div className="flex justify-center">
+          <img src="/lovable-uploads/f6006743-2187-4d7a-8b7c-c77f6b6feda8.png" alt="Woza Mali Logo" className="h-16 w-auto" />
+        </div>
         <h1 className="text-2xl font-bold text-foreground">Woza Mali</h1>
-        <p className="text-muted-foreground">Sebenza Cash • Recycle • Impact</p>
+        <p className="text-muted-foreground">Recycle • Impact</p>
       </div>
 
       {/* Wallet Balance Card */}
