@@ -141,7 +141,7 @@ const GreenScholarFund = () => {
           </div>
           
           <p className="text-xs text-muted-foreground">
-            Donations can be made from your Sebenza Cash wallet or MTN MoMo
+            Donations can be made from your Woza Mali wallet or MTN MoMo
           </p>
         </CardContent>
       </Card>

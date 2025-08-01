@@ -1,12 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const walletBalance = 2450.75;
   const totalKgRecycled = 127.5;
   const co2Saved = 89.25;
   const monthlyGrowth = 23;
+
+  // Determine recycler tier based on total kg
+  const getTier = () => {
+    if (totalKgRecycled >= 1000) return 'Diamond Recycler';
+    if (totalKgRecycled >= 500) return 'Platinum Recycler';
+    return 'Gold Recycler';
+  };
 
   return (
     <div className="pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
@@ -85,18 +94,30 @@ const Dashboard = () => {
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
         
-        <Button variant="gradient" className="w-full h-14 text-base">
+        <Button 
+          variant="gradient" 
+          className="w-full h-14 text-base"
+          onClick={() => navigate('/withdrawal')}
+        >
           <ArrowUpRight className="h-5 w-5 mr-2" />
           Request Payout
         </Button>
         
         <div className="grid grid-cols-2 gap-3">
-          <Button variant="warm" className="h-12">
+          <Button 
+            variant="warm" 
+            className="h-12"
+            onClick={() => navigate('/rewards')}
+          >
             <Gift className="h-5 w-5 mr-2" />
             Redeem Reward
           </Button>
           
-          <Button variant="impact" className="h-12">
+          <Button 
+            variant="impact" 
+            className="h-12"
+            onClick={() => navigate('/fund')}
+          >
             <Heart className="h-5 w-5 mr-2" />
             Donate to Fund
           </Button>
