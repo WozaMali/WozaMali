@@ -12,10 +12,12 @@ const Dashboard = () => {
 
   // Determine recycler tier based on total kg
   const getTier = () => {
-    if (totalKgRecycled >= 1000) return 'Diamond Recycler';
-    if (totalKgRecycled >= 500) return 'Platinum Recycler';
-    return 'Gold Recycler';
+    if (totalKgRecycled >= 1000) return { tier: 'Diamond Recycler', color: 'text-accent' };
+    if (totalKgRecycled >= 500) return { tier: 'Platinum Recycler', color: 'text-muted-foreground' };
+    return { tier: 'Gold Recycler', color: 'text-warning' };
   };
+
+  const tierInfo = getTier();
 
   return (
     <div className="pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
@@ -25,7 +27,14 @@ const Dashboard = () => {
           <img src="/lovable-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png" alt="Woza Mali Logo" className="h-16 w-auto" />
         </div>
         
-        <p className="text-muted-foreground">Powered by Sebenza Nathi Waste</p>
+        <div className="space-y-1">
+          <p className="text-muted-foreground">Powered by Sebenza Nathi Waste</p>
+          <div className="flex items-center justify-center space-x-2">
+            <div className={`px-3 py-1 rounded-full bg-gradient-primary text-primary-foreground text-sm font-medium ${tierInfo.color}`}>
+              {tierInfo.tier}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Wallet Balance Card */}

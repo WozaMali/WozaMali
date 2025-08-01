@@ -17,11 +17,22 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center p-4">
-      <div className="bg-white/90 backdrop-blur-sm rounded-lg p-8 w-full max-w-md text-center">
+    <div 
+      className="min-h-screen bg-gradient-warm flex items-center justify-center p-4"
+      style={{
+        backgroundImage: 'url("/lovable-uploads/f6006743-2187-4d7a-8b7c-c77f6b6feda8.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundBlendMode: 'overlay'
+      }}
+    >
+      <div className="bg-card/95 backdrop-blur-sm rounded-lg p-8 w-full max-w-md text-center shadow-warm border border-border/50">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Join Woza Mali</h1>
-          <p className="text-gray-600">Start recycling and earning today</p>
+          <div className="flex justify-center mb-4">
+            <img src="/lovable-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png" alt="Woza Mali Logo" className="h-20 w-auto" />
+          </div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Join Woza Mali</h1>
+          <p className="text-muted-foreground">Start recycling and earning today</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -50,11 +61,11 @@ const SignUpPage = () => {
           </Button>
         </form>
 
-        <p className="mt-4 text-sm text-gray-600">
+        <p className="mt-4 text-sm text-muted-foreground">
           Already a member?{" "}
           <button 
             onClick={() => navigate("/")}
-            className="text-blue-600 hover:underline"
+            className="text-primary hover:underline font-medium"
           >
             Sign In
           </button>

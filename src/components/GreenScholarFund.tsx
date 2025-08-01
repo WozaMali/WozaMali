@@ -14,6 +14,13 @@ const GreenScholarFund = () => {
     thisMonthDonations: 8940.25
   };
 
+  // User's contribution breakdown
+  const userContributions = {
+    petBottleContributions: 1245.75, // From recycling activities
+    cashDonations: 380.00, // Direct donations
+    totalPersonal: 1625.75
+  };
+
   const quickAmounts = [10, 25, 50, 100];
   
   const supportCategories = [
@@ -76,6 +83,31 @@ const GreenScholarFund = () => {
               <p className="opacity-75">Beneficiaries</p>
               <p className="font-semibold">{fundStats.beneficiaries} learners</p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* User Contribution Breakdown */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="text-base">Your Contributions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-success/10 rounded-lg">
+              <p className="text-sm text-muted-foreground">PET Contributions</p>
+              <p className="text-lg font-bold text-success">R {userContributions.petBottleContributions.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">From recycling</p>
+            </div>
+            <div className="text-center p-3 bg-primary/10 rounded-lg">
+              <p className="text-sm text-muted-foreground">Cash Donations</p>
+              <p className="text-lg font-bold text-primary">R {userContributions.cashDonations.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">Direct donations</p>
+            </div>
+          </div>
+          <div className="text-center p-3 bg-gradient-primary text-primary-foreground rounded-lg">
+            <p className="text-sm opacity-90">Total Personal Impact</p>
+            <p className="text-xl font-bold">R {userContributions.totalPersonal.toFixed(2)}</p>
           </div>
         </CardContent>
       </Card>
