@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart } from "lucide-react";
+import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
@@ -15,6 +15,24 @@ const Dashboard = () => {
     if (totalKgRecycled >= 1000) return { tier: 'Diamond Recycler', color: 'text-accent' };
     if (totalKgRecycled >= 500) return { tier: 'Platinum Recycler', color: 'text-muted-foreground' };
     return { tier: 'Gold Recycler', color: 'text-warning' };
+  };
+
+  const getNextTier = () => {
+    if (totalKgRecycled >= 1000) return 'Max Level';
+    if (totalKgRecycled >= 500) return 'Diamond Recycler';
+    return 'Platinum Recycler';
+  };
+
+  const getKgToNext = () => {
+    if (totalKgRecycled >= 1000) return 0;
+    if (totalKgRecycled >= 500) return 1000 - totalKgRecycled;
+    return 500 - totalKgRecycled;
+  };
+
+  const getProgressPercentage = () => {
+    if (totalKgRecycled >= 1000) return 100;
+    if (totalKgRecycled >= 500) return ((totalKgRecycled - 500) / 500) * 100;
+    return (totalKgRecycled / 500) * 100;
   };
 
   const tierInfo = getTier();
@@ -50,21 +68,36 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Impact Metrics */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-impact rounded-lg">
-                <Recycle className="h-6 w-6 text-success-foreground" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Recycled</p>
-                <p className="text-xl font-bold text-foreground">{totalKgRecycled} kg</p>
-              </div>
+      {/* Recycling Level & Impact */}
+      <Card className="shadow-card border-secondary/20 bg-secondary/10">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-semibold text-foreground">{tierInfo.tier}</h3>
+              <p className="text-sm text-muted-foreground">{totalKgRecycled} kg recycled</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-2 bg-gradient-impact rounded-lg">
+              <Recycle className="h-6 w-6 text-success-foreground" />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Progress to {getNextTier()}</span>
+              <span className="font-medium">{getKgToNext()} kg to go</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
+                style={{ width: `${getProgressPercentage()}%` }}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* CO2 Impact */}
+      <div className="grid grid-cols-1 gap-4">
 
         <Card className="shadow-card">
           <CardContent className="p-4">
