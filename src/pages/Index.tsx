@@ -15,6 +15,8 @@ const Index = () => {
   const getActiveTabFromPath = (pathname: string) => {
     if (pathname === '/rewards') return 'rewards';
     if (pathname === '/fund') return 'scholar';
+    if (pathname === '/history') return 'history';
+    if (pathname === '/profile') return 'profile';
     return 'dashboard';
   };
   
@@ -32,6 +34,10 @@ const Index = () => {
       navigate('/rewards');
     } else if (tab === 'scholar') {
       navigate('/fund');
+    } else if (tab === 'history') {
+      navigate('/history');
+    } else if (tab === 'profile') {
+      navigate('/profile');
     } else {
       navigate('/');
     }
