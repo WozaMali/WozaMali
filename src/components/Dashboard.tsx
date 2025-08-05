@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart, Star } from "lucide-react";
+import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart, Star, Calendar, Clock, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -9,6 +11,25 @@ const Dashboard = () => {
   const totalKgRecycled = 127.5;
   const co2Saved = 89.25;
   const monthlyGrowth = 23;
+
+  // Collection scheduling
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+
+  const nextCollectionDate = "2025-08-12";
+  const nextCollectionTime = "09:00 - 12:00";
+  const nextCollectionArea = "Mitchells Plain Zone B";
+
+  const handleBookCollection = (date: string) => {
+    setSelectedDate(date);
+    setShowBookingModal(true);
+  };
+
+  const confirmBooking = () => {
+    setShowBookingModal(false);
+    // Here you would typically call an API to book the collection
+    alert(`Collection booked for ${selectedDate}`);
+  };
 
   // Determine recycler tier based on total kg
   const getTier = () => {
@@ -47,11 +68,6 @@ const Dashboard = () => {
         
         <div className="space-y-1">
           <p className="text-muted-foreground">Powered by Sebenza Nathi Waste</p>
-          <div className="flex items-center justify-center space-x-2">
-            <div className={`px-3 py-1 rounded-full bg-gradient-primary text-primary-foreground text-sm font-medium ${tierInfo.color}`}>
-              {tierInfo.tier}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -96,9 +112,8 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* CO2 Impact */}
-      <div className="grid grid-cols-1 gap-4">
-
+      {/* CO2 Impact & Monthly Growth */}
+      <div className="grid grid-cols-2 gap-4">
         <Card className="shadow-card">
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
@@ -112,25 +127,24 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Monthly Growth */}
-      <Card className="shadow-card border-success/20 bg-success/5">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-success/20 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-success" />
+        <Card className="shadow-card border-success/20 bg-success/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-success/20 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-success" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Monthly Growth</p>
+                  <p className="text-lg font-bold text-success">+{monthlyGrowth}%</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Monthly Growth</p>
-                <p className="text-lg font-bold text-success">+{monthlyGrowth}%</p>
-              </div>
+              <ArrowUpRight className="h-5 w-5 text-success" />
             </div>
-            <ArrowUpRight className="h-5 w-5 text-success" />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Actions */}
       <div className="space-y-3">
@@ -199,6 +213,89 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Collection Schedule */}
+      <Card className="shadow-card border-primary/20 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center">
+            <Calendar className="h-5 w-5 mr-2 text-primary" />
+            Next Collection
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-gradient-primary text-primary-foreground rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm opacity-90">Collection Date</p>
+                <p className="text-lg font-bold">{nextCollectionDate}</p>
+              </div>
+              <Calendar className="h-8 w-8 opacity-80" />
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center space-x-2">
+                <Clock className="h-4 w-4 opacity-80" />
+                <span>{nextCollectionTime}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-4 w-4 opacity-80" />
+                <span>{nextCollectionArea}</span>
+              </div>
+            </div>
+          </div>
+          
+          <Button 
+            variant="gradient" 
+            className="w-full"
+            onClick={() => handleBookCollection(nextCollectionDate)}
+          >
+            Book Collection
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => navigate('/collections')}
+          >
+            View All Dates
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Booking Confirmation Modal */}
+      <Dialog open={showBookingModal} onOpenChange={setShowBookingModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Collection Booking</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to book a collection for {selectedDate}?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="p-4 bg-secondary/20 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">Collection Details</p>
+              <p className="font-medium">Date: {selectedDate}</p>
+              <p className="font-medium">Time: {nextCollectionTime}</p>
+              <p className="font-medium">Area: {nextCollectionArea}</p>
+            </div>
+            <div className="flex space-x-3">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setShowBookingModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="gradient" 
+                className="flex-1"
+                onClick={confirmBooking}
+              >
+                Confirm Booking
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
