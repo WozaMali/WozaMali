@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, ChevronRight } from "lucide-react";
+import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, ChevronRight, Bell, BookOpen, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
+  const navigate = useNavigate();
   const userProfile = {
     name: "Thabo Mthembu",
     phone: "+27 82 123 4567",
@@ -112,7 +114,51 @@ const Profile = () => {
         </CardContent>
       </Card>
 
-      {/* Settings */}
+      {/* Quick Access */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="text-base">Quick Access</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => navigate('/settings')}
+          >
+            <Settings className="h-4 w-4 mr-3" />
+            Settings
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => navigate('/notifications')}
+          >
+            <Bell className="h-4 w-4 mr-3" />
+            Notifications
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => navigate('/guides')}
+          >
+            <BookOpen className="h-4 w-4 mr-3" />
+            Recycling Guides
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => navigate('/leaderboard')}
+          >
+            <TrendingUp className="h-4 w-4 mr-3" />
+            Leaderboard
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Original Settings */}
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="text-base">Settings</CardTitle>

@@ -8,6 +8,10 @@ import NotFound from "./pages/NotFound";
 import WithdrawalPage from "./pages/WithdrawalPage";
 import CollectionsPage from "./pages/CollectionsPage";
 import SignUpPage from "./pages/SignUpPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import SettingsPage from "./pages/SettingsPage";
+import RecyclingGuidesPage from "./pages/RecyclingGuidesPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +30,10 @@ const App = () => (
           <Route path="/fund" element={<Index />} />
           <Route path="/history" element={<Index />} />
           <Route path="/profile" element={<Index />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/guides" element={<RecyclingGuidesPage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
