@@ -4,6 +4,7 @@ import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart, Star, Cal
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -59,7 +60,10 @@ const Dashboard = () => {
   const tierInfo = getTier();
 
   return (
-    <div className="pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
+    <div className="relative pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       {/* Header */}
       <div className="text-center space-y-3 pt-4">
         <div className="flex justify-center">
@@ -156,7 +160,7 @@ const Dashboard = () => {
           onClick={() => navigate('/withdrawal')}
         >
           <ArrowUpRight className="h-5 w-5 mr-2" />
-          Request Payout
+          Withdrawal
         </Button>
         
         <div className="grid grid-cols-2 gap-3">
@@ -176,6 +180,15 @@ const Dashboard = () => {
           >
             <Heart className="h-5 w-5 mr-2" />
             Donate to Fund
+          </Button>
+
+          <Button 
+            variant="secondary" 
+            className="h-12 col-span-2 sm:col-span-1"
+            onClick={() => navigate('/guides')}
+          >
+            <Recycle className="h-5 w-5 mr-2" />
+            Recycling Guide
           </Button>
         </div>
       </div>
