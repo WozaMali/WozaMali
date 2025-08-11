@@ -8,10 +8,10 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const walletBalance = 2450.75;
-  const totalKgRecycled = 127.5;
-  const co2Saved = 89.25;
-  const monthlyGrowth = 23;
+  const walletBalance = 0;
+  const totalKgRecycled = 0;
+  const co2Saved = 0;
+  const monthlyGrowth = 0;
 
   // Collection scheduling
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -154,14 +154,24 @@ const Dashboard = () => {
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
         
-        <Button 
-          variant="gradient" 
-          className="w-full h-14 text-base"
-          onClick={() => navigate('/withdrawal')}
-        >
-          <ArrowUpRight className="h-5 w-5 mr-2" />
-          Withdrawal
-        </Button>
+        <div className="grid grid-cols-2 gap-3">
+          <Button 
+            variant="gradient" 
+            className="h-12"
+            onClick={() => navigate('/withdrawal')}
+          >
+            <ArrowUpRight className="h-5 w-5 mr-2" />
+            Withdrawal
+          </Button>
+          <Button 
+            variant="impact" 
+            className="h-12"
+            onClick={() => navigate('/guides')}
+          >
+            <Recycle className="h-5 w-5 mr-2" />
+            Recycling Guide
+          </Button>
+        </div>
         
         <div className="grid grid-cols-2 gap-3">
           <Button 
@@ -180,14 +190,6 @@ const Dashboard = () => {
           >
             <Heart className="h-5 w-5 mr-2" />
             Donate to Fund
-          </Button>
-          <Button 
-            variant="impact" 
-            className="h-12 col-span-2 sm:col-span-1"
-            onClick={() => navigate('/guides')}
-          >
-            <Recycle className="h-5 w-5 mr-2" />
-            Recycling Guide
           </Button>
         </div>
       </div>

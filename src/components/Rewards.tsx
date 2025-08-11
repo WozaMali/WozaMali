@@ -52,7 +52,7 @@ const Rewards = () => {
     },
   ];
 
-  const userPoints = 127;
+  const userPoints = 0;
 
   return (
     <div className="pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">

@@ -11,10 +11,10 @@ const Profile = () => {
     phone: "+27 82 123 4567",
     kycStatus: "verified",
     memberSince: "March 2024",
-    totalRecycled: 127.5,
+    totalRecycled: 0,
     level: "Gold Recycler",
     nextLevel: "Platinum",
-    pointsToNext: 23,
+    pointsToNext: 0,
   };
 
   const achievements = [
@@ -80,7 +80,7 @@ const Profile = () => {
             <div className="w-full bg-muted rounded-full h-2">
               <div 
                 className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
-                style={{ width: '77%' }}
+                style={{ width: '0%' }}
               />
             </div>
           </div>
