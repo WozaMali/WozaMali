@@ -165,7 +165,7 @@ const Dashboard = () => {
         
         <div className="grid grid-cols-2 gap-3">
           <Button 
-            variant="warm" 
+            variant="gradient" 
             className="h-12"
             onClick={() => navigate('/rewards')}
           >
@@ -174,16 +174,15 @@ const Dashboard = () => {
           </Button>
           
           <Button 
-            variant="impact" 
+            variant="gradient" 
             className="h-12"
             onClick={() => navigate('/fund')}
           >
             <Heart className="h-5 w-5 mr-2" />
             Donate to Fund
           </Button>
-
           <Button 
-            variant="secondary" 
+            variant="impact" 
             className="h-12 col-span-2 sm:col-span-1"
             onClick={() => navigate('/guides')}
           >
