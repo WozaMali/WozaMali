@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import ThemeToggle from "@/components/ThemeToggle";
+import Logo from "./Logo";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -67,7 +68,7 @@ const Dashboard = () => {
       {/* Header */}
       <div className="text-center space-y-3 pt-4">
         <div className="flex justify-center">
-          <img src="/lovable-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png" alt="Woza Mali Logo" className="h-16 w-auto" />
+          <Logo className="h-16 w-auto" alt="Woza Mali Logo" variant="woza-mali" />
         </div>
         
         <div className="space-y-1">

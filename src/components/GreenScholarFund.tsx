@@ -3,22 +3,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Heart, GraduationCap, Users, Target, TrendingUp, BookOpen, Shirt, Apple } from "lucide-react";
 import { useState } from "react";
+import Logo from "./Logo";
 
 const GreenScholarFund = () => {
   const [donationAmount, setDonationAmount] = useState<number>(0);
   
   const fundStats = {
-    totalRaised: 42750.50,
+    totalRaised: 0.00,
     monthlyGoal: 50000,
-    beneficiaries: 156,
-    thisMonthDonations: 8940.25
+    beneficiaries: 0,
+    thisMonthDonations: 0.00
   };
 
   // User's contribution breakdown
   const userContributions = {
-    petBottleContributions: 1245.75, // From recycling activities
-    cashDonations: 380.00, // Direct donations
-    totalPersonal: 1625.75
+    petBottleContributions: 0.00, // From recycling activities
+    cashDonations: 0.00, // Direct donations
+    totalPersonal: 0.00
   };
 
   const quickAmounts = [10, 25, 50, 100];
@@ -29,7 +30,7 @@ const GreenScholarFund = () => {
       description: "Provide school uniforms for learners in need",
       cost: 350,
       icon: Shirt,
-      funded: 23,
+      funded: 0,
       needed: 12
     },
     {
@@ -37,7 +38,7 @@ const GreenScholarFund = () => {
       description: "Essential school supplies for students",
       cost: 120,
       icon: BookOpen,
-      funded: 45,
+      funded: 0,
       needed: 20
     },
     {
@@ -45,7 +46,7 @@ const GreenScholarFund = () => {
       description: "Weekly food parcels for child-headed households",
       cost: 200,
       icon: Apple,
-      funded: 18,
+      funded: 0,
       needed: 25
     }
   ];
@@ -57,7 +58,7 @@ const GreenScholarFund = () => {
       {/* Header */}
       <div className="text-center space-y-3 pt-4">
         <div className="flex justify-center">
-          <img src="/lovable-uploads/9c12d890-c6b5-4b95-a3af-15175c504d86.png" alt="Green Scholar Fund Logo" className="h-24 w-auto" />
+          <Logo className="h-24 w-auto" alt="Green Scholar Fund Logo" variant="green-scholar-fund" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">Green Scholar Fund</h1>
         <p className="text-muted-foreground">Supporting education through community impact</p>

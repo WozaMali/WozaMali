@@ -17,7 +17,7 @@ const LeaderboardPage = () => {
       location: "Mitchells Plain",
       kg: 45.2,
       points: 1128,
-      avatar: "/lovable-uploads/f6006743-2187-4d7a-8b7c-c77f6b6feda8.png",
+      avatar: "/WozaMali-uploads/f6006743-2187-4d7a-8b7c-c77f6b6feda8.png",
       tier: "Diamond",
       badge: "🏆"
     },
@@ -27,7 +27,7 @@ const LeaderboardPage = () => {
       location: "Khayelitsha",
       kg: 38.7,
       points: 967,
-      avatar: "/lovable-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png",
+      avatar: "/WozaMali-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png",
       tier: "Platinum",
       badge: "🥈"
     },
@@ -37,7 +37,7 @@ const LeaderboardPage = () => {
       location: "Gugulethu", 
       kg: 32.1,
       points: 802,
-      avatar: "/lovable-uploads/9c12d890-c6b5-4b95-a3af-15175c504d86.png",
+      avatar: "/WozaMali-uploads/9c12d890-c6b5-4b95-a3af-15175c504d86.png",
       tier: "Gold",
       badge: "🥉"
     },
@@ -47,7 +47,7 @@ const LeaderboardPage = () => {
       location: "Mitchells Plain",
       kg: 28.5,
       points: 712,
-      avatar: "/lovable-uploads/f6006743-2187-4d7a-8b7c-c77f6b6feda8.png",
+      avatar: "/WozaMali-uploads/f6006743-2187-4d7a-8b7c-c77f6b6feda8.png",
       tier: "Gold",
       badge: "",
       isCurrentUser: true
@@ -58,7 +58,7 @@ const LeaderboardPage = () => {
       location: "Langa",
       kg: 25.3,
       points: 632,
-      avatar: "/lovable-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png",
+      avatar: "/WozaMali-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png",
       tier: "Gold",
       badge: ""
     }
@@ -71,7 +71,7 @@ const LeaderboardPage = () => {
       location: "Nyanga",
       kg: 187.4,
       points: 4685,
-      avatar: "/lovable-uploads/9c12d890-c6b5-4b95-a3af-15175c504d86.png",
+      avatar: "/WozaMali-uploads/9c12d890-c6b5-4b95-a3af-15175c504d86.png",
       tier: "Diamond",
       badge: "👑"
     },
@@ -81,7 +81,7 @@ const LeaderboardPage = () => {
       location: "Mitchells Plain",
       kg: 165.2,
       points: 4130,
-      avatar: "/lovable-uploads/f6006743-2187-4d7a-8b7c-c77f6b6feda8.png",
+      avatar: "/WozaMali-uploads/f6006743-2187-4d7a-8b7c-c77f6b6feda8.png",
       tier: "Diamond",
       badge: "⭐"
     },
@@ -91,7 +91,7 @@ const LeaderboardPage = () => {
       location: "Khayelitsha",
       kg: 142.8,
       points: 3570,
-      avatar: "/lovable-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png",
+      avatar: "/WozaMali-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png",
       tier: "Platinum",
       badge: "💎"
     }

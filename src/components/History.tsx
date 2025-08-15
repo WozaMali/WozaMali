@@ -13,51 +13,51 @@ const History = () => {
       type: 'earning',
       title: 'Recycling Credit',
       description: '5.2 kg plastic bottles processed',
-      amount: 32.50,
+      amount: 0.00,
       date: '2024-01-30',
       time: '14:30',
       icon: Recycle,
-      impact: '3.6 kg CO₂ saved'
+      impact: '0.0 kg CO₂ saved'
     },
     {
       id: 2,
       type: 'reward',
       title: 'Coffee Voucher Redeemed',
       description: 'Bean There - Free coffee',
-      amount: -15.00,
+      amount: 0.00,
       date: '2024-01-29',
       time: '09:15',
       icon: Gift,
-      points: 50
+      points: 0
     },
     {
       id: 3,
       type: 'donation',
       title: 'Green Scholar Fund Donation',
       description: 'Supporting school uniforms',
-      amount: -25.00,
+      amount: 0.00,
       date: '2024-01-28',
       time: '16:45',
       icon: Heart,
-      beneficiaries: 1
+      beneficiaries: 0
     },
     {
       id: 4,
       type: 'earning',
       title: 'Recycling Credit',
       description: '8.1 kg mixed recyclables',
-      amount: 48.75,
+      amount: 0.00,
       date: '2024-01-27',
       time: '11:20',
       icon: Recycle,
-      impact: '5.7 kg CO₂ saved'
+      impact: '0.0 kg CO₂ saved'
     },
     {
       id: 5,
       type: 'earning',
       title: 'Bonus Credit',
       description: 'Weekly recycling goal achieved',
-      amount: 20.00,
+      amount: 0.00,
       date: '2024-01-26',
       time: '18:00',
       icon: Recycle,
@@ -68,11 +68,11 @@ const History = () => {
       type: 'reward',
       title: 'Woolworths Discount Used',
       description: '10% off grocery purchase',
-      amount: -35.50,
+      amount: 0.00,
       date: '2024-01-25',
       time: '13:10',
       icon: Gift,
-      points: 75
+      points: 0
     },
   ];
 

@@ -33,6 +33,14 @@ const RecyclingGuidesPage = () => {
         { name: "Colored Glass Bottles", accepted: true, tips: "Separate by color when possible." },
         { name: "Window Glass", accepted: false, tips: "Different melting point than bottle glass." }
       ]
+    },
+    {
+      category: "Aluminium Cans",
+      items: [
+        { name: "Beverage Cans (Soda, Beer)", accepted: true, tips: "Rinse thoroughly and crush to save space." },
+        { name: "Food Cans (Tuna, Beans)", accepted: true, tips: "Clean thoroughly and remove labels when possible." },
+        { name: "Aerosol Cans", accepted: false, tips: "These require special handling due to pressurized contents." }
+      ]
     }
   ];
 
