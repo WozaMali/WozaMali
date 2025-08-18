@@ -14,7 +14,24 @@ import { useAuth } from "@/contexts/AuthContext";
 const SettingsPage = () => {
   const navigate = useRouter();
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const { signOut } = useAuth();
+  
+  // Try to use auth context, but handle the case where it might not be ready
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    // AuthProvider not ready yet, show loading
+    return (
+      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { signOut } = authContext;
   const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState("en");

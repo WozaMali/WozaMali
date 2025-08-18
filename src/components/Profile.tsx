@@ -11,7 +11,24 @@ import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, Che
 
 const Profile = () => {
   const navigate = useRouter();
-  const { user, signOut } = useAuth();
+  
+  // Try to use auth context, but handle the case where it might not be ready
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    // AuthProvider not ready yet, show loading
+    return (
+      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { user, signOut } = authContext;
   const [isEditing, setIsEditing] = useState(false);
 
   const handleLogout = async () => {

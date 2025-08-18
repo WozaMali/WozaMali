@@ -14,15 +14,37 @@ const SignInPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const navigate = useRouter();
-  const { signIn, user, loading: authLoading } = useAuth();
+  
+  // Try to use auth context, but handle the case where it might not be ready
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    // AuthProvider not ready yet, show loading
+    return (
+      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { signIn, user, loading: authLoading } = authContext;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Redirect if already logged in
   useEffect(() => {
-    if (!authLoading && user) {
+    if (mounted && !authLoading && user) {
       navigate.push('/');
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, mounted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
