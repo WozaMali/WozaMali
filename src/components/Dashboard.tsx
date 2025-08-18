@@ -8,9 +8,29 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import ThemeToggle from "@/components/ThemeToggle";
 import Logo from "./Logo";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const navigate = useRouter();
+  
+  // Try to use auth context, but handle the case where it might not be ready
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    // AuthProvider not ready yet, show loading
+    return (
+      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { user } = authContext;
+  
   const walletBalance = 0;
   const totalKgRecycled = 0;
   const co2Saved = 0;
@@ -22,7 +42,31 @@ const Dashboard = () => {
 
   const nextCollectionDate = "2025-08-12";
   const nextCollectionTime = "09:00 - 12:00";
-  const nextCollectionArea = "Mitchells Plain Zone B";
+  
+  // Use user's address from signup instead of hardcoded area
+  const getUserAddress = () => {
+    if (!user?.user_metadata) return "Address not provided";
+    
+    const { street_address, suburb, city, postal_code } = user.user_metadata;
+    
+    if (street_address && suburb && city) {
+      return `${street_address}, ${suburb}, ${city}${postal_code ? `, ${postal_code}` : ''}`;
+    } else if (street_address && city) {
+      return `${street_address}, ${city}`;
+    } else if (city) {
+      return city;
+    }
+    
+    return "Address not provided";
+  };
+
+  const nextCollectionArea = getUserAddress();
+  
+  // Check if user has provided address information
+  const hasAddress = user?.user_metadata && (
+    user.user_metadata.street_address || 
+    user.user_metadata.city
+  );
 
   const handleBookCollection = (date: string) => {
     setSelectedDate(date);
@@ -210,10 +254,10 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm font-medium">Recycling Credit</p>
-                <p className="text-xs text-muted-foreground">5.2 kg processed</p>
+                <p className="text-xs text-muted-foreground">0.0 kg processed</p>
               </div>
             </div>
-            <p className="text-sm font-bold text-success">+R 32.50</p>
+            <p className="text-sm font-bold text-success">+R 0.00</p>
           </div>
           
           <div className="flex items-center justify-between">
@@ -223,10 +267,10 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm font-medium">Reward Redeemed</p>
-                <p className="text-xs text-muted-foreground">Coffee voucher</p>
+                <p className="text-xs text-muted-foreground">No rewards yet</p>
               </div>
             </div>
-            <p className="text-sm font-bold text-muted-foreground">-R 15.00</p>
+            <p className="text-sm font-bold text-muted-foreground">-R 0.00</p>
           </div>
         </CardContent>
       </Card>
@@ -258,14 +302,31 @@ const Dashboard = () => {
                 <span>{nextCollectionArea}</span>
               </div>
             </div>
+            
+            {!hasAddress && (
+              <div className="mt-3 p-3 bg-warning/20 rounded-lg border border-warning/30">
+                <p className="text-xs text-warning-foreground text-center mb-2">
+                  Please update your profile with your address to enable collection booking
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs h-8"
+                  onClick={() => navigate.push('/profile')}
+                >
+                  Update Address in Profile
+                </Button>
+              </div>
+            )}
           </div>
           
           <Button 
             variant="gradient" 
             className="w-full"
             onClick={() => handleBookCollection(nextCollectionDate)}
+            disabled={!hasAddress}
           >
-            Book Collection
+            {hasAddress ? "Book Collection" : "Address Required"}
           </Button>
           
           <Button 
