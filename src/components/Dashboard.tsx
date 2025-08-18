@@ -1,14 +1,16 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart, Star, Calendar, Clock, MapPin } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import ThemeToggle from "@/components/ThemeToggle";
 import Logo from "./Logo";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
+  const navigate = useRouter();
   const walletBalance = 0;
   const totalKgRecycled = 0;
   const co2Saved = 0;
@@ -159,7 +161,7 @@ const Dashboard = () => {
           <Button 
             variant="gradient" 
             className="h-12"
-            onClick={() => navigate('/withdrawal')}
+            onClick={() => navigate.push('/withdrawal')}
           >
             <ArrowUpRight className="h-5 w-5 mr-2" />
             Withdrawal
@@ -167,7 +169,7 @@ const Dashboard = () => {
           <Button 
             variant="impact" 
             className="h-12"
-            onClick={() => navigate('/guides')}
+            onClick={() => navigate.push('/guides')}
           >
             <Recycle className="h-5 w-5 mr-2" />
             Recycling Guide
@@ -178,7 +180,7 @@ const Dashboard = () => {
           <Button 
             variant="gradient" 
             className="h-12"
-            onClick={() => navigate('/rewards')}
+            onClick={() => navigate.push('/rewards')}
           >
             <Gift className="h-5 w-5 mr-2" />
             Redeem Reward
@@ -187,7 +189,7 @@ const Dashboard = () => {
           <Button 
             variant="gradient" 
             className="h-12"
-            onClick={() => navigate('/fund')}
+            onClick={() => navigate.push('/fund')}
           >
             <Heart className="h-5 w-5 mr-2" />
             Donate to Fund
@@ -269,7 +271,7 @@ const Dashboard = () => {
           <Button 
             variant="outline" 
             className="w-full"
-            onClick={() => navigate('/collections')}
+            onClick={() => navigate.push('/collections')}
           >
             View All Dates
           </Button>

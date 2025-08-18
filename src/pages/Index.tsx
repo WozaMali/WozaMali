@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useRouter, usePathname } from "next/navigation";
 import BottomNavigation from "@/components/BottomNavigation";
 import Dashboard from "@/components/Dashboard";
 import Rewards from "@/components/Rewards";
@@ -8,11 +10,12 @@ import History from "@/components/History";
 import Profile from "@/components/Profile";
 
 const Index = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const router = useRouter();
+  const pathname = usePathname();
   
   // Map URL paths to tab IDs
-  const getActiveTabFromPath = (pathname: string) => {
+  const getActiveTabFromPath = (pathname: string | null) => {
+    if (!pathname) return 'dashboard';
     if (pathname === '/rewards') return 'rewards';
     if (pathname === '/fund') return 'scholar';
     if (pathname === '/history') return 'history';
@@ -20,26 +23,26 @@ const Index = () => {
     return 'dashboard';
   };
   
-  const [activeTab, setActiveTab] = useState(getActiveTabFromPath(location.pathname));
+  const [activeTab, setActiveTab] = useState(getActiveTabFromPath(pathname));
 
   // Update active tab when URL changes
   useEffect(() => {
-    setActiveTab(getActiveTabFromPath(location.pathname));
-  }, [location.pathname]);
+    setActiveTab(getActiveTabFromPath(pathname));
+  }, [pathname]);
 
   // Handle tab change and navigation
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === 'rewards') {
-      navigate('/rewards');
+      router.push('/rewards');
     } else if (tab === 'scholar') {
-      navigate('/fund');
+      router.push('/fund');
     } else if (tab === 'history') {
-      navigate('/history');
+      router.push('/history');
     } else if (tab === 'profile') {
-      navigate('/profile');
+      router.push('/profile');
     } else {
-      navigate('/');
+      router.push('/');
     }
   };
 

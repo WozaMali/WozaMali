@@ -1,13 +1,15 @@
+"use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Recycle, CheckCircle, XCircle, AlertTriangle, Lightbulb, Award } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 const RecyclingGuidesPage = () => {
-  const navigate = useNavigate();
+  const navigate = useRouter();
 
   const recyclableItems = [
     {
@@ -96,7 +98,7 @@ const RecyclingGuidesPage = () => {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate.back()}
             className="mr-3"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -190,7 +192,7 @@ const RecyclingGuidesPage = () => {
                     variant="gradient" 
                     size="sm" 
                     className="mt-3"
-                    onClick={() => navigate('/collections')}
+                    onClick={() => navigate.push('/collections')}
                   >
                     Schedule Collection
                   </Button>

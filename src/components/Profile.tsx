@@ -1,14 +1,36 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, ChevronRight, Bell, BookOpen, TrendingUp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
-  const navigate = useNavigate();
+  const navigate = useRouter();
+  const { user, signOut } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate.push('/auth/sign-in');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   const userProfile = {
-    name: "Thabo Mthembu",
-    phone: "+27 82 123 4567",
+    name: user?.user_metadata?.full_name || "User",
+    phone: user?.user_metadata?.phone || "No phone number",
+    email: user?.email || "No email",
+    streetAddress: user?.user_metadata?.street_address || "No address",
+    suburb: user?.user_metadata?.suburb || "No suburb",
+    city: user?.user_metadata?.city || "No city",
+    postalCode: user?.user_metadata?.postal_code || "No postal code",
     kycStatus: "verified",
     memberSince: "March 2024",
     totalRecycled: 0,
@@ -49,6 +71,7 @@ const Profile = () => {
             <div className="flex-1">
               <h2 className="text-xl font-bold">{userProfile.name}</h2>
               <p className="text-sm opacity-90">{userProfile.phone}</p>
+              <p className="text-sm opacity-90">{userProfile.email}</p>
               <div className="flex items-center space-x-2 mt-2">
                 <Badge variant="secondary" className="bg-white/20 text-primary-foreground border-0">
                   <Shield className="h-3 w-3 mr-1" />
@@ -58,6 +81,34 @@ const Profile = () => {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Address Information */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="text-base">Address Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {userProfile.streetAddress !== "No address" && (
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/20 rounded-lg">
+                <User className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground">{userProfile.streetAddress}</p>
+                <p className="text-sm text-muted-foreground">
+                  {userProfile.suburb !== "No suburb" && userProfile.suburb}, {userProfile.city !== "No city" && userProfile.city}
+                  {userProfile.postalCode !== "No postal code" && `, ${userProfile.postalCode}`}
+                </p>
+              </div>
+            </div>
+          )}
+          {userProfile.streetAddress === "No address" && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No address information provided
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -123,7 +174,7 @@ const Profile = () => {
           <Button 
             variant="outline" 
             className="w-full justify-start"
-            onClick={() => navigate('/settings')}
+            onClick={() => navigate.push('/settings')}
           >
             <Settings className="h-4 w-4 mr-3" />
             Settings
@@ -132,7 +183,7 @@ const Profile = () => {
           <Button 
             variant="outline" 
             className="w-full justify-start"
-            onClick={() => navigate('/notifications')}
+            onClick={() => navigate.push('/notifications')}
           >
             <Bell className="h-4 w-4 mr-3" />
             Notifications
@@ -141,7 +192,7 @@ const Profile = () => {
           <Button 
             variant="outline" 
             className="w-full justify-start"
-            onClick={() => navigate('/guides')}
+            onClick={() => navigate.push('/guides')}
           >
             <BookOpen className="h-4 w-4 mr-3" />
             Recycling Guides
@@ -150,7 +201,7 @@ const Profile = () => {
           <Button 
             variant="outline" 
             className="w-full justify-start"
-            onClick={() => navigate('/leaderboard')}
+            onClick={() => navigate.push('/leaderboard')}
           >
             <TrendingUp className="h-4 w-4 mr-3" />
             Leaderboard
@@ -198,7 +249,7 @@ const Profile = () => {
       </Card>
 
       {/* Logout */}
-      <Button variant="destructive" className="w-full h-12">
+      <Button variant="destructive" className="w-full h-12" onClick={handleLogout}>
         <LogOut className="h-5 w-5 mr-2" />
         Logout
       </Button>

@@ -1,11 +1,13 @@
+"use client";
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Calendar, MapPin, Clock } from "lucide-react";
 
 const CollectionsPage = () => {
-  const navigate = useNavigate();
+  const navigate = useRouter();
   const [collectionDates] = useState([
     { date: '2025-08-05', time: '08:00 - 12:00', area: 'Zone A', available: true },
     { date: '2025-08-12', time: '08:00 - 12:00', area: 'Zone B', available: true },
@@ -23,7 +25,7 @@ const CollectionsPage = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold">Collections</h1>

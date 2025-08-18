@@ -1,14 +1,24 @@
+"use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Calendar, Gift, Recycle, ArrowLeft, Clock, CheckCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 const NotificationsPage = () => {
-  const navigate = useNavigate();
-  const [notifications, setNotifications] = useState({
+  const navigate = useRouter();
+  
+  type NotificationSettings = {
+    collections: boolean;
+    rewards: boolean;
+    fund: boolean;
+    system: boolean;
+  };
+  
+  const [notifications, setNotifications] = useState<NotificationSettings>({
     collections: true,
     rewards: true,
     fund: false,
@@ -45,7 +55,7 @@ const NotificationsPage = () => {
     }
   ];
 
-  const handleNotificationToggle = (type: string) => {
+  const handleNotificationToggle = (type: keyof NotificationSettings) => {
     setNotifications(prev => ({
       ...prev,
       [type]: !prev[type]
@@ -64,7 +74,7 @@ const NotificationsPage = () => {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate.back()}
             className="mr-3"
           >
             <ArrowLeft className="h-5 w-5" />

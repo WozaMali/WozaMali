@@ -1,17 +1,36 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Settings, Moon, Sun, Bell, Shield, HelpCircle, LogOut, User, Globe } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SettingsPage = () => {
-  const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
+  const navigate = useRouter();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { signOut } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState("en");
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate.push('/auth/sign-in');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   const settingSections = [
     {
@@ -22,8 +41,8 @@ const SettingsPage = () => {
           title: "Dark Mode",
           description: "Switch between light and dark themes",
           type: "toggle",
-          value: darkMode,
-          onChange: setDarkMode
+          value: resolvedTheme === "dark",
+          onChange: (checked: boolean) => setTheme(checked ? "dark" : "light")
         },
         {
           icon: Globe,
@@ -59,10 +78,10 @@ const SettingsPage = () => {
       items: [
         {
           icon: User,
-          title: "Edit Profile",
+          title: "Profile",
           description: "Update your personal information",
           type: "button",
-          action: () => navigate("/profile")
+          action: () => navigate.push("/profile")
         },
         {
           icon: Shield,
@@ -165,7 +184,7 @@ const SettingsPage = () => {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate.back()}
             className="mr-3"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -197,6 +216,7 @@ const SettingsPage = () => {
             <Button 
               variant="ghost" 
               className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-3" />
               Log Out

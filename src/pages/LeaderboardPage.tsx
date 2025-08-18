@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Trophy, Medal, Award, TrendingUp, Crown, Star } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 const LeaderboardPage = () => {
-  const navigate = useNavigate();
+  const navigate = useRouter();
 
   const weeklyLeaders = [
     {
@@ -155,7 +157,7 @@ const LeaderboardPage = () => {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate.back()}
             className="mr-3"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -285,7 +287,7 @@ const LeaderboardPage = () => {
                   <Button 
                     variant="warm" 
                     size="sm"
-                    onClick={() => navigate('/collections')}
+                    onClick={() => navigate.push('/collections')}
                   >
                     Schedule Collection
                   </Button>

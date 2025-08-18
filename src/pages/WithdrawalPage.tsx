@@ -1,5 +1,7 @@
+"use client";
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,20 +12,20 @@ const WithdrawalPage = () => {
   const [bank, setBank] = useState("");
   const [account, setAccount] = useState("");
   const [amount, setAmount] = useState("");
-  const navigate = useNavigate();
+  const navigate = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // API call would go here
     alert(`Withdrawal of R${amount} requested`);
-    navigate("/");
+    navigate.push("/");
   };
 
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate.push("/")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold">Withdrawal</h1>
