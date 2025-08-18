@@ -8,40 +8,36 @@ ADD COLUMN IF NOT EXISTS suburb TEXT,
 ADD COLUMN IF NOT EXISTS city TEXT,
 ADD COLUMN IF NOT EXISTS postal_code TEXT;
 
+-- Add new address columns
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ext_zone_phase TEXT;
+
 -- Make full_name NOT NULL if it isn't already
 ALTER TABLE public.profiles 
 ALTER COLUMN full_name SET NOT NULL;
 
 -- Update the handle_new_user function to handle new fields
-CREATE OR REPLACE FUNCTION public.handle_new_user()
+CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Insert profile with all available fields
   INSERT INTO public.profiles (
-    id, 
-    email, 
+    id,
     full_name,
     phone,
     street_address,
     suburb,
+    ext_zone_phase,
     city,
     postal_code
-  )
-  VALUES (
-    NEW.id, 
-    NEW.email, 
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+  ) VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data->>'full_name',
     NEW.raw_user_meta_data->>'phone',
     NEW.raw_user_meta_data->>'street_address',
     NEW.raw_user_meta_data->>'suburb',
+    NEW.raw_user_meta_data->>'ext_zone_phase',
     NEW.raw_user_meta_data->>'city',
     NEW.raw_user_meta_data->>'postal_code'
   );
-  
-  -- Insert wallet
-  INSERT INTO public.wallets (user_id)
-  VALUES (NEW.id);
-  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

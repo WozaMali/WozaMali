@@ -17,6 +17,7 @@ const SignUpPage = () => {
   const [phone, setPhone] = useState("");
   const [streetAddress, setStreetAddress] = useState("");
   const [suburb, setSuburb] = useState("");
+  const [extZonePhase, setExtZonePhase] = useState("");
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,7 @@ const SignUpPage = () => {
     setLoading(true);
 
     try {
-      const { error } = await signUp(email, password, fullName, phone, streetAddress, suburb, city, postalCode);
+      const { error } = await signUp(email, password, fullName, phone, streetAddress, suburb, extZonePhase, city, postalCode);
       
       if (error) {
         toast({
@@ -192,16 +193,28 @@ const SignUpPage = () => {
               />
             </div>
             <div className="text-left">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="extZonePhase">Ext/Zone/Phase</Label>
               <Input
-                id="city"
+                id="extZonePhase"
                 type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
+                value={extZonePhase}
+                onChange={(e) => setExtZonePhase(e.target.value)}
+                placeholder="Ext/Zone/Phase"
                 className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
               />
             </div>
+          </div>
+
+          <div className="text-left">
+            <Label htmlFor="city">City</Label>
+            <Input
+              id="city"
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="City"
+              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+            />
           </div>
 
           <div className="text-left">

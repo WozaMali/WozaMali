@@ -46,6 +46,7 @@ const Profile = () => {
     email: user?.email || "No email",
     streetAddress: user?.user_metadata?.street_address || "No address",
     suburb: user?.user_metadata?.suburb || "No suburb",
+    extZonePhase: user?.user_metadata?.ext_zone_phase || "No ext/zone/phase",
     city: user?.user_metadata?.city || "No city",
     postalCode: user?.user_metadata?.postal_code || "No postal code",
     kycStatus: "verified",
@@ -115,7 +116,7 @@ const Profile = () => {
               <div className="flex-1">
                 <p className="font-medium text-foreground">{userProfile.streetAddress}</p>
                 <p className="text-sm text-muted-foreground">
-                  {userProfile.suburb !== "No suburb" && userProfile.suburb}, {userProfile.city !== "No city" && userProfile.city}
+                  {userProfile.suburb !== "No suburb" && userProfile.suburb}, {userProfile.extZonePhase !== "No ext/zone/phase" && userProfile.extZonePhase}, {userProfile.city !== "No city" && userProfile.city}
                   {userProfile.postalCode !== "No postal code" && `, ${userProfile.postalCode}`}
                 </p>
               </div>

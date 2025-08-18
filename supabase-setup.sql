@@ -6,12 +6,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   full_name TEXT NOT NULL,
   phone TEXT,
   street_address TEXT,
   suburb TEXT,
+  ext_zone_phase TEXT,
   city TEXT,
   postal_code TEXT,
   avatar_url TEXT,
@@ -66,6 +67,7 @@ BEGIN
     phone,
     street_address,
     suburb,
+    ext_zone_phase,
     city,
     postal_code
   )
@@ -76,6 +78,7 @@ BEGIN
     NEW.raw_user_meta_data->>'phone',
     NEW.raw_user_meta_data->>'street_address',
     NEW.raw_user_meta_data->>'suburb',
+    NEW.raw_user_meta_data->>'ext_zone_phase',
     NEW.raw_user_meta_data->>'city',
     NEW.raw_user_meta_data->>'postal_code'
   );

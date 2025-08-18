@@ -8,10 +8,10 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, phone?: string, streetAddress?: string, suburb?: string, city?: string, postalCode?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, phone?: string, streetAddress?: string, suburb?: string, extZonePhase?: string, city?: string, postalCode?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: { full_name?: string; phone?: string; street_address?: string; suburb?: string; city?: string; postal_code?: string; avatar_url?: string }) => Promise<{ error: any }>;
+  updateProfile: (updates: { full_name?: string; phone?: string; street_address?: string; suburb?: string; ext_zone_phase?: string; city?: string; postal_code?: string; avatar_url?: string }) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const signUp = async (email: string, password: string, fullName: string, phone?: string, streetAddress?: string, suburb?: string, city?: string, postalCode?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, phone?: string, streetAddress?: string, suburb?: string, extZonePhase?: string, city?: string, postalCode?: string) => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             suburb: suburb || null,
             city: city || null,
             postal_code: postalCode || null,
+            ext_zone_phase: extZonePhase || null,
           },
         },
       });
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProfile = async (updates: { full_name?: string; phone?: string; street_address?: string; suburb?: string; city?: string; postal_code?: string; avatar_url?: string }) => {
+  const updateProfile = async (updates: { full_name?: string; phone?: string; street_address?: string; suburb?: string; ext_zone_phase?: string; city?: string; postal_code?: string; avatar_url?: string }) => {
     if (!user) return { error: new Error('No user logged in') };
 
     try {
