@@ -1,74 +1,51 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
 
-const SignInPage = () => {
+const SignIn = () => {
+  const navigate = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const navigate = useRouter();
-  
-  // Try to use auth context, but handle the case where it might not be ready
-  let authContext;
-  try {
-    authContext = useAuth();
-  } catch (error) {
-    // AuthProvider not ready yet, show loading
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
-          <p className="text-white">Initializing...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const { signIn, user, loading: authLoading } = authContext;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (mounted && !authLoading && user) {
-      navigate.push('/');
-    }
-  }, [user, authLoading, navigate, mounted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
-      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
       if (error) {
         toast({
-          title: "Login failed",
-          description: error.message,
+          title: "Sign in failed",
+          description: error.message || "Please check your credentials and try again.",
           variant: "destructive",
         });
       } else {
         toast({
           title: "Welcome back!",
-          description: "You've been successfully logged in.",
+          description: "You have successfully signed in.",
         });
         navigate.push("/");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Login failed",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Sign in failed",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -76,31 +53,14 @@ const SignInPage = () => {
     }
   };
 
-  // Show loading while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
-          <p className="text-white">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't show login form if already authenticated
-  if (user) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 relative overflow-hidden">
       {/* Top Section - centered logo in dark background */}
       <div className="flex items-center justify-center h-[40vh]">
         {/* Logo - Yellow W logo */}
         <div className="w-40 h-40">
           <Image
-            src="/WozaMali-uploads/w yellow.png"
+            src="/WozaMali-uploads/w white.png"
             alt="Woza Mali Logo"
             width={320}
             height={320}
@@ -113,10 +73,15 @@ const SignInPage = () => {
       <div className="bg-white flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[60vh] shadow-[0_-10px_30px_rgba(234,179,8,0.3)]">
         {/* Sign in text */}
         <div className="text-center mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Sign in to your Woza Mali account</h2>
+          <h2 className="text-lg font-semibold mb-2 text-gray-600">
+            Sign in to your Woza Mali account
+          </h2>
+          <p className="text-sm text-gray-600">
+            Enter your credentials to access your account
+          </p>
         </div>
 
-        {/* Login Form */}
+        {/* Sign In Form */}
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
           <div>
             <Input
@@ -124,21 +89,29 @@ const SignInPage = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Email"
               required
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
+              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+              style={{
+                WebkitTextFillColor: 'rgb(75, 85, 99)',
+                color: 'rgb(75, 85, 99)'
+              }}
             />
           </div>
-          
+
           <div>
             <Input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Password"
               required
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
+              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+              style={{
+                WebkitTextFillColor: 'rgb(75, 85, 99)',
+                color: 'rgb(75, 85, 99)'
+              }}
             />
           </div>
 
@@ -155,15 +128,12 @@ const SignInPage = () => {
 
         {/* Bottom Links */}
         <div className="mt-8 space-y-3 text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{" "}
-            <Link 
-              href="/auth/sign-up"
-              className="text-orange-600 font-bold hover:underline"
-            >
-              Sign Up
-            </Link>
-          </p>
+          <Link 
+            href="/auth/sign-up"
+            className="block text-sm text-gray-600 hover:text-orange-500 transition-colors duration-200"
+          >
+            Don't have an account? Sign Up
+          </Link>
           <Link 
             href="/auth/forgot-password"
             className="block text-sm text-gray-600 hover:text-orange-500 transition-colors duration-200"
@@ -176,4 +146,4 @@ const SignInPage = () => {
   );
 };
 
-export default SignInPage;
+export default SignIn;

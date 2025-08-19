@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProfile = async (updates: { full_name?: string; phone?: string; street_address?: string; suburb?: string; ext_zone_phase?: string; city?: string; postal_code?: string; avatar_url?: string }) => {
+  const updateProfile = async (updates: { full_name?: string; phone?: string; street_address?: string; suburb?: string; city?: string; postal_code?: string; avatar_url?: string }) => {
     if (!user) return { error: new Error('No user logged in') };
 
     try {

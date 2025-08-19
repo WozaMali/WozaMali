@@ -1,80 +1,88 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Eye, EyeOff, Mail, Lock, User, Phone, MapPin, Building, Hash } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
 
-const SignUpPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [streetAddress, setStreetAddress] = useState("");
-  const [suburb, setSuburb] = useState("");
-  const [city, setCity] = useState("");
-  const [postalCode, setPostalCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
+const SignUp = () => {
   const navigate = useRouter();
-  
-  // Try to use auth context, but handle the case where it might not be ready
-  let authContext;
-  try {
-    authContext = useAuth();
-  } catch (error) {
-    // AuthProvider not ready yet, show loading
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
-          <p className="text-white">Initializing...</p>
-        </div>
-      </div>
-    );
-  }
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
+    streetAddress: "",
+    suburb: "",
+    city: "",
+    postalCode: ""
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const { signUp, user, loading: authLoading } = authContext;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (mounted && !authLoading && user) {
-      navigate.push('/');
-    }
-  }, [user, authLoading, navigate, mounted]);
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Password mismatch",
+        description: "Passwords do not match. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await signUp(email, password, fullName, phone, streetAddress, suburb, city, postalCode);
-      
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            phone: formData.phone,
+            street_address: formData.streetAddress,
+            suburb: formData.suburb,
+            city: formData.city,
+            postal_code: formData.postalCode
+          }
+        }
+      });
+
       if (error) {
         toast({
           title: "Sign up failed",
-          description: error.message,
+          description: error.message || "Please check your information and try again.",
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Check your email",
-          description: "We've sent you a confirmation link to verify your account.",
+          title: "Account created!",
+          description: "Please check your email to verify your account.",
         });
-        navigate.push("/");
+        navigate.push("/auth/sign-in");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Sign up failed",
-        description: "An unexpected error occurred. Please try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -82,31 +90,14 @@ const SignUpPage = () => {
     }
   };
 
-  // Show loading while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
-          <p className="text-white">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't show signup form if already authenticated
-  if (user) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 relative overflow-hidden">
       {/* Top Section - centered logo in dark background */}
       <div className="flex items-center justify-center h-[40vh]">
-        {/* Logo - Yellow W logo */}
+        {/* Logo - White W logo */}
         <div className="w-40 h-40">
           <Image
-            src="/WozaMali-uploads/w yellow.png"
+            src="/WozaMali-uploads/w white.png"
             alt="Woza Mali Logo"
             width={320}
             height={320}
@@ -119,120 +110,221 @@ const SignUpPage = () => {
       <div className="bg-white flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[60vh] shadow-[0_-10px_30px_rgba(234,179,8,0.3)]">
         {/* Sign up text */}
         <div className="text-center mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Create your Woza Mali account</h2>
+          <h2 className="text-lg font-semibold mb-2 text-gray-600">
+            Create your Woza Mali account
+          </h2>
+          <p className="text-sm text-gray-600">
+            Fill in your details to get started
+          </p>
         </div>
 
         {/* Sign Up Form */}
-        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
-          <div>
-            <Input
-              id="fullName"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Enter your full name"
-              required
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
-            />
-          </div>
-          
-          <div>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
-            />
-          </div>
-          
-          <div>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
-            />
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
+          {/* Personal Information */}
+          <div className="space-y-2">
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Full Name"
+                value={formData.fullName}
+                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                style={{
+                  WebkitTextFillColor: 'rgb(75, 85, 99)',
+                  color: 'rgb(75, 85, 99)'
+                }}
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter your phone number"
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
-            />
+          <div className="space-y-2">
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                type="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                style={{
+                  WebkitTextFillColor: 'rgb(75, 85, 99)',
+                  color: 'rgb(75, 85, 99)'
+                }}
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <Input
-              id="streetAddress"
-              type="text"
-              value={streetAddress}
-              onChange={(e) => setStreetAddress(e.target.value)}
-              placeholder="Enter your street address"
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
-            />
+          <div className="space-y-2">
+            <div className="relative">
+              <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                type="tel"
+                placeholder="Phone Number"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                style={{
+                  WebkitTextFillColor: 'rgb(75, 85, 99)',
+                  color: 'rgb(75, 85, 99)'
+                }}
+              />
+            </div>
           </div>
 
-          <div>
-            <Input
-              id="suburb"
-              type="text"
-              value={suburb}
-              onChange={(e) => setSuburb(e.target.value)}
-              placeholder="Enter your suburb"
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
-            />
+          <div className="space-y-2">
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={formData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                className="pl-10 pr-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                style={{
+                  WebkitTextFillColor: 'rgb(75, 85, 99)',
+                  color: 'rgb(75, 85, 99)'
+                }}
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-10 px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </Button>
+            </div>
           </div>
 
-          <div>
-            <Input
-              id="city"
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Enter your city"
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
-            />
+          <div className="space-y-2">
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirm Password"
+                value={formData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                className="pl-10 pr-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                style={{
+                  WebkitTextFillColor: 'rgb(75, 85, 99)',
+                  color: 'rgb(75, 85, 99)'
+                }}
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-10 px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </Button>
+            </div>
           </div>
 
-          <div>
-            <Input
-              id="postalCode"
-              type="text"
-              value={postalCode}
-              onChange={(e) => setPostalCode(e.target.value)}
-              placeholder="Enter your postal code"
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
-            />
+          {/* Address Information */}
+          <div className="space-y-2">
+            <div className="relative">
+              <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Street Address"
+                value={formData.streetAddress}
+                onChange={(e) => handleInputChange('streetAddress', e.target.value)}
+                className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                style={{
+                  WebkitTextFillColor: 'rgb(75, 85, 99)',
+                  color: 'rgb(75, 85, 99)'
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="relative">
+              <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Suburb"
+                value={formData.suburb}
+                onChange={(e) => handleInputChange('suburb', e.target.value)}
+                className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                style={{
+                  WebkitTextFillColor: 'rgb(75, 85, 99)',
+                  color: 'rgb(75, 85, 99)'
+                }}
+              />
+            </div>
+
+            <div className="relative">
+              <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="City"
+                value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                style={{
+                  WebkitTextFillColor: 'rgb(75, 85, 99)',
+                  color: 'rgb(75, 85, 99)'
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="relative">
+              <Hash className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Postal Code"
+                value={formData.postalCode}
+                onChange={(e) => handleInputChange('postalCode', e.target.value)}
+                className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                style={{
+                  WebkitTextFillColor: 'rgb(75, 85, 99)',
+                  color: 'rgb(75, 85, 99)'
+                }}
+              />
+            </div>
           </div>
 
           <div className="pt-4">
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-12 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-base font-bold rounded-lg shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
               disabled={loading}
             >
-              {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
+              {loading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto"></div>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </div>
         </form>
 
-        {/* Bottom Links */}
-        <div className="mt-8 space-y-3 text-center">
+        {/* Links */}
+        <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             Already have an account?{" "}
-            <Link 
+            <Link
               href="/auth/sign-in"
-              className="text-orange-600 font-bold hover:underline"
+              className="text-orange-600 hover:text-orange-700 font-medium hover:underline"
             >
               Sign In
             </Link>
@@ -243,4 +335,4 @@ const SignUpPage = () => {
   );
 };
 
-export default SignUpPage;
+export default SignUp;

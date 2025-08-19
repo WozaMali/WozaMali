@@ -1,19 +1,20 @@
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Mail, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 
-const ForgotPasswordPage = () => {
+const ForgotPassword = () => {
+  const navigate = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-  const navigate = useRouter();
+  const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,24 +24,24 @@ const ForgotPasswordPage = () => {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
-      
+
       if (error) {
         toast({
           title: "Reset failed",
-          description: error.message,
+          description: error.message || "Please check your email and try again.",
           variant: "destructive",
         });
       } else {
-        setEmailSent(true);
+        setSent(true);
         toast({
-          title: "Check your email",
-          description: "We've sent you a password reset link.",
+          title: "Reset email sent!",
+          description: "Please check your email for password reset instructions.",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Reset failed",
-        description: "An unexpected error occurred. Please try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -48,55 +49,48 @@ const ForgotPasswordPage = () => {
     }
   };
 
-  if (emailSent) {
+  if (sent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
-        {/* Top Section - centered logo in dark background */}
-        <div className="flex items-center justify-center h-[40vh]">
-          {/* Logo - Yellow W logo */}
-          <div className="w-40 h-40">
-            <Image
-              src="/WozaMali-uploads/w yellow.png"
-              alt="Woza Mali Logo"
-              width={320}
-              height={320}
-              className="w-full h-full object-contain"
-            />
-          </div>
-        </div>
-
-        {/* White section - now directly connected to the gradient */}
-        <div className="bg-white flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[60vh] shadow-[0_-10px_30px_rgba(234,179,8,0.3)]">
-          {/* Success message */}
+      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Check Your Email</h2>
-            <p className="text-sm text-gray-600">
-              We've sent a password reset link to <strong>{email}</strong>
-            </p>
-          </div>
-
-          {/* Instructions */}
-          <div className="w-full max-w-sm space-y-4 text-center">
-            <p className="text-sm text-gray-600">
-              Click the link in your email to reset your password. The link will expire in 1 hour.
-            </p>
-            
-            <div className="pt-4">
-              <Button 
-                onClick={() => setEmailSent(false)}
-                className="w-full h-12 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-base font-bold rounded-lg shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
-              >
-                Send Another Email
-              </Button>
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 rounded-full backdrop-blur-sm mb-4">
+              <Image
+                src="/WozaMali-uploads/w white.png"
+                alt="Woza Mali Logo"
+                width={60}
+                height={60}
+                className="drop-shadow-lg"
+              />
             </div>
+            <h1 className="text-3xl font-bold text-white drop-shadow-lg">
+              Check Your Email
+            </h1>
+            <p className="text-white/90 mt-2 drop-shadow-md">
+              We've sent password reset instructions to {email}
+            </p>
           </div>
 
-          {/* Bottom Links */}
-          <div className="mt-8 space-y-3 text-center">
-            <Link 
+          <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
+            <CardContent className="pt-6 text-center">
+              <p className="text-gray-600 mb-6">
+                Please check your email and click the reset link to continue.
+              </p>
+              <Button
+                onClick={() => setSent(false)}
+                className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg"
+              >
+                Try Another Email
+              </Button>
+            </CardContent>
+          </Card>
+
+          <div className="text-center mt-6">
+            <Link
               href="/auth/sign-in"
-              className="block text-sm text-gray-600 hover:text-orange-500 transition-colors duration-200"
+              className="text-white/80 hover:text-white text-sm flex items-center justify-center gap-2"
             >
+              <ArrowLeft className="h-4 w-4" />
               Back to Sign In
             </Link>
           </div>
@@ -106,68 +100,85 @@ const ForgotPasswordPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
-      {/* Top Section - centered logo in dark background */}
-      <div className="flex items-center justify-center h-[40vh]">
-        {/* Logo - Yellow W logo */}
-        <div className="w-40 h-40">
-          <Image
-            src="/WozaMali-uploads/w yellow.png"
-            alt="Woza Mali Logo"
-            width={320}
-            height={320}
-            className="w-full h-full object-contain"
-          />
-        </div>
-      </div>
-
-      {/* White section - now directly connected to the gradient */}
-      <div className="bg-white flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[60vh] shadow-[0_-10px_30px_rgba(234,179,8,0.3)]">
-        {/* Forgot password text */}
+    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo Section */}
         <div className="text-center mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Forgot Your Password?</h2>
-          <p className="text-sm text-gray-600">
-            Enter your email address and we'll send you a link to reset your password.
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 rounded-full backdrop-blur-sm mb-4">
+            <Image
+              src="/WozaMali-uploads/w white.png"
+              alt="Woza Mali Logo"
+              width={60}
+              height={60}
+              className="drop-shadow-lg"
+            />
+          </div>
+          <h1 className="text-3xl font-bold text-white drop-shadow-lg">
+            Reset Password
+          </h1>
+          <p className="text-white/90 mt-2 drop-shadow-md">
+            Enter your email to receive reset instructions
           </p>
         </div>
 
-        {/* Reset Form */}
-        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
-          <div>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
-            />
-          </div>
+        {/* Forgot Password Form */}
+        <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="text-2xl font-bold text-gray-800">
+              Forgot Password
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-12 text-black"
+                    required
+                  />
+                </div>
+              </div>
 
-          <div className="pt-4">
-            <Button 
-              type="submit" 
-              className="w-full h-12 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-base font-bold rounded-lg shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
-              disabled={loading}
-            >
-              {loading ? "SENDING..." : "SEND RESET LINK"}
-            </Button>
-          </div>
-        </form>
+              <Button
+                type="submit"
+                className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto"></div>
+                ) : (
+                  "Send Reset Email"
+                )}
+              </Button>
+            </form>
 
-        {/* Bottom Links */}
-        <div className="mt-8 space-y-3 text-center">
-          <Link 
-            href="/auth/sign-in"
-            className="block text-sm text-gray-600 hover:text-orange-500 transition-colors duration-200"
-          >
-            Back to Sign In
-          </Link>
+            {/* Links */}
+            <div className="mt-6 text-center">
+              <Link
+                href="/auth/sign-in"
+                className="text-sm text-gray-600 hover:text-gray-700 font-medium hover:underline flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Sign In
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center mt-6">
+          <p className="text-white/80 text-sm drop-shadow-md">
+            © 2024 Woza Mali. All rights reserved.
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-export default ForgotPasswordPage;
+export default ForgotPassword;

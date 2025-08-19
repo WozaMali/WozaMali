@@ -40,17 +40,32 @@ const Profile = () => {
     }
   };
 
+  // Format member since date
+  const formatMemberSince = (createdAt: string | undefined) => {
+    if (!createdAt) return "Recently";
+    
+    try {
+      const date = new Date(createdAt);
+      const options: Intl.DateTimeFormatOptions = { 
+        year: 'numeric', 
+        month: 'long' 
+      };
+      return date.toLocaleDateString('en-US', options);
+    } catch (error) {
+      return "Recently";
+    }
+  };
+
   const userProfile = {
     name: user?.user_metadata?.full_name || "User",
     phone: user?.user_metadata?.phone || "No phone number",
     email: user?.email || "No email",
     streetAddress: user?.user_metadata?.street_address || "No address",
     suburb: user?.user_metadata?.suburb || "No suburb",
-
     city: user?.user_metadata?.city || "No city",
     postalCode: user?.user_metadata?.postal_code || "No postal code",
     kycStatus: "verified",
-    memberSince: "March 2024",
+    memberSince: formatMemberSince(user?.created_at),
     totalRecycled: 0,
     level: "Gold Recycler",
     nextLevel: "Platinum",
@@ -65,10 +80,24 @@ const Profile = () => {
   ];
 
   const settings = [
-    { title: "Edit Personal Details", icon: Edit3, description: "Update name and contact info" },
-    { title: "MTN MoMo Settings", icon: Phone, description: "Manage linked mobile money account" },
-    { title: "Notification Preferences", icon: Settings, description: "Control alerts and updates" },
-    { title: "Security & Privacy", icon: Shield, description: "Manage account security" },
+    { 
+      title: "Edit Personal Details", 
+      icon: Edit3, 
+      description: "Update name and contact info",
+      action: () => navigate.push('/profile/edit')
+    },
+    { 
+      title: "Notification Preferences", 
+      icon: Settings, 
+      description: "Control alerts and updates",
+      action: () => navigate.push('/settings')
+    },
+    { 
+      title: "Security & Privacy", 
+      icon: Shield, 
+      description: "Manage account security",
+      action: () => navigate.push('/profile/security')
+    },
   ];
 
   return (
@@ -227,7 +256,7 @@ const Profile = () => {
         </CardContent>
       </Card>
 
-      {/* Original Settings */}
+      {/* Settings */}
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="text-base">Settings</CardTitle>
@@ -239,6 +268,7 @@ const Profile = () => {
               <button
                 key={index}
                 className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                onClick={setting.action}
               >
                 <Icon className="h-5 w-5 text-muted-foreground" />
                 <div className="flex-1">

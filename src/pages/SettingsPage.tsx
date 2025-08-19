@@ -88,14 +88,14 @@ const SettingsPage = () => {
           title: "Profile",
           description: "Update your personal information",
           type: "button",
-          action: () => navigate.push("/profile")
+          action: () => navigate.push("/profile/edit")
         },
         {
           icon: Shield,
           title: "Privacy & Security",
           description: "Manage your privacy settings",
           type: "button",
-          action: () => {}
+          action: () => navigate.push("/profile/security")
         }
       ]
     },
