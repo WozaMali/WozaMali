@@ -19,14 +19,14 @@ const nextConfig = {
   // Build output configuration
   output: 'standalone',
   
-  // TypeScript and ESLint configuration - temporarily ignore errors for build
+  // TypeScript and ESLint configuration - temporarily disabled for Vercel deployment
   typescript: {
-    // Temporarily ignore TypeScript errors during build
+    // Temporarily ignore TypeScript errors during build (TODO: fix gradually)
     ignoreBuildErrors: true,
   },
   
   eslint: {
-    // Temporarily ignore ESLint errors during build
+    // Temporarily ignore ESLint errors during build (TODO: fix gradually)
     ignoreDuringBuilds: true,
   },
   
