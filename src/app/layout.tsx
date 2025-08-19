@@ -8,6 +8,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'WozaMoney',
   description: 'Recycling rewards platform',
+  icons: {
+    icon: '/WozaMali-uploads/w yellow.png',
+    shortcut: '/WozaMali-uploads/w yellow.png',
+    apple: '/WozaMali-uploads/w yellow.png',
+  },
 }
 
 export default function RootLayout({

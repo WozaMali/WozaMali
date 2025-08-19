@@ -22,7 +22,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={new QueryClient()}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      {/* Theme provider automatically follows browser's theme preference */}
+      <ThemeProvider 
+        attribute="class" 
+        defaultTheme="system" 
+        enableSystem 
+        disableTransitionOnChange
+        storageKey="woza-mali-theme"
+      >
         <AuthProvider>
           <TooltipProvider>
             {children}

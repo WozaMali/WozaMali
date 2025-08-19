@@ -6,14 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Settings, Moon, Sun, Bell, Shield, HelpCircle, LogOut, User, Globe } from "lucide-react";
+import { ArrowLeft, Settings, Bell, Shield, HelpCircle, LogOut, User, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
 
 const SettingsPage = () => {
   const navigate = useRouter();
-  const { theme, setTheme, resolvedTheme } = useTheme();
   
   // Try to use auth context, but handle the case where it might not be ready
   let authContext;
@@ -53,14 +51,6 @@ const SettingsPage = () => {
     {
       title: "Appearance",
       items: [
-        {
-          icon: Moon,
-          title: "Dark Mode",
-          description: "Switch between light and dark themes",
-          type: "toggle",
-          value: resolvedTheme === "dark",
-          onChange: (checked: boolean) => setTheme(checked ? "dark" : "light")
-        },
         {
           icon: Globe,
           title: "Language",

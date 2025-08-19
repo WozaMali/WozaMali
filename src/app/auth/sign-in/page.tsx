@@ -98,7 +98,7 @@ const SignInPage = () => {
       {/* Top Section - bigger orange space with logo */}
       <div className="text-center">
         {/* Logo - White Woza Mali logo */}
-        <div className="w-80 h-80 mx-auto">
+        <div className="w-60 h-60 mx-auto">
           <Image
             src="/WozaMali-uploads/Woza Mali logo white.png"
             alt="Woza Mali Logo"
@@ -110,18 +110,15 @@ const SignInPage = () => {
       </div>
 
       {/* White section - now directly connected to the gradient */}
-      <div className="bg-white rounded-t-[50%] flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[70vh]">
+      <div className="bg-white rounded-t-[25%] flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[70vh]">
         {/* Sign in text */}
         <div className="text-center mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Sign in to your Woza Mali account</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">Sign in to your Woza Mali account</h2>
         </div>
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2 text-center">
-              Email
-            </label>
             <Input
               id="email"
               type="email"
@@ -129,14 +126,11 @@ const SignInPage = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
-              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
+              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
           
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2 text-center">
-              Password
-            </label>
             <Input
               id="password"
               type="password"
@@ -144,14 +138,14 @@ const SignInPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
-              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
+              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
 
           <div className="pt-4">
             <Button 
               type="submit" 
-              className="w-full h-16 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-xl font-bold rounded-xl shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
+              className="w-full h-12 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-base font-bold rounded-lg shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
               disabled={loading}
             >
               {loading ? "SIGNING IN..." : "SIGN IN"}
@@ -161,12 +155,6 @@ const SignInPage = () => {
 
         {/* Bottom Links */}
         <div className="mt-8 space-y-3 text-center">
-          <Link 
-            href="/auth/forgot-password"
-            className="block text-sm text-gray-600 hover:text-orange-500 transition-colors duration-200"
-          >
-            FORGOT YOUR PASSWORD?
-          </Link>
           <p className="text-sm text-gray-600">
             Don't have an account?{" "}
             <Link 
@@ -176,6 +164,12 @@ const SignInPage = () => {
               Sign Up
             </Link>
           </p>
+          <Link 
+            href="/auth/forgot-password"
+            className="block text-sm text-gray-600 hover:text-orange-500 transition-colors duration-200"
+          >
+            FORGOT YOUR PASSWORD?
+          </Link>
         </div>
       </div>
     </div>

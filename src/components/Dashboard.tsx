@@ -6,7 +6,6 @@ import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart, Star, Cal
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import ThemeToggle from "@/components/ThemeToggle";
 import Logo from "./Logo";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -108,9 +107,6 @@ const Dashboard = () => {
 
   return (
     <div className="relative pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
       {/* Header */}
       <div className="text-center space-y-3 pt-4">
         <div className="flex justify-center">
