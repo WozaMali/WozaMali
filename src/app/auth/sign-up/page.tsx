@@ -100,13 +100,13 @@ const SignUpPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 relative overflow-hidden">
-      {/* Top Section - bigger orange space with logo */}
-      <div className="text-center">
-        {/* Logo - White Woza Mali logo */}
-        <div className="w-60 h-60 mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
+      {/* Top Section - centered logo in dark background */}
+      <div className="flex items-center justify-center h-[40vh]">
+        {/* Logo - Yellow W logo */}
+        <div className="w-40 h-40">
           <Image
-            src="/WozaMali-uploads/Woza Mali logo white.png"
+            src="/WozaMali-uploads/w yellow.png"
             alt="Woza Mali Logo"
             width={320}
             height={320}
@@ -116,7 +116,7 @@ const SignUpPage = () => {
       </div>
 
       {/* White section - now directly connected to the gradient */}
-      <div className="bg-white rounded-t-[25%] flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[70vh]">
+      <div className="bg-white rounded-t-[5%] flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[60vh] shadow-[0_-10px_30px_rgba(234,179,8,0.3)]">
         {/* Sign up text */}
         <div className="text-center mb-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">Create your Woza Mali account</h2>
