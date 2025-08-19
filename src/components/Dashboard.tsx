@@ -46,9 +46,13 @@ const Dashboard = () => {
   const getUserAddress = () => {
     if (!user?.user_metadata) return "Address not provided";
     
-             const { street_address, suburb, city, postal_code } = user.user_metadata;
+    const { street_address, suburb, city, postal_code } = user.user_metadata;
     
-             if (street_address && suburb && city) {
+    // Debug logging to help troubleshoot
+    console.log('User metadata:', user.user_metadata);
+    console.log('Address fields:', { street_address, suburb, city, postal_code });
+    
+    if (street_address && suburb && city) {
       return `${street_address}, ${suburb}, ${city}${postal_code ? `, ${postal_code}` : ''}`;
     } else if (street_address && city) {
       return `${street_address}, ${city}`;
@@ -293,13 +297,15 @@ const Dashboard = () => {
                 <Clock className="h-4 w-4 opacity-80" />
                 <span>{nextCollectionTime}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 opacity-80" />
-                <span>{nextCollectionArea}</span>
-              </div>
+                          <div className="flex items-center space-x-2">
+              <MapPin className="h-4 w-4 opacity-80" />
+              <span className="text-sm">
+                {nextCollectionArea}
+              </span>
+            </div>
             </div>
             
-            {!hasAddress && (
+            {!hasAddress ? (
               <div className="mt-3 p-3 bg-warning/20 rounded-lg border border-warning/30">
                 <p className="text-xs text-warning-foreground text-center mb-2">
                   Please update your profile with your address to enable collection booking
@@ -312,6 +318,12 @@ const Dashboard = () => {
                 >
                   Update Address in Profile
                 </Button>
+              </div>
+            ) : (
+              <div className="mt-3 p-3 bg-success/20 rounded-lg border border-success/30">
+                <p className="text-xs text-success-foreground text-center">
+                  ✓ Collection address confirmed: {nextCollectionArea}
+                </p>
               </div>
             )}
           </div>
@@ -349,7 +361,13 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground mb-1">Collection Details</p>
               <p className="font-medium">Date: {selectedDate}</p>
               <p className="font-medium">Time: {nextCollectionTime}</p>
-              <p className="font-medium">Area: {nextCollectionArea}</p>
+              <div className="flex items-start space-x-2">
+                <MapPin className="h-4 w-4 mt-0.5 text-primary" />
+                <div>
+                  <p className="font-medium text-sm text-muted-foreground">Collection Address:</p>
+                  <p className="font-medium">{nextCollectionArea}</p>
+                </div>
+              </div>
             </div>
             <div className="flex space-x-3">
               <Button 

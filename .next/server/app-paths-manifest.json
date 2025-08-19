@@ -13,8 +13,8 @@
   "/notifications/page": "app/notifications/page.js",
   "/page": "app/page.js",
   "/profile/page": "app/profile/page.js",
-  "/settings/page": "app/settings/page.js",
   "/rewards/page": "app/rewards/page.js",
+  "/settings/page": "app/settings/page.js",
   "/signup/page": "app/signup/page.js",
   "/withdrawal/page": "app/withdrawal/page.js"
 }
