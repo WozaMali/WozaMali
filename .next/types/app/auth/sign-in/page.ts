@@ -1,4 +1,4 @@
-// File: C:\Users\user\Documents\New Woza Mali\wozamoney\src\app\auth\sign-in\page.tsx
+// File: C:\Users\user\WozaMali\wm\src\app\auth\sign-in\page.tsx
 import * as entry from '../../../../../src/app/auth/sign-in/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
