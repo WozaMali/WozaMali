@@ -4,11 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Logo from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
+import Image from "next/image";
 
 const SignUpPage = () => {
   const [email, setEmail] = useState("");
@@ -17,7 +16,6 @@ const SignUpPage = () => {
   const [phone, setPhone] = useState("");
   const [streetAddress, setStreetAddress] = useState("");
   const [suburb, setSuburb] = useState("");
-
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,10 +29,10 @@ const SignUpPage = () => {
   } catch (error) {
     // AuthProvider not ready yet, show loading
     return (
-      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Initializing...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+          <p className="text-white">Initializing...</p>
         </div>
       </div>
     );
@@ -87,10 +85,10 @@ const SignUpPage = () => {
   // Show loading while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+          <p className="text-white">Loading...</p>
         </div>
       </div>
     );
@@ -102,134 +100,168 @@ const SignUpPage = () => {
   }
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-warm flex items-center justify-center p-4"
-    >
-      <div className="bg-card/95 backdrop-blur-sm rounded-lg p-8 w-full max-w-md text-center shadow-warm border border-border/50">
-        <div className="mb-6">
-          <div className="flex justify-center mb-4">
-            <Logo className="h-20 w-auto" alt="Woza Mali Logo" variant="woza-mali" />
-          </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-            Join Woza Mali
-          </h1>
-          <p className="text-muted-foreground">Start recycling and earning today</p>
+    <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 relative overflow-hidden">
+      {/* Top Section - bigger orange space with logo */}
+      <div className="text-center">
+        {/* Logo - White Woza Mali logo */}
+        <div className="w-80 h-80 mx-auto">
+          <Image
+            src="/WozaMali-uploads/Woza Mali logo white.png"
+            alt="Woza Mali Logo"
+            width={320}
+            height={320}
+            className="w-full h-full object-contain"
+          />
+        </div>
+      </div>
+
+      {/* White section - now directly connected to the gradient */}
+      <div className="bg-white rounded-t-[50%] flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[70vh]">
+        {/* Sign up text */}
+        <div className="text-center mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Create your Woza Mali account</h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="text-left">
-            <Label htmlFor="fullName">Full Name *</Label>
+        {/* Sign Up Form */}
+        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
+          <div>
+            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+              Full Name
+            </label>
             <Input
               id="fullName"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              required
               placeholder="Enter your full name"
-              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              required
+              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
           
-          <div className="text-left">
-            <Label htmlFor="email">Email *</Label>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+              Email
+            </label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
               required
-              placeholder="Enter your email address"
-              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
           
-          <div className="text-left">
-            <Label htmlFor="password">Password *</Label>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+              Password
+            </label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
               required
-              placeholder="Create a strong password"
-              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
 
-          <div className="text-left">
-            <Label htmlFor="phone">Phone Number</Label>
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+              Phone Number
+            </label>
             <Input
               id="phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Enter your phone number"
-              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
 
-          <div className="text-left">
-            <Label htmlFor="streetAddress">Street Address</Label>
+          <div>
+            <label htmlFor="streetAddress" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+              Street Address
+            </label>
             <Input
               id="streetAddress"
               type="text"
               value={streetAddress}
               onChange={(e) => setStreetAddress(e.target.value)}
               placeholder="Enter your street address"
-              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
 
-          <div className="text-left">
-            <Label htmlFor="suburb">Suburb</Label>
+          <div>
+            <label htmlFor="suburb" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+              Suburb
+            </label>
             <Input
               id="suburb"
               type="text"
               value={suburb}
               onChange={(e) => setSuburb(e.target.value)}
-              placeholder="Suburb"
-              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              placeholder="Enter your suburb"
+              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
 
-          <div className="text-left">
-            <Label htmlFor="city">City</Label>
+          <div>
+            <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+              City
+            </label>
             <Input
               id="city"
               type="text"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="City"
-              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              placeholder="Enter your city"
+              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
 
-          <div className="text-left">
-            <Label htmlFor="postalCode">Postal Code</Label>
+          <div>
+            <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+              Postal Code
+            </label>
             <Input
               id="postalCode"
               type="text"
               value={postalCode}
               onChange={(e) => setPostalCode(e.target.value)}
-              placeholder="Enter postal code"
-              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+              placeholder="Enter your postal code"
+              className="h-14 text-center text-lg font-medium bg-white border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating Account..." : "Sign Up"}
-          </Button>
+          <div className="pt-4">
+            <Button 
+              type="submit" 
+              className="w-full h-16 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-xl font-bold rounded-xl shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
+              disabled={loading}
+            >
+              {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
+            </Button>
+          </div>
         </form>
 
-        <p className="mt-4 text-sm text-muted-foreground">
-          Already a member?{" "}
-          <Link 
-            href="/auth/sign-in"
-            className="text-primary hover:underline font-medium"
-          >
-            Sign In
-          </Link>
-        </p>
+        {/* Bottom Links */}
+        <div className="mt-8 space-y-3 text-center">
+          <p className="text-sm text-gray-600">
+            Already have an account?{" "}
+            <Link 
+              href="/auth/sign-in"
+              className="text-orange-600 font-bold hover:underline"
+            >
+              Sign In
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
