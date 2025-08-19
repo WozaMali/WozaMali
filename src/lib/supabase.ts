@@ -20,7 +20,7 @@ export interface Database {
           phone: string | null
           street_address: string | null
           suburb: string | null
-          ext_zone_phase: string | null
+
           city: string | null
           postal_code: string | null
           avatar_url: string | null
@@ -33,7 +33,6 @@ export interface Database {
           phone?: string | null
           street_address?: string | null
           suburb?: string | null
-          ext_zone_phase?: string | null
           city?: string | null
           postal_code?: string | null
           avatar_url?: string | null
@@ -46,7 +45,6 @@ export interface Database {
           phone?: string | null
           street_address?: string | null
           suburb?: string | null
-          ext_zone_phase?: string | null
           city?: string | null
           postal_code?: string | null
           avatar_url?: string | null

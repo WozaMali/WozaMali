@@ -17,7 +17,7 @@ const SignUpPage = () => {
   const [phone, setPhone] = useState("");
   const [streetAddress, setStreetAddress] = useState("");
   const [suburb, setSuburb] = useState("");
-  const [extZonePhase, setExtZonePhase] = useState("");
+
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,7 +58,7 @@ const SignUpPage = () => {
     setLoading(true);
 
     try {
-      const { error } = await signUp(email, password, fullName, phone, streetAddress, suburb, extZonePhase, city, postalCode);
+      const { error } = await signUp(email, password, fullName, phone, streetAddress, suburb, city, postalCode);
       
       if (error) {
         toast({
@@ -180,29 +180,16 @@ const SignUpPage = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="text-left">
-              <Label htmlFor="suburb">Suburb</Label>
-              <Input
-                id="suburb"
-                type="text"
-                value={suburb}
-                onChange={(e) => setSuburb(e.target.value)}
-                placeholder="Suburb"
-                className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
-              />
-            </div>
-            <div className="text-left">
-              <Label htmlFor="extZonePhase">Ext/Zone/Phase</Label>
-              <Input
-                id="extZonePhase"
-                type="text"
-                value={extZonePhase}
-                onChange={(e) => setExtZonePhase(e.target.value)}
-                placeholder="Ext/Zone/Phase"
-                className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
-              />
-            </div>
+          <div className="text-left">
+            <Label htmlFor="suburb">Suburb</Label>
+            <Input
+              id="suburb"
+              type="text"
+              value={suburb}
+              onChange={(e) => setSuburb(e.target.value)}
+              placeholder="Suburb"
+              className="focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
+            />
           </div>
 
           <div className="text-left">

@@ -47,11 +47,9 @@ const Dashboard = () => {
   const getUserAddress = () => {
     if (!user?.user_metadata) return "Address not provided";
     
-    const { street_address, suburb, ext_zone_phase, city, postal_code } = user.user_metadata;
+             const { street_address, suburb, city, postal_code } = user.user_metadata;
     
-    if (street_address && suburb && ext_zone_phase && city) {
-      return `${street_address}, ${suburb}, ${ext_zone_phase}, ${city}${postal_code ? `, ${postal_code}` : ''}`;
-    } else if (street_address && suburb && city) {
+             if (street_address && suburb && city) {
       return `${street_address}, ${suburb}, ${city}${postal_code ? `, ${postal_code}` : ''}`;
     } else if (street_address && city) {
       return `${street_address}, ${city}`;
