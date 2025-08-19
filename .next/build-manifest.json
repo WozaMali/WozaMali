@@ -1,19 +1,117 @@
 {
   "polyfillFiles": [
-    "static/chunks/polyfills.js"
+    "static/chunks/polyfills-42372ed130431b0a.js"
   ],
   "devFiles": [],
   "ampDevFiles": [],
   "lowPriorityFiles": [
-    "static/development/_buildManifest.js",
-    "static/development/_ssgManifest.js"
+    "static/pqdXAzB9sWz87ppC4vnky/_buildManifest.js",
+    "static/pqdXAzB9sWz87ppC4vnky/_ssgManifest.js"
   ],
   "rootMainFiles": [
-    "static/chunks/webpack.js",
-    "static/chunks/main-app.js"
+    "static/chunks/webpack-6647fcc165d2b2e9.js",
+    "static/chunks/fd9d1056-b405a3f157a0ee8b.js",
+    "static/chunks/2117-8c425e51dd3f7d17.js",
+    "static/chunks/main-app-d478cfee835f0ac2.js"
   ],
   "pages": {
-    "/_app": []
+    "/CollectionsPage": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/9332-11cc8433f2e628f9.js",
+      "static/chunks/6110-de05f558f88bf51b.js",
+      "static/chunks/pages/CollectionsPage-eefe135bab21cb38.js"
+    ],
+    "/Index": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/9332-11cc8433f2e628f9.js",
+      "static/chunks/6110-de05f558f88bf51b.js",
+      "static/chunks/2446-7c3e10e09e574fb3.js",
+      "static/chunks/6142-f4acc630e46e6bf2.js",
+      "static/chunks/5216-bfb6cacb1382c402.js",
+      "static/chunks/pages/Index-52ac40bb360d647d.js"
+    ],
+    "/LeaderboardPage": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/9332-11cc8433f2e628f9.js",
+      "static/chunks/6110-de05f558f88bf51b.js",
+      "static/chunks/9203-5d77f06c741a2ab9.js",
+      "static/chunks/927-43cd20ff307be4f5.js",
+      "static/chunks/pages/LeaderboardPage-e72c776ef582cf6b.js"
+    ],
+    "/NotFound": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/9332-11cc8433f2e628f9.js",
+      "static/chunks/pages/NotFound-d1d024afd13aa048.js"
+    ],
+    "/NotificationsPage": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/9332-11cc8433f2e628f9.js",
+      "static/chunks/6110-de05f558f88bf51b.js",
+      "static/chunks/6822-14151f6b2f7bd507.js",
+      "static/chunks/pages/NotificationsPage-b6b7f3448b905edb.js"
+    ],
+    "/RecyclingGuidesPage": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/9332-11cc8433f2e628f9.js",
+      "static/chunks/6110-de05f558f88bf51b.js",
+      "static/chunks/9203-5d77f06c741a2ab9.js",
+      "static/chunks/927-43cd20ff307be4f5.js",
+      "static/chunks/pages/RecyclingGuidesPage-72dd3184c9ff0f12.js"
+    ],
+    "/SettingsPage": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/9332-11cc8433f2e628f9.js",
+      "static/chunks/6110-de05f558f88bf51b.js",
+      "static/chunks/2446-7c3e10e09e574fb3.js",
+      "static/chunks/9203-5d77f06c741a2ab9.js",
+      "static/chunks/6142-f4acc630e46e6bf2.js",
+      "static/chunks/5533-07998223c7614d01.js",
+      "static/chunks/pages/SettingsPage-63b87d151686279f.js"
+    ],
+    "/SignUpPage": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/9332-11cc8433f2e628f9.js",
+      "static/chunks/6110-de05f558f88bf51b.js",
+      "static/chunks/2446-7c3e10e09e574fb3.js",
+      "static/chunks/9491-5b09d27ebcef77e0.js",
+      "static/chunks/pages/SignUpPage-c823387026a82e3b.js"
+    ],
+    "/WithdrawalPage": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/9332-11cc8433f2e628f9.js",
+      "static/chunks/6110-de05f558f88bf51b.js",
+      "static/chunks/pages/WithdrawalPage-80727fcac85aab5b.js"
+    ],
+    "/_app": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/pages/_app-3c9ca398d360b709.js"
+    ],
+    "/_error": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/framework-1270fe01c832149a.js",
+      "static/chunks/main-98226a6550a096d0.js",
+      "static/chunks/pages/_error-cf5ca766ac8f493f.js"
+    ]
   },
   "ampFirstPages": []
 }

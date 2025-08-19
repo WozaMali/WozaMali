@@ -1,4 +1,20 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
+  "/auth/forgot-password/page": "app/auth/forgot-password/page.js",
   "/auth/sign-in/page": "app/auth/sign-in/page.js",
-  "/auth/sign-up/page": "app/auth/sign-up/page.js"
+  "/collections/page": "app/collections/page.js",
+  "/auth/sign-up/page": "app/auth/sign-up/page.js",
+  "/auth/reset-password/page": "app/auth/reset-password/page.js",
+  "/fund/page": "app/fund/page.js",
+  "/guides/page": "app/guides/page.js",
+  "/history/page": "app/history/page.js",
+  "/login/page": "app/login/page.js",
+  "/notifications/page": "app/notifications/page.js",
+  "/leaderboard/page": "app/leaderboard/page.js",
+  "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/rewards/page": "app/rewards/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/signup/page": "app/signup/page.js",
+  "/withdrawal/page": "app/withdrawal/page.js"
 }

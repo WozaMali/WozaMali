@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 
-const ResetPasswordPage = () => {
+const ResetPasswordForm = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ const ResetPasswordPage = () => {
     // Check if we have the necessary tokens for password reset
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
-    
+
     if (!accessToken || !refreshToken) {
       setError("Invalid or expired reset link. Please request a new one.");
     }
@@ -30,7 +30,7 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -55,7 +55,7 @@ const ResetPasswordPage = () => {
       const { error } = await supabase.auth.updateUser({
         password: password
       });
-      
+
       if (error) {
         setError(error.message);
         toast({
@@ -113,7 +113,7 @@ const ResetPasswordPage = () => {
           <div className="w-full max-w-sm space-y-4 text-center">
             <div className="pt-4">
               <Link href="/auth/forgot-password">
-                <Button 
+                <Button
                   className="w-full h-12 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-base font-bold rounded-lg shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
                 >
                   Request New Reset Link
@@ -124,7 +124,7 @@ const ResetPasswordPage = () => {
 
           {/* Bottom Links */}
           <div className="mt-8 space-y-3 text-center">
-            <Link 
+            <Link
               href="/auth/sign-in"
               className="block text-sm text-gray-600 hover:text-orange-500 transition-colors duration-200"
             >
@@ -167,7 +167,7 @@ const ResetPasswordPage = () => {
           <div className="w-full max-w-sm space-y-4 text-center">
             <div className="pt-4">
               <Link href="/auth/sign-in">
-                <Button 
+                <Button
                   className="w-full h-12 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-base font-bold rounded-lg shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
                 >
                   Sign In Now
@@ -216,7 +216,7 @@ const ResetPasswordPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter new password"
               required
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
+              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
             />
           </div>
 
@@ -228,13 +228,13 @@ const ResetPasswordPage = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
               required
-              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400"
+              className="h-10 text-center text-sm font-medium bg-white border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 placeholder:text-gray-400 text-black"
             />
           </div>
 
           <div className="pt-4">
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-12 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white text-base font-bold rounded-lg shadow-xl transition-all duration-200 transform hover:scale-105 border-0"
               disabled={loading}
             >
@@ -245,7 +245,7 @@ const ResetPasswordPage = () => {
 
         {/* Bottom Links */}
         <div className="mt-8 space-y-3 text-center">
-          <Link 
+          <Link
             href="/auth/sign-in"
             className="block text-sm text-gray-600 hover:text-orange-500 transition-colors duration-200"
           >
@@ -254,6 +254,34 @@ const ResetPasswordPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const ResetPasswordPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
+        <div className="flex items-center justify-center h-[40vh]">
+          <div className="w-40 h-40">
+            <Image
+              src="/WozaMali-uploads/w yellow.png"
+              alt="Woza Mali Logo"
+              width={320}
+              height={320}
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
+        <div className="bg-white flex-1 flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 };
 
