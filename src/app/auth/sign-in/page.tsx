@@ -132,7 +132,7 @@ const SignIn = () => {
             href="/auth/sign-up"
             className="block text-sm text-gray-600 hover:text-orange-500 transition-colors duration-200"
           >
-            Don't have an account? Sign Up
+            Don't have an account? <span className="font-bold text-orange-500">Sign Up</span>
           </Link>
           <Link 
             href="/auth/forgot-password"
