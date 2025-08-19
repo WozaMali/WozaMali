@@ -20,8 +20,13 @@ const ResetPasswordForm = () => {
 
   useEffect(() => {
     // Check if we have the necessary tokens for password reset
-    const accessToken = searchParams?.get('access_token');
-    const refreshToken = searchParams?.get('refresh_token');
+    if (!searchParams) {
+      setError("Invalid or expired reset link. Please request a new one.");
+      return;
+    }
+
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
 
     if (!accessToken || !refreshToken) {
       setError("Invalid or expired reset link. Please request a new one.");

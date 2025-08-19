@@ -39,7 +39,7 @@
       "static/chunks/5569-e5738226a6d180fa.js",
       "static/chunks/8439-bdab44c4e8331bf2.js",
       "static/chunks/8718-ac029c100392888a.js",
-      "static/chunks/app/auth/reset-password/page-642e16925a530ae3.js"
+      "static/chunks/app/auth/reset-password/page-c2d9504984df1250.js"
     ],
     "/auth/sign-in/page": [
       "static/chunks/webpack-6647fcc165d2b2e9.js",
@@ -159,19 +159,6 @@
       "static/chunks/4994-358b2a1af95026bb.js",
       "static/chunks/app/profile/page-19b0cf144ad6f0ca.js"
     ],
-    "/rewards/page": [
-      "static/chunks/webpack-6647fcc165d2b2e9.js",
-      "static/chunks/fd9d1056-b405a3f157a0ee8b.js",
-      "static/chunks/2117-8c425e51dd3f7d17.js",
-      "static/chunks/main-app-d478cfee835f0ac2.js",
-      "static/chunks/5569-e5738226a6d180fa.js",
-      "static/chunks/8439-bdab44c4e8331bf2.js",
-      "static/chunks/9023-70a9eba43e470211.js",
-      "static/chunks/557-2c755dc9a4c76648.js",
-      "static/chunks/9550-8e8cf4d359736e45.js",
-      "static/chunks/4994-358b2a1af95026bb.js",
-      "static/chunks/app/rewards/page-a022e6a91cef89b6.js"
-    ],
     "/settings/page": [
       "static/chunks/webpack-6647fcc165d2b2e9.js",
       "static/chunks/fd9d1056-b405a3f157a0ee8b.js",
@@ -185,6 +172,19 @@
       "static/chunks/6296-07fe369a2905c88f.js",
       "static/chunks/6801-f6face58be956835.js",
       "static/chunks/app/settings/page-6265bdf114b291ba.js"
+    ],
+    "/rewards/page": [
+      "static/chunks/webpack-6647fcc165d2b2e9.js",
+      "static/chunks/fd9d1056-b405a3f157a0ee8b.js",
+      "static/chunks/2117-8c425e51dd3f7d17.js",
+      "static/chunks/main-app-d478cfee835f0ac2.js",
+      "static/chunks/5569-e5738226a6d180fa.js",
+      "static/chunks/8439-bdab44c4e8331bf2.js",
+      "static/chunks/9023-70a9eba43e470211.js",
+      "static/chunks/557-2c755dc9a4c76648.js",
+      "static/chunks/9550-8e8cf4d359736e45.js",
+      "static/chunks/4994-358b2a1af95026bb.js",
+      "static/chunks/app/rewards/page-a022e6a91cef89b6.js"
     ],
     "/signup/page": [
       "static/chunks/webpack-6647fcc165d2b2e9.js",
