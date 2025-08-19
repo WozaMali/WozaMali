@@ -56,7 +56,7 @@ const SignIn = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 relative overflow-hidden">
       {/* Top Section - centered logo in dark background */}
-      <div className="flex items-center justify-center h-[40vh]">
+      <div className="flex flex-col items-center justify-center h-[40vh]">
         {/* Logo - Yellow W logo */}
         <div className="w-40 h-40">
           <Image
@@ -66,6 +66,11 @@ const SignIn = () => {
             height={320}
             className="w-full h-full object-contain"
           />
+        </div>
+        {/* Powered by text */}
+        <div className="text-center mt-4">
+          <p className="text-white/80 text-sm font-medium">Powered by</p>
+          <p className="text-white text-lg font-bold">Sebenza Nathi Waste</p>
         </div>
       </div>
 
