@@ -116,7 +116,7 @@ const SignUpPage = () => {
       </div>
 
       {/* White section - now directly connected to the gradient */}
-      <div className="bg-white rounded-t-[5%] flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[60vh] shadow-[0_-10px_30px_rgba(234,179,8,0.3)]">
+      <div className="bg-white flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-6 min-h-[60vh] shadow-[0_-10px_30px_rgba(234,179,8,0.3)]">
         {/* Sign up text */}
         <div className="text-center mb-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">Create your Woza Mali account</h2>
