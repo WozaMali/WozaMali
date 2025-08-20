@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, EyeOff, Mail, Lock, User, Phone, MapPin, Building, Hash } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import { Township, City } from "@/types/location";
+import { locationService } from "@/lib/locationService";
 
 const SignUp = () => {
   const navigate = useRouter();
@@ -21,19 +22,69 @@ const SignUp = () => {
     confirmPassword: "",
     phone: "",
     streetAddress: "",
-    suburb: "",
+    township: "",
     city: "",
     postalCode: ""
   });
+  
+  // Location data from database
+  const [townships, setTownships] = useState<Township[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // Fetch location data from Supabase
+  useEffect(() => {
+    const fetchLocationData = async () => {
+      try {
+        setDataLoading(true);
+        
+        // Use location service for better performance and caching
+        const [townshipsResult, citiesResult] = await Promise.all([
+          locationService.getTownships(),
+          locationService.getCities(),
+        ]);
+        
+        if (townshipsResult.error) throw new Error(townshipsResult.error);
+        if (citiesResult.error) throw new Error(citiesResult.error);
+        
+        // Type assertion to ensure correct types
+        setTownships((townshipsResult.data as Township[]) || []);
+        setCities((citiesResult.data as City[]) || []);
+        
+      } catch (error: any) {
+        console.error('Error fetching location data:', error);
+        toast({
+          title: "Data loading failed",
+          description: error.message || "Location data could not be loaded. Please refresh the page.",
+          variant: "destructive",
+        });
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    fetchLocationData();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  // Handle township selection and auto-fill postal code
+  const handleTownshipChange = (townshipName: string) => {
+    const selectedTownship = townships.find(t => t.name === townshipName);
+    
+    handleInputChange('township', townshipName);
+    if (selectedTownship) {
+      handleInputChange('postalCode', selectedTownship.postal_code);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,7 +102,8 @@ const SignUp = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // First, create the user account
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -59,27 +111,61 @@ const SignUp = () => {
             full_name: formData.fullName,
             phone: formData.phone,
             street_address: formData.streetAddress,
-            suburb: formData.suburb,
+            township: formData.township,
             city: formData.city,
             postal_code: formData.postalCode
           }
         }
       });
 
-      if (error) {
+      if (signUpError) {
         toast({
           title: "Sign up failed",
-          description: error.message || "Please check your information and try again.",
+          description: signUpError.message || "Please check your information and try again.",
           variant: "destructive",
         });
-      } else {
+        return;
+      }
+
+      if (authData.user) {
+        // Try to update the profiles table with additional data
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              full_name: formData.fullName,
+              phone: formData.phone,
+              street_address: formData.streetAddress,
+              township: formData.township,
+              city: formData.city,
+              postal_code: formData.postalCode,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', authData.user.id);
+
+          if (profileError) {
+            console.warn('Profile update warning:', profileError.message);
+            // Don't fail the signup if profile update fails - the trigger should handle it
+          }
+        } catch (profileUpdateError) {
+          console.warn('Profile update error:', profileUpdateError);
+          // Don't fail the signup if profile update fails
+        }
+
         toast({
           title: "Account created!",
           description: "Please check your email to verify your account.",
         });
         navigate.push("/auth/sign-in");
+      } else {
+        toast({
+          title: "Sign up failed",
+          description: "User account could not be created. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast({
         title: "Sign up failed",
         description: error.message || "An unexpected error occurred. Please try again.",
@@ -89,6 +175,20 @@ const SignUp = () => {
       setLoading(false);
     }
   };
+
+  // Show loading state while fetching data
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 relative overflow-hidden">
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center text-white">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-lg">Loading location data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 relative overflow-hidden">
@@ -213,7 +313,7 @@ const SignUp = () => {
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                className="pl-10 pr-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                className="pl-10 pr-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
                 style={{
                   WebkitTextFillColor: 'rgb(75, 85, 99)',
                   color: 'rgb(75, 85, 99)'
@@ -242,7 +342,7 @@ const SignUp = () => {
               <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Street Address"
+                placeholder="House Number and Street Name (e.g., 652 Hashe Street)"
                 value={formData.streetAddress}
                 onChange={(e) => handleInputChange('streetAddress', e.target.value)}
                 className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
@@ -254,35 +354,41 @@ const SignUp = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Township Dropdown - Now using database data */}
+          <div className="space-y-2">
             <div className="relative">
-              <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Suburb"
-                value={formData.suburb}
-                onChange={(e) => handleInputChange('suburb', e.target.value)}
-                className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
-                style={{
-                  WebkitTextFillColor: 'rgb(75, 85, 99)',
-                  color: 'rgb(75, 85, 99)'
-                }}
-              />
+              <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
+              <Select value={formData.township} onValueChange={handleTownshipChange}>
+                <SelectTrigger className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 text-gray-600">
+                  <SelectValue placeholder="Select Township" />
+                </SelectTrigger>
+                <SelectContent>
+                  {townships.map((township) => (
+                    <SelectItem key={township.id} value={township.name}>
+                      {township.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          </div>
 
+          {/* City Dropdown - Now using database data */}
+          <div className="space-y-2">
             <div className="relative">
-              <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="City"
-                value={formData.city}
-                onChange={(e) => handleInputChange('city', e.target.value)}
-                className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
-                style={{
-                  WebkitTextFillColor: 'rgb(75, 85, 99)',
-                  color: 'rgb(75, 85, 99)'
-                }}
-              />
+              <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
+              <Select value={formData.city} onValueChange={(value) => handleInputChange('city', value)}>
+                <SelectTrigger className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 text-gray-600">
+                  <SelectValue placeholder="Select City" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((city) => (
+                    <SelectItem key={city.id} value={city.name}>
+                      {city.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

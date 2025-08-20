@@ -3,6 +3,7 @@
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_cron";
 
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -430,8 +431,11 @@ INSERT INTO public.email_templates (template_name, subject, html_content, text_c
 ON CONFLICT (template_name) DO NOTHING;
 
 -- Schedule cleanup job (runs daily at 2 AM)
-SELECT cron.schedule(
-  'cleanup-expired-data',
-  '0 2 * * *',
-  'SELECT public.cleanup_expired_data();'
-);
+-- Note: pg_cron extension must be enabled first
+-- If pg_cron is not available, you can use Supabase's built-in cron jobs
+-- or manually run: SELECT public.cleanup_expired_data();
+
+-- Alternative: Use Supabase's built-in cron jobs
+-- Go to Dashboard > Database > Functions > Create a new cron job
+-- Schedule: 0 2 * * * (daily at 2 AM)
+-- Function: public.cleanup_expired_data()
