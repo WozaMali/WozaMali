@@ -15,11 +15,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  // Don't render providers until mounted to prevent SSR issues
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
   return (
     <QueryClientProvider client={new QueryClient()}>
       {/* Theme provider automatically follows browser's theme preference */}

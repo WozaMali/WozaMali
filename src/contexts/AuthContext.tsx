@@ -9,9 +9,13 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   userRole: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   signUp: (email: string, password: string, fullName: string, phone?: string, streetAddress?: string, suburb?: string, city?: string, postalCode?: string, role?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  logout: () => Promise<void>;
+  login: (email: string, password: string) => Promise<{ error: any }>;
   updateProfile: (updates: { full_name?: string; phone?: string; street_address?: string; suburb?: string; city?: string; postal_code?: string; avatar_url?: string; role?: string }) => Promise<{ error: any }>;
   updateUserRole: (role: string) => Promise<{ error: any }>;
 }
@@ -69,7 +73,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Don't render children until mounted to prevent SSR issues
   if (!mounted) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
+      </div>
+    );
   }
 
   const fetchUserRole = async (userId: string) => {
@@ -181,14 +189,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     session,
     loading,
     userRole,
+    isAuthenticated: !!user,
+    isLoading: loading,
     signUp,
     signIn,
     signOut,
+    logout: signOut, // Alias for compatibility
+    login: signIn, // Alias for compatibility
     updateProfile,
     updateUserRole,
   };

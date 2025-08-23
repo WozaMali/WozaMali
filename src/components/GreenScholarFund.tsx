@@ -7,14 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Heart, GraduationCap, Users, Target, TrendingUp, BookOpen, Shirt, Apple, AlertCircle, CheckCircle, XCircle, Info, FileText, UserCheck, Shield, Clock } from "lucide-react";
+import { Heart, GraduationCap, Users, Target, TrendingUp, BookOpen, Shirt, Apple, AlertCircle, CheckCircle, XCircle, Info, FileText, UserCheck, Shield, Clock, Wallet, CreditCard, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import Logo from "./Logo";
+import { useAuth } from "@/contexts/AuthContext";
 
 const GreenScholarFund = () => {
+  const { user } = useAuth();
   const [donationAmount, setDonationAmount] = useState<number>(0);
   const [showApplication, setShowApplication] = useState(false);
+  const [showDonationDialog, setShowDonationDialog] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'mtn-momo' | null>(null);
+  const [isProcessingDonation, setIsProcessingDonation] = useState(false);
   const [applicationStep, setApplicationStep] = useState(1);
   const [applicationData, setApplicationData] = useState({
     // Personal Information
@@ -98,42 +103,104 @@ const GreenScholarFund = () => {
 
   // Application Criteria
   const applicationCriteria = {
-    eligibility: [
-      "Must be a South African citizen or permanent resident",
-      "Must be enrolled in a registered educational institution",
-      "Must demonstrate financial need (household income below R8,000/month)",
-      "Must maintain minimum 60% academic performance",
-      "Must not be receiving other substantial financial aid",
-      "Must be actively involved in community service or recycling activities"
-    ],
-    requiredDocuments: [
-      "Valid South African ID or birth certificate",
-      "Current school report card",
-      "Proof of household income (payslips, bank statements)",
-      "Letter of recommendation from school principal",
-      "Proof of community involvement",
-      "Recent utility bills for address verification"
-    ],
-    vettingProcess: [
-      "Initial application review (2-3 business days)",
-      "Document verification and background checks (5-7 business days)",
-      "Home visit assessment (scheduled within 1 week)",
-      "Community reference verification (3-5 business days)",
-      "Final committee review and decision (2-3 business days)",
-      "Total processing time: 2-3 weeks"
-    ],
     supportTypes: [
-      "School Uniforms (R350 value)",
-      "Stationery Packs (R120 value)",
-      "Nutritional Support (R200/month)",
-      "Transport Allowance (R150/month)",
-      "Textbook Assistance (R300/semester)",
-      "Extracurricular Activities (R100/month)"
+      "School Uniforms",
+      "Stationery Packs", 
+      "Nutritional Support",
+      "Transportation",
+      "Textbooks",
+      "Extracurricular Activities"
+    ],
+    requirements: [
+      "South African ID or birth certificate",
+      "Proof of school enrollment",
+      "Recent school report",
+      "Proof of household income",
+      "Bank statements (last 3 months)"
     ]
   };
 
-  const progressPercentage = (fundStats.totalRaised / fundStats.monthlyGoal) * 100;
+  // Handle donation processing
+  const handleDonation = async () => {
+    if (!donationAmount || donationAmount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid donation amount.",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    if (!paymentMethod) {
+      toast({
+        title: "Payment Method Required",
+        description: "Please select a payment method.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessingDonation(true);
+
+    try {
+      if (paymentMethod === 'wallet') {
+        // Process wallet donation
+        await processWalletDonation();
+      } else if (paymentMethod === 'mtn-momo') {
+        // Process MTN MoMo donation
+        await processMTNMoMoDonation();
+      }
+
+      // Reset form and show success
+      setDonationAmount(0);
+      setPaymentMethod(null);
+      setShowDonationDialog(false);
+      
+      toast({
+        title: "Donation Successful!",
+        description: `Thank you for your R${donationAmount} donation to the Green Scholar Fund.`,
+        variant: "default",
+      });
+
+    } catch (error) {
+      console.error('Donation error:', error);
+      toast({
+        title: "Donation Failed",
+        description: "There was an error processing your donation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingDonation(false);
+    }
+  };
+
+  // Process wallet donation
+  const processWalletDonation = async () => {
+    // TODO: Integrate with actual wallet API
+    // For now, simulate the process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Here you would:
+    // 1. Check user's wallet balance
+    // 2. Deduct the donation amount
+    // 3. Record the transaction
+    // 4. Update fund statistics
+  };
+
+  // Process MTN MoMo donation
+  const processMTNMoMoDonation = async () => {
+    // TODO: Integrate with MTN MoMo API
+    // For now, simulate the process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Here you would:
+    // 1. Generate payment request
+    // 2. Send to MTN MoMo
+    // 3. Handle payment confirmation
+    // 4. Update fund statistics
+  };
+
+  // Handle input changes for application form
   const handleInputChange = (field: string, value: any) => {
     setApplicationData(prev => ({
       ...prev,
@@ -141,60 +208,16 @@ const GreenScholarFund = () => {
     }));
   };
 
-  const handleSupportTypeChange = (type: string, checked: boolean) => {
-    if (checked) {
-      setApplicationData(prev => ({
-        ...prev,
-        supportType: [...prev.supportType, type]
-      }));
-    } else {
-      setApplicationData(prev => ({
-        ...prev,
-        supportType: prev.supportType.filter(t => t !== type)
-      }));
-    }
-  };
-
-  const validateStep = (step: number) => {
-    switch (step) {
-      case 1:
-        return applicationData.fullName && applicationData.dateOfBirth && applicationData.phoneNumber;
-      case 2:
-        return applicationData.schoolName && applicationData.grade && applicationData.academicPerformance;
-      case 3:
-        return applicationData.householdIncome && applicationData.householdSize;
-      case 4:
-        return applicationData.supportType.length > 0;
-      default:
-        return true;
-    }
-  };
-
-  const nextStep = () => {
-    if (validateStep(applicationStep)) {
-      setApplicationStep(prev => Math.min(prev + 1, 5));
-    } else {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields before proceeding.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const prevStep = () => {
-    setApplicationStep(prev => Math.max(prev - 1, 1));
-  };
-
-  const submitApplication = async () => {
+  // Handle application submission
+  const handleApplicationSubmit = async () => {
     try {
-      // Here you would typically send the data to your backend
-      // For now, we'll simulate the submission
+      // TODO: Submit application to database
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       toast({
-        title: "Application Submitted Successfully!",
-        description: "Your application has been received and is under review. You'll receive updates via SMS/email.",
+        title: "Application Submitted",
+        description: "Your application has been submitted successfully. We'll review it and get back to you soon.",
+        variant: "default",
       });
       
       setShowApplication(false);
@@ -401,23 +424,31 @@ const GreenScholarFund = () => {
                       <Checkbox
                         id={`support-${index}`}
                         checked={applicationData.supportType.includes(type)}
-                        onCheckedChange={(checked) => handleSupportTypeChange(type, checked as boolean)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleInputChange('supportType', [...applicationData.supportType, type]);
+                          } else {
+                            handleInputChange('supportType', applicationData.supportType.filter(t => t !== type));
+                          }
+                        }}
                       />
                       <Label htmlFor={`support-${index}`} className="text-sm">{type}</Label>
                     </div>
                   ))}
                 </div>
               </div>
+              
               <div>
                 <Label htmlFor="urgentNeeds">Urgent Needs</Label>
                 <Textarea
                   id="urgentNeeds"
                   value={applicationData.urgentNeeds}
                   onChange={(e) => handleInputChange('urgentNeeds', e.target.value)}
-                  placeholder="Describe any urgent needs or emergency situations..."
+                  placeholder="Describe any urgent needs or immediate challenges"
                   rows={3}
                 />
               </div>
+              
               <div>
                 <Label htmlFor="previousSupport">Previous Support Received</Label>
                 <Textarea
@@ -435,72 +466,75 @@ const GreenScholarFund = () => {
       case 5:
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-center mb-4">Documentation & Final Details</h3>
+            <h3 className="text-lg font-semibold text-center mb-4">Documentation</h3>
             <div className="space-y-4">
-              <div>
-                <Label>Required Documents (Please confirm you have these ready)</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="hasIdDocument"
-                      checked={applicationData.hasIdDocument}
-                      onCheckedChange={(checked) => handleInputChange('hasIdDocument', checked)}
-                    />
-                    <Label htmlFor="hasIdDocument" className="text-sm">ID Document or Birth Certificate</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="hasSchoolReport"
-                      checked={applicationData.hasSchoolReport}
-                      onCheckedChange={(checked) => handleInputChange('hasSchoolReport', checked)}
-                    />
-                    <Label htmlFor="hasSchoolReport" className="text-sm">Current School Report</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="hasIncomeProof"
-                      checked={applicationData.hasIncomeProof}
-                      onCheckedChange={(checked) => handleInputChange('hasIncomeProof', checked)}
-                    />
-                    <Label htmlFor="hasIncomeProof" className="text-sm">Proof of Income</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="hasBankStatement"
-                      checked={applicationData.hasBankStatement}
-                      onCheckedChange={(checked) => handleInputChange('hasBankStatement', checked)}
-                    />
-                    <Label htmlFor="hasBankStatement" className="text-sm">Bank Statement</Label>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasIdDocument"
+                    checked={applicationData.hasIdDocument}
+                    onCheckedChange={(checked) => handleInputChange('hasIdDocument', checked)}
+                  />
+                  <Label htmlFor="hasIdDocument">I have my ID document or birth certificate</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasSchoolReport"
+                    checked={applicationData.hasSchoolReport}
+                    onCheckedChange={(checked) => handleInputChange('hasSchoolReport', checked)}
+                  />
+                  <Label htmlFor="hasSchoolReport">I have my recent school report</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasIncomeProof"
+                    checked={applicationData.hasIncomeProof}
+                    onCheckedChange={(checked) => handleInputChange('hasIncomeProof', checked)}
+                  />
+                  <Label htmlFor="hasIncomeProof">I have proof of household income</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasBankStatement"
+                    checked={applicationData.hasBankStatement}
+                    onCheckedChange={(checked) => handleInputChange('hasBankStatement', checked)}
+                  />
+                  <Label htmlFor="hasBankStatement">I have bank statements (last 3 months)</Label>
                 </div>
               </div>
+              
               <div>
                 <Label htmlFor="specialCircumstances">Special Circumstances</Label>
                 <Textarea
                   id="specialCircumstances"
                   value={applicationData.specialCircumstances}
                   onChange={(e) => handleInputChange('specialCircumstances', e.target.value)}
-                  placeholder="Any special circumstances we should know about..."
+                  placeholder="Any special circumstances we should know about?"
                   rows={3}
                 />
               </div>
+              
               <div>
                 <Label htmlFor="communityInvolvement">Community Involvement</Label>
                 <Textarea
                   id="communityInvolvement"
                   value={applicationData.communityInvolvement}
                   onChange={(e) => handleInputChange('communityInvolvement', e.target.value)}
-                  placeholder="Describe your involvement in community service, recycling, or other activities..."
+                  placeholder="How are you involved in your community?"
                   rows={3}
                 />
               </div>
+              
               <div>
                 <Label htmlFor="references">References</Label>
                 <Textarea
                   id="references"
                   value={applicationData.references}
                   onChange={(e) => handleInputChange('references', e.target.value)}
-                  placeholder="Names and contact details of people who can vouch for you..."
+                  placeholder="Names and contact details of people who can vouch for you"
                   rows={3}
                 />
               </div>
@@ -514,88 +548,46 @@ const GreenScholarFund = () => {
   };
 
   return (
-    <div className="pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
+    <div className="min-h-screen bg-background p-4 space-y-6">
       {/* Header */}
-      <div className="text-center space-y-3 pt-4">
-        <div className="flex justify-center">
-          <Logo className="h-24 w-auto" alt="Green Scholar Fund Logo" variant="green-scholar-fund" />
+      <div className="text-center space-y-4">
+        <Logo variant="green-scholar-fund" className="h-20 w-auto mx-auto" />
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Green Scholar Fund</h1>
+          <p className="text-muted-foreground">Empowering education through community support</p>
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Green Scholar Fund</h1>
-        <p className="text-muted-foreground">Supporting education through community impact</p>
       </div>
 
-      {/* Fund Overview */}
-      <Card className="bg-gradient-impact text-success-foreground shadow-warm border-0">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm opacity-90 mb-1">Total Fund Balance</p>
-              <p className="text-3xl font-bold">R {fundStats.totalRaised.toLocaleString()}</p>
-            </div>
-            <GraduationCap className="h-12 w-12 opacity-80" />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="opacity-75">This Month</p>
-              <p className="font-semibold">R {fundStats.thisMonthDonations.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="opacity-75">Beneficiaries</p>
-              <p className="font-semibold">{fundStats.beneficiaries} learners</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* User Contribution Breakdown */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Your Contributions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-3 bg-success/10 rounded-lg">
-              <p className="text-sm text-muted-foreground">PET Contributions</p>
-              <p className="text-lg font-bold text-success">R {userContributions.petBottleContributions.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">From recycling</p>
-            </div>
-            <div className="text-center p-3 bg-primary/10 rounded-lg">
-              <p className="text-sm text-muted-foreground">Cash Donations</p>
-              <p className="text-lg font-bold text-primary">R {userContributions.cashDonations.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">Direct donations</p>
-            </div>
-          </div>
-          <div className="text-center p-3 bg-gradient-primary text-primary-foreground rounded-lg">
-            <p className="text-sm opacity-90">Total Personal Impact</p>
-            <p className="text-xl font-bold">R {userContributions.totalPersonal.toFixed(2)}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Monthly Goal Progress */}
-      <Card className="shadow-card">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Monthly Goal Progress</CardTitle>
-            <Badge variant="outline">{progressPercentage.toFixed(0)}%</Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="w-full bg-muted rounded-full h-3">
-              <div 
-                className="bg-gradient-primary h-3 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">R {fundStats.totalRaised.toLocaleString()}</span>
-              <span className="font-medium">R {fundStats.monthlyGoal.toLocaleString()}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Fund Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="shadow-card text-center">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-primary">R{fundStats.totalRaised.toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground">Total Raised</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-card text-center">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-secondary">R{fundStats.monthlyGoal.toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground">Monthly Goal</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-card text-center">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-success">{fundStats.beneficiaries}</div>
+            <div className="text-sm text-muted-foreground">Beneficiaries</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-card text-center">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-accent">R{fundStats.thisMonthDonations.toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground">This Month</div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Donation */}
       <Card className="shadow-card">
@@ -628,7 +620,11 @@ const GreenScholarFund = () => {
               onChange={(e) => setDonationAmount(Number(e.target.value))}
               className="flex-1 px-3 py-2 border border-border rounded-md text-sm"
             />
-            <Button variant="gradient" disabled={!donationAmount}>
+            <Button 
+              variant="gradient" 
+              disabled={!donationAmount}
+              onClick={() => setShowDonationDialog(true)}
+            >
               Donate R{donationAmount}
             </Button>
           </div>
@@ -638,6 +634,63 @@ const GreenScholarFund = () => {
           </p>
         </CardContent>
       </Card>
+
+      {/* Donation Payment Dialog */}
+      <Dialog open={showDonationDialog} onOpenChange={setShowDonationDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete Your Donation</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary mb-2">
+                R{donationAmount}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Select your payment method
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <Button
+                variant={paymentMethod === 'wallet' ? 'default' : 'outline'}
+                className="w-full justify-start"
+                onClick={() => setPaymentMethod('wallet')}
+              >
+                <Wallet className="h-5 w-5 mr-3" />
+                Woza Mali Wallet
+              </Button>
+              
+              <Button
+                variant={paymentMethod === 'mtn-momo' ? 'default' : 'outline'}
+                className="w-full justify-start"
+                onClick={() => setPaymentMethod('mtn-momo')}
+              >
+                <Smartphone className="h-5 w-5 mr-3" />
+                MTN MoMo
+              </Button>
+            </div>
+            
+            <div className="flex space-x-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowDonationDialog(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDonation}
+                disabled={!paymentMethod || isProcessingDonation}
+                className="flex-1"
+              >
+                {isProcessingDonation ? 'Processing...' : 'Confirm Donation'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Support Categories */}
       <div className="space-y-4">
@@ -698,51 +751,33 @@ const GreenScholarFund = () => {
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="text-center">Green Scholar Fund Application</DialogTitle>
+                <DialogTitle>Green Scholar Fund Application</DialogTitle>
               </DialogHeader>
               
-              {/* Progress Indicator */}
-              <div className="flex items-center justify-between mb-6">
-                {[1, 2, 3, 4, 5].map((step) => (
-                  <div key={step} className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      step < applicationStep 
-                        ? 'bg-green-500 text-white' 
-                        : step === applicationStep 
-                        ? 'bg-primary text-white' 
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {step < applicationStep ? <CheckCircle className="h-4 w-4" /> : step}
-                    </div>
-                    {step < 5 && (
-                      <div className={`w-12 h-1 mx-2 ${
-                        step < applicationStep ? 'bg-green-500' : 'bg-gray-200'
-                      }`} />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Application Form */}
               <div className="space-y-6">
                 {renderApplicationStep()}
                 
-                {/* Navigation Buttons */}
                 <div className="flex justify-between pt-4">
                   <Button
                     variant="outline"
-                    onClick={prevStep}
+                    onClick={() => setApplicationStep(Math.max(1, applicationStep - 1))}
                     disabled={applicationStep === 1}
                   >
                     Previous
                   </Button>
                   
                   {applicationStep < 5 ? (
-                    <Button onClick={nextStep}>
+                    <Button
+                      onClick={() => setApplicationStep(applicationStep + 1)}
+                      disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}
+                    >
                       Next
                     </Button>
                   ) : (
-                    <Button onClick={submitApplication} className="bg-green-600 hover:bg-green-700">
+                    <Button
+                      onClick={handleApplicationSubmit}
+                      disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}
+                    >
                       Submit Application
                     </Button>
                   )}
@@ -753,97 +788,32 @@ const GreenScholarFund = () => {
         </CardContent>
       </Card>
 
-      {/* Application Criteria Information */}
+      {/* Fund Information */}
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="text-base flex items-center space-x-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <span>Application Criteria & Process</span>
+            <Info className="h-5 w-5 text-primary" />
+            <span>About the Fund</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Eligibility Criteria */}
-          <div>
-            <h4 className="font-medium text-foreground mb-3 flex items-center space-x-2">
-              <UserCheck className="h-4 w-4 text-green-600" />
-              <span>Eligibility Criteria</span>
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {applicationCriteria.eligibility.map((criterion, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-muted-foreground">{criterion}</span>
-                </div>
-              ))}
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-medium text-foreground mb-2">Our Mission</h4>
+              <p className="text-sm text-muted-foreground">
+                The Green Scholar Fund supports learners from disadvantaged backgrounds by providing essential educational resources, 
+                including school uniforms, stationery, and nutritional support.
+              </p>
             </div>
-          </div>
-
-          {/* Required Documents */}
-          <div>
-            <h4 className="font-medium text-foreground mb-3 flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-blue-600" />
-              <span>Required Documents</span>
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {applicationCriteria.requiredDocuments.map((document, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-muted-foreground">{document}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Vetting Process */}
-          <div>
-            <h4 className="font-medium text-foreground mb-3 flex items-center space-x-2">
-              <Shield className="h-4 w-4 text-purple-600" />
-              <span>Vetting Process</span>
-            </h4>
-            <div className="space-y-3">
-              {applicationCriteria.vettingProcess.map((step, index) => (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 text-xs font-medium flex items-center justify-center flex-shrink-0 mt-0.5">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">{step}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Support Types */}
-          <div>
-            <h4 className="font-medium text-foreground mb-3 flex items-center space-x-2">
-              <Target className="h-4 w-4 text-orange-600" />
-              <span>Available Support Types</span>
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {applicationCriteria.supportTypes.map((type, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <TrendingUp className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-muted-foreground">{type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Important Notes */}
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <div className="flex items-start space-x-2">
-              <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Important Notes:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Applications are reviewed on a first-come, first-served basis</li>
-                  <li>Priority is given to child-headed households and orphaned learners</li>
-                  <li>All information provided is kept confidential and secure</li>
-                  <li>Successful applicants may be required to participate in community service</li>
-                  <li>Support is renewable based on continued eligibility and performance</li>
-                </ul>
-              </div>
+            
+            <div>
+              <h4 className="font-medium text-foreground mb-2">How It Works</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Community donations fund the program</li>
+                <li>• Applications are reviewed monthly</li>
+                <li>• Support is distributed based on need</li>
+                <li>• Regular updates on fund usage</li>
+              </ul>
             </div>
           </div>
         </CardContent>

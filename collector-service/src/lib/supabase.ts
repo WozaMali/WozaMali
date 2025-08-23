@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -12,6 +12,7 @@ export interface Profile {
   username?: string
   first_name?: string
   last_name?: string
+  full_name?: string
   phone?: string
   role: 'CUSTOMER' | 'COLLECTOR' | 'ADMIN' | 'STAFF'
   is_active: boolean
@@ -49,8 +50,28 @@ export interface Pickup {
   submitted_at?: string
   lat?: number
   lng?: number
-  status: 'submitted' | 'approved' | 'rejected'
+  status: 'submitted' | 'approved' | 'rejected' | 'pending' | 'completed'
   approval_note?: string
+  // Extended properties for UI
+  customer_name?: string
+  customer_phone?: string
+  customer_email?: string
+  collector_name?: string
+  address?: string
+  total_kg?: number
+  total_value?: number
+  total_points?: number
+  payment_status?: 'pending' | 'paid' | 'failed'
+  payment_method?: string
+  notes?: string
+  admin_notes?: string
+  pickup_date?: string
+  environmental_impact?: {
+    co2Saved: number
+    waterSaved: number
+    landfillSaved: number
+    treesEquivalent: number
+  }
 }
 
 export interface PickupItem {
@@ -85,7 +106,7 @@ export interface Payment {
 export interface PickupWithDetails extends Pickup {
   customer?: Profile
   collector?: Profile
-  address?: Address
+  addressDetails?: Address
   items?: PickupItemWithMaterial[]
   photos?: PickupPhoto[]
   payment?: Payment

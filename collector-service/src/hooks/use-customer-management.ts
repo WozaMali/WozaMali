@@ -111,7 +111,7 @@ export function useCustomerManagement() {
       // Filter to only show customers who haven't had pickups yet
       // This would need to be enhanced with actual pickup data comparison
       const readyCustomers = customersWithAddresses.filter(customer => 
-        customer.is_active && customer.role === 'customer'
+        customer.is_active && customer.role === 'CUSTOMER'
       );
       
       setFilteredCustomers(readyCustomers);
@@ -131,7 +131,7 @@ export function useCustomerManagement() {
       withoutAddresses: customerData.filter(c => !c.addresses || c.addresses.length === 0).length,
       readyForFirstCollection: customerData.filter(c => 
         c.is_active && 
-        c.role === 'customer' && 
+        c.role === 'CUSTOMER' && 
         c.addresses && 
         c.addresses.length > 0
       ).length,

@@ -17,8 +17,8 @@ export interface ServiceConfig {
 
 // Get service configuration from environment
 export const getServiceConfig = (): ServiceConfig => {
-  const serviceType = (import.meta.env.VITE_SERVICE_TYPE || 'office') as 'office' | 'collector';
-  const port = parseInt(import.meta.env.VITE_PORT || '8081');
+  const serviceType = (process.env.NEXT_PUBLIC_SERVICE_TYPE || process.env.VITE_SERVICE_TYPE || 'collector') as 'office' | 'collector';
+  const port = parseInt(process.env.NEXT_PUBLIC_PORT || process.env.VITE_PORT || '8082');
   
   const isOffice = serviceType === 'office';
   const isCollector = serviceType === 'collector';
@@ -26,19 +26,19 @@ export const getServiceConfig = (): ServiceConfig => {
   return {
     serviceType,
     port,
-    appTitle: import.meta.env.VITE_APP_TITLE || 'WozaMali',
+    appTitle: process.env.NEXT_PUBLIC_APP_TITLE || process.env.VITE_APP_TITLE || 'WozaMali',
     features: {
       // Office features
-      adminPanel: isOffice && import.meta.env.VITE_ENABLE_ADMIN_PANEL === 'true',
-      analytics: isOffice && import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
-      userManagement: isOffice && import.meta.env.VITE_ENABLE_USER_MANAGEMENT === 'true',
-      collectionManagement: isOffice && import.meta.env.VITE_ENABLE_COLLECTION_MANAGEMENT === 'true',
+      adminPanel: isOffice && (process.env.NEXT_PUBLIC_ENABLE_ADMIN_PANEL || process.env.VITE_ENABLE_ADMIN_PANEL) === 'true',
+      analytics: isOffice && (process.env.NEXT_PUBLIC_ENABLE_ANALYTICS || process.env.VITE_ENABLE_ANALYTICS) === 'true',
+      userManagement: isOffice && (process.env.NEXT_PUBLIC_ENABLE_USER_MANAGEMENT || process.env.VITE_ENABLE_USER_MANAGEMENT) === 'true',
+      collectionManagement: isOffice && (process.env.NEXT_PUBLIC_ENABLE_COLLECTION_MANAGEMENT || process.env.VITE_ENABLE_COLLECTION_MANAGEMENT) === 'true',
       
       // Collector features
-      collectorDashboard: isCollector && import.meta.env.VITE_ENABLE_COLLECTOR_DASHBOARD === 'true',
-      photoCapture: isCollector && import.meta.env.VITE_ENABLE_PHOTO_CAPTURE === 'true',
-      routeManagement: isCollector && import.meta.env.VITE_ENABLE_ROUTE_MANAGEMENT === 'true',
-      collectionVerification: isCollector && import.meta.env.VITE_ENABLE_COLLECTION_VERIFICATION === 'true',
+      collectorDashboard: isCollector && (process.env.NEXT_PUBLIC_ENABLE_COLLECTOR_DASHBOARD || process.env.VITE_ENABLE_COLLECTOR_DASHBOARD) === 'true',
+      photoCapture: isCollector && (process.env.NEXT_PUBLIC_ENABLE_PHOTO_CAPTURE || process.env.VITE_ENABLE_PHOTO_CAPTURE) === 'true',
+      routeManagement: isCollector && (process.env.NEXT_PUBLIC_ENABLE_ROUTE_MANAGEMENT || process.env.VITE_ENABLE_ROUTE_MANAGEMENT) === 'true',
+      collectionVerification: isCollector && (process.env.NEXT_PUBLIC_ENABLE_COLLECTION_VERIFICATION || process.env.VITE_ENABLE_COLLECTION_VERIFICATION) === 'true',
     }
   };
 };

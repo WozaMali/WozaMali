@@ -1,0 +1,10 @@
+[33m1afdc44[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Add collector service, office service, and main service with updated schemas and components
+[33mce7c4bc[m fix: Remove unused useSearchParams to fix build error
+[33mbc55288[m docs: Add Supabase database diagnostic and role fix scripts
+[33md07889b[m feat: Add Google OAuth authentication to sign-in and sign-up pages
+[33mef23cdf[m feat: implement location-based sign-up form with township/city dropdowns
+[33mb17a239[m Fix logo and Powered by Sebenza Nathi Waste text layout to stack vertically on sign-in page
+[33maf381c7[m Make Apply for Support button functional with comprehensive application system and criteria
+[33maea86bd[m Add comprehensive withdrawal database schema with banking information and R100 minimum threshold
+[33mb7f7d21[m Make Sign Up text bold and orange on sign-in page
+[33m1a60b9f[m Update auth pages, profile component, and add SQL fixes for user creation issues

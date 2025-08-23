@@ -128,7 +128,7 @@ function pickupReducer(state: PickupState, action: PickupAction): PickupState {
                 ...pickup, 
                 paymentStatus: action.payload.paymentStatus,
                 paymentMethod: action.payload.paymentMethod || pickup.paymentMethod
-              }
+              } as PickupData
             : pickup
         ),
       };

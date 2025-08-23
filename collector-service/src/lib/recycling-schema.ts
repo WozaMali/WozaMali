@@ -257,8 +257,11 @@ export const defaultAchievements: Achievement[] = [
     requiredPoints: 500,
     requiredKg: 200,
     badgeColor: '#C0C0C0',
-    fundBonus: 0.10,
-    specialFeatures: ['Advanced analytics', 'Priority support'],
+    rewards: {
+      points: 50,
+      fundBonus: 0.10,
+      specialFeatures: ['Advanced analytics', 'Priority support']
+    }
   },
   {
     id: 'gold-001',
@@ -269,8 +272,11 @@ export const defaultAchievements: Achievement[] = [
     requiredPoints: 1000,
     requiredKg: 500,
     badgeColor: '#FFD700',
-    fundBonus: 0.15,
-    specialFeatures: ['Exclusive events', 'VIP status', 'Custom achievements'],
+    rewards: {
+      points: 100,
+      fundBonus: 0.15,
+      specialFeatures: ['Exclusive events', 'VIP status', 'Custom achievements']
+    }
   },
   {
     id: 'platinum-001',
@@ -281,8 +287,11 @@ export const defaultAchievements: Achievement[] = [
     requiredPoints: 2500,
     requiredKg: 1000,
     badgeColor: '#E5E4E2',
-    fundBonus: 0.20,
-    specialFeatures: ['Community leader', 'Mentorship opportunities', 'Special recognition'],
+    rewards: {
+      points: 250,
+      fundBonus: 0.20,
+      specialFeatures: ['Community leader', 'Mentorship opportunities', 'Special recognition']
+    }
   },
   {
     id: 'diamond-001',
@@ -293,8 +302,11 @@ export const defaultAchievements: Achievement[] = [
     requiredPoints: 5000,
     requiredKg: 2000,
     badgeColor: '#B9F2FF',
-    fundBonus: 0.25,
-    specialFeatures: ['Hall of fame', 'Ambassador status', 'Exclusive partnerships'],
+    rewards: {
+      points: 500,
+      fundBonus: 0.25,
+      specialFeatures: ['Hall of fame', 'Ambassador status', 'Exclusive partnerships']
+    }
   },
 ];
 

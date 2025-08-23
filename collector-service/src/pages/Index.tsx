@@ -1,187 +1,283 @@
-// Update this page (the content is just a fallback if you fail to update the page)
-
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Recycle, Users, BarChart3 } from "lucide-react";
-import { ThemeSwitcher } from "@/components/ui/theme-switcher";
-import { ThemeIndicator } from "@/components/ui/theme-indicator";
-import { UserProfile } from "@/components/UserProfile";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { UserRole } from "@/lib/auth-schema";
+import { useRouter } from "next/router";
+import { serviceConfig } from "@/lib/serviceConfig";
+import Dashboard from "@/components/Dashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Helper function to get redirect URL based on user role
-const getRoleRedirectUrl = (role: UserRole): string => {
-  switch (role) {
-    case 'COLLECTOR':
-      return '/collector';
-    case 'ADMIN':
-    case 'STAFF':
-      return '/admin';
-    default:
-      return '/';
-  }
-};
+export default function Index() {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
+    phone: "",
+    streetAddress: "",
+    township: "",
+    city: "",
+    postalCode: ""
+  });
+  const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { login, signUp, user } = useAuth();
+  const router = useRouter();
 
-const Index = () => {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const navigate = useNavigate();
-
-  // Redirect users to their role-specific dashboard or login
+  // Check if user is already authenticated
   useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        navigate('/');
-      } else if (user) {
-        // Redirect authenticated users to their role-specific dashboard
-        const redirectUrl = getRoleRedirectUrl(user.role);
-        navigate(redirectUrl);
-      }
+    if (user) {
+      setIsAuthenticated(true);
     }
-  }, [isAuthenticated, isLoading, user, navigate]);
+  }, [user]);
 
-  // Show loading while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email.trim() || !formData.password.trim()) return;
+
+    setLoading(true);
+    try {
+      await login({ email: formData.email, password: formData.password });
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error("Login failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords don't match!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            phone: formData.phone,
+            street_address: formData.streetAddress,
+            township: formData.township,
+            city: formData.city,
+            postal_code: formData.postalCode
+          }
+        }
+      });
+
+      if (result.error) {
+        console.error('Sign up error:', result.error);
+        alert('Sign up failed: ' + result.error.message);
+      } else {
+        alert('Sign up successful! Please check your email to confirm your account.');
+        setIsSignUp(false);
+        setFormData({
+          email: "",
+          password: "",
+          confirmPassword: "",
+          fullName: "",
+          phone: "",
+          streetAddress: "",
+          township: "",
+          city: "",
+          postalCode: ""
+        });
+      }
+    } catch (error) {
+      console.error("Sign up failed:", error);
+      alert('Sign up failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // If authenticated, show dashboard
+  if (isAuthenticated) {
+    return <Dashboard />;
   }
 
-  // Don't render anything if not authenticated (will redirect)
-  if (!isAuthenticated) {
-    return null;
-  }
-
+  // Show login/signup form if not authenticated
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-primary/5">
-      {/* Header */}
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">W</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Woza Mali</h1>
-                <p className="text-sm text-muted-foreground">Recycling Made Simple</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <ThemeSwitcher />
-              <ThemeIndicator />
-              <Button variant="outline" asChild>
-                <a href="/calculator">Recycling Calculator</a>
-              </Button>
-              {isAuthenticated ? (
-                <UserProfile />
-              ) : (
-                <>
-                  <Button variant="outline" asChild>
-                    <a href="/collector-login">Collector Portal</a>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <a href="/login">Sign In</a>
-                  </Button>
-                </>
-              )}
-              <Button asChild>
-                <a href="/admin">Access Admin Portal</a>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-12">
-        <div className="max-w-4xl mx-auto text-center space-y-12">
-          {/* Hero Section */}
-          <div className="space-y-6">
-            <h2 className="text-4xl font-bold text-foreground">
-              Transforming Recycling in 
-              <span className="text-transparent bg-gradient-primary bg-clip-text"> South Africa</span>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Empowering communities to recycle responsibly while earning rewards and funding education through our innovative platform.
-            </p>
-          </div>
-
-          {/* Features Grid */}
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="shadow-elegant hover:shadow-primary transition-all duration-300">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Recycle className="h-6 w-6 text-primary-foreground" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-green-600">
+            {serviceConfig.appTitle}
+          </CardTitle>
+          <CardDescription>
+            Welcome to the {serviceConfig.serviceType} service
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={isSignUp ? "signup" : "login"} onValueChange={(value) => setIsSignUp(value === "signup")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
-                <CardTitle>Smart Recycling</CardTitle>
-                <CardDescription>
-                  Track your recycling impact with our tier-based reward system
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="shadow-elegant hover:shadow-primary transition-all duration-300">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-accent rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-6 w-6 text-accent-foreground" />
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
-                <CardTitle>Community Impact</CardTitle>
-                <CardDescription>
-                  Join thousands making a difference in their communities
-                </CardDescription>
-              </CardHeader>
-            </Card>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Signing in..." : "Sign In"}
+                </Button>
+              </form>
+            </TabsContent>
 
-            <Card className="shadow-elegant hover:shadow-primary transition-all duration-300">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-success rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="h-6 w-6 text-success-foreground" />
+            <TabsContent value="signup">
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
-                <CardTitle>Green Scholar Fund</CardTitle>
-                <CardDescription>
-                  Your recycling directly funds educational opportunities
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-
-          {/* Call to Action */}
-          <Card className="bg-gradient-primary text-primary-foreground shadow-primary">
-            <CardContent className="p-8">
-              <h3 className="text-2xl font-bold mb-4">Ready to get started?</h3>
-              <p className="text-primary-foreground/90 mb-6">
-                Access the admin portal to manage users, rewards, and track the environmental impact of our recycling community.
-              </p>
-              <Button 
-                variant="secondary" 
-                size="lg" 
-                asChild
-                className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-              >
-                <a href="/admin">Launch Admin Portal</a>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border bg-card/50 backdrop-blur-sm mt-16">
-        <div className="container mx-auto px-6 py-8">
-          <div className="text-center text-muted-foreground">
-            <p>© 2024 Woza Mali. Recycling Made Simple.</p>
-          </div>
-        </div>
-      </footer>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="Enter your phone number"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="streetAddress">Street Address</Label>
+                  <Input
+                    id="streetAddress"
+                    name="streetAddress"
+                    type="text"
+                    placeholder="Enter your street address"
+                    value={formData.streetAddress}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="township">Township</Label>
+                    <Input
+                      id="township"
+                      name="township"
+                      type="text"
+                      placeholder="Township"
+                      value={formData.township}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      type="text"
+                      placeholder="City"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Input
+                    id="postalCode"
+                    name="postalCode"
+                    type="text"
+                    placeholder="Enter postal code"
+                    value={formData.postalCode}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Create a password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Creating account..." : "Create Account"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default Index;
+}

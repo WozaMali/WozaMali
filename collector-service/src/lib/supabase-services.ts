@@ -315,6 +315,32 @@ export const pickupServices = {
       console.error('Error submitting pickup:', error)
       return false
     }
+  },
+
+  // Update payment status for a pickup
+  async updatePaymentStatus(pickupId: string, paymentStatus: string, paymentMethod?: string): Promise<boolean> {
+    try {
+      // First, check if there's already a payment record
+      const existingPayment = await paymentServices.getPaymentByPickup(pickupId)
+      
+      if (existingPayment) {
+        // Update existing payment
+        return await paymentServices.updatePaymentStatus(existingPayment.id, paymentStatus as any, paymentMethod)
+      } else {
+        // Create new payment record
+        const newPayment = await paymentServices.createPayment({
+          pickup_id: pickupId,
+          amount: 0, // This would need to be calculated from pickup items
+          currency: 'ZAR',
+          status: paymentStatus as any,
+          method: paymentMethod
+        })
+        return newPayment !== null
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error)
+      return false
+    }
   }
 }
 
@@ -609,6 +635,23 @@ export const adminServices = {
     }
   },
 
+  // Get pending pickups
+  async getPendingPickups(): Promise<Pickup[]> {
+    try {
+      const { data, error } = await supabase
+        .from('pickups')
+        .select('*')
+        .eq('status', 'pending')
+        .order('started_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching pending pickups:', error)
+      return []
+    }
+  },
+
   // Get approved pickups
   async getApprovedPickups(): Promise<Pickup[]> {
     try {
@@ -622,6 +665,23 @@ export const adminServices = {
       return data || []
     } catch (error) {
       console.error('Error fetching approved pickups:', error)
+      return []
+    }
+  },
+
+  // Get completed pickups
+  async getCompletedPickups(): Promise<Pickup[]> {
+    try {
+      const { data, error } = await supabase
+        .from('pickups')
+        .select('*')
+        .eq('status', 'completed')
+        .order('started_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching completed pickups:', error)
       return []
     }
   },
