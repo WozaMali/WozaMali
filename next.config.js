@@ -84,21 +84,7 @@ const nextConfig = {
     return [];
   },
   
-  // Ensure proper MIME types for JavaScript files
-  async rewrites() {
-    return [
-      {
-        source: '/_next/static/chunks/:path*',
-        destination: '/_next/static/chunks/:path*',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/javascript',
-          },
-        ],
-      },
-    ];
-  },
+  // Removed invalid rewrites configuration that was causing build errors
 }
 
 module.exports = nextConfig
