@@ -43,6 +43,29 @@ const AuthCallback = () => {
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         console.log("URL hash parameters:", Object.fromEntries(hashParams.entries()));
         
+        // Check for malformed OAuth responses (like %3Canonymous%20code%3E)
+        const currentUrl = window.location.href;
+        if (currentUrl.includes('%3C') || currentUrl.includes('%3E') || currentUrl.includes('anonymous')) {
+          console.error("Malformed OAuth response detected:", currentUrl);
+          setStatus("error");
+          setMessage("OAuth response is malformed. This usually means there's a configuration issue with Google OAuth.");
+          
+          try {
+            toast({
+              title: "OAuth Configuration Error",
+              description: "There's an issue with the Google OAuth configuration. Please contact support.",
+              variant: "destructive",
+            });
+          } catch (toastError) {
+            console.error("Toast error:", toastError);
+          }
+          
+          setTimeout(() => {
+            router.push("/auth/sign-in");
+          }, 5000);
+          return;
+        }
+        
         if (errorParam) {
           console.error("OAuth error in URL:", errorParam, errorDescription);
           setStatus("error");
@@ -67,6 +90,28 @@ const AuthCallback = () => {
         // Check for OAuth code parameter
         const codeParam = urlParams.get('code');
         console.log("OAuth code parameter:", codeParam ? "Present" : "Missing");
+        
+        // Check if the code parameter is malformed
+        if (codeParam && (codeParam.includes('%3C') || codeParam.includes('%3E') || codeParam.includes('anonymous'))) {
+          console.error("Malformed OAuth code parameter:", codeParam);
+          setStatus("error");
+          setMessage("OAuth code is malformed. This indicates a Google OAuth configuration issue.");
+          
+          try {
+            toast({
+              title: "OAuth Configuration Error",
+              description: "The OAuth response contains invalid data. Please check Google OAuth configuration.",
+              variant: "destructive",
+            });
+          } catch (toastError) {
+            console.error("Toast error:", toastError);
+          }
+          
+          setTimeout(() => {
+            router.push("/auth/sign-in");
+          }, 5000);
+          return;
+        }
         
         // Log all URL parameters for debugging
         console.log("All URL parameters:", Object.fromEntries(urlParams.entries()));
