@@ -42,10 +42,15 @@ export default function SignIn() {
     setGoogleLoading(true);
     
     try {
+      console.log('Starting Google OAuth...');
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
@@ -56,10 +61,11 @@ export default function SignIn() {
           description: error.message || "Please try again.",
           variant: "destructive",
         });
+      } else {
+        console.log('Google OAuth initiated successfully:', data);
+        // User will be redirected to Google OAuth
+        // After OAuth callback, they will be redirected to the callback page
       }
-      // If successful, user will be redirected to Google OAuth
-      // After OAuth callback, they will be redirected to the callback page
-      // which should then check profile completion
     } catch (error: any) {
       console.error('Google sign in error:', error);
       toast({
@@ -130,11 +136,12 @@ export default function SignIn() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('profile_completed')
+        .select('full_name, phone, street_address, city, postal_code')
         .eq('id', currentUser.id)
         .single();
 
-      if (!profile || !profile.profile_completed) {
+      // Check if profile has the minimum required information
+      if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
         console.log('Profile incomplete, redirecting to profile completion');
         router.push("/profile/complete");
       } else {

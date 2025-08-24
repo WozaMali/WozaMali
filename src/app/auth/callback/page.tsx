@@ -21,7 +21,7 @@ const AuthCallback = () => {
         if (error) {
           console.error("Auth callback error:", error);
           setStatus("error");
-          setMessage("Authentication failed. Please try again.");
+          setMessage(`Authentication failed: ${error.message}`);
           
           // Show error toast
           toast({
@@ -38,6 +38,7 @@ const AuthCallback = () => {
         }
 
         if (data.session) {
+          console.log("Session found, user:", data.session.user);
           setStatus("success");
           setMessage("Authentication successful! Checking profile...");
           
@@ -47,15 +48,16 @@ const AuthCallback = () => {
             description: "You have successfully signed in.",
           });
 
-          // Check if profile is complete, if not redirect to profile completion
+          // Check if profile exists and has required fields
           try {
             const { data: profile } = await supabase
               .from('profiles')
-              .select('profile_completed')
+              .select('full_name, phone, street_address, city, postal_code')
               .eq('id', data.session.user.id)
               .single();
 
-            if (!profile || !profile.profile_completed) {
+            // Check if profile has the minimum required information
+            if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
               setMessage("Redirecting to complete your profile...");
               setTimeout(() => {
                 router.push("/profile/complete");
@@ -67,7 +69,8 @@ const AuthCallback = () => {
               }, 1500);
             }
           } catch (error) {
-            // If no profile exists, redirect to completion
+            // If no profile exists or any error occurs, redirect to completion
+            console.log('Profile check error, redirecting to profile completion:', error);
             setMessage("Redirecting to complete your profile...");
             setTimeout(() => {
               router.push("/profile/complete");
