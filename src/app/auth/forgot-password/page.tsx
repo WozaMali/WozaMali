@@ -18,10 +18,20 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
@@ -51,48 +61,68 @@ const ForgotPassword = () => {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 rounded-full backdrop-blur-sm mb-4">
+      <div className="min-h-screen bg-white">
+        {/* Orange Horizontal Bar at Top - 50% Bigger */}
+        <div className="h-48 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
+          <div className="text-center text-white">
+            <div className="inline-flex items-center justify-center w-28 h-28 mb-4">
               <Image
                 src="/WozaMali-uploads/w white.png"
                 alt="Woza Mali Logo"
-                width={60}
-                height={60}
+                width={64}
+                height={64}
                 className="drop-shadow-lg"
               />
             </div>
-            <h1 className="text-3xl font-bold text-white drop-shadow-lg">
+            <h1 className="text-3xl font-bold text-white drop-shadow-lg mb-2">
               Check Your Email
             </h1>
-            <p className="text-white/90 mt-2 drop-shadow-md">
-              We've sent password reset instructions to {email}
+            <p className="text-white/90 text-sm mb-3">
+              We've sent you a password reset link
+            </p>
+            <p className="text-white/80 text-xs">
+              Powered by Sebenza Nathi Waste
             </p>
           </div>
+        </div>
 
-          <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
-            <CardContent className="pt-6 text-center">
-              <p className="text-gray-600 mb-6">
-                Please check your email and click the reset link to continue.
+        {/* White Content Section */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center max-w-md">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                Email Sent Successfully!
+              </h2>
+              <p className="text-gray-600 mb-4">
+                We've sent a password reset link to <strong>{email}</strong>
               </p>
-              <Button
+              <p className="text-sm text-gray-500">
+                Please check your email and click the link to reset your password. The link will expire in 1 hour.
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <Button 
                 onClick={() => setSent(false)}
-                className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg"
+                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
               >
-                Try Another Email
+                Try Different Email
               </Button>
-            </CardContent>
-          </Card>
-
-          <div className="text-center mt-6">
-            <Link
-              href="/auth/sign-in"
-              className="text-white/80 hover:text-white text-sm flex items-center justify-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Sign In
-            </Link>
+              
+              <Button 
+                onClick={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
+                disabled={loading}
+                variant="outline"
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                {loading ? "Sending..." : "Resend Email"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -100,81 +130,67 @@ const ForgotPassword = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 rounded-full backdrop-blur-sm mb-4">
+    <div className="min-h-screen bg-white">
+      {/* Orange Horizontal Bar at Top - 50% Bigger */}
+      <div className="h-48 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="inline-flex items-center justify-center w-28 h-28 mb-4">
             <Image
               src="/WozaMali-uploads/w white.png"
               alt="Woza Mali Logo"
-              width={60}
-              height={60}
+              width={64}
+              height={64}
               className="drop-shadow-lg"
             />
           </div>
-          <h1 className="text-3xl font-bold text-white drop-shadow-lg">
+          <h1 className="text-3xl font-bold text-white drop-shadow-lg mb-2">
             Reset Password
           </h1>
-          <p className="text-white/90 mt-2 drop-shadow-md">
-            Enter your email to receive reset instructions
+          <p className="text-white/90 text-sm mb-3">
+            Enter your email to receive a reset link
+          </p>
+          <p className="text-white/80 text-xs">
+            Powered by Sebenza Nathi Waste
           </p>
         </div>
+      </div>
 
-        {/* Forgot Password Form */}
-        <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-bold text-gray-800">
-              Forgot Password
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-12 text-black"
-                    required
-                  />
-                </div>
-              </div>
+      {/* White Content Section */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
 
-              <Button
-                type="submit"
-                className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg"
-                disabled={loading}
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto"></div>
-                ) : (
-                  "Send Reset Email"
-                )}
-              </Button>
-            </form>
+            <Button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Sending..." : "Send Reset Link"}
+            </Button>
 
-            {/* Links */}
-            <div className="mt-6 text-center">
-              <Link
+            <div className="text-center">
+              <Link 
                 href="/auth/sign-in"
-                className="text-sm text-gray-600 hover:text-gray-700 font-medium hover:underline flex items-center justify-center gap-2"
+                className="text-orange-600 hover:text-orange-700 font-medium text-sm transition-colors duration-200"
               >
-                <ArrowLeft className="h-4 w-4" />
                 Back to Sign In
               </Link>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <div className="text-center mt-6">
-          <p className="text-white/80 text-sm drop-shadow-md">
-            © 2024 Woza Mali. All rights reserved.
-          </p>
+          </form>
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: any }>;
   updateProfile: (updates: { full_name?: string; phone?: string; street_address?: string; suburb?: string; city?: string; postal_code?: string; avatar_url?: string; role?: string }) => Promise<{ error: any }>;
   updateUserRole: (role: string) => Promise<{ error: any }>;
+  forceLogout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,36 +30,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
+  // Define fetchUserRole function before using it
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (!error && data) {
+        setUserRole(data.role || 'member');
+      }
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+      setUserRole('member'); // Default role
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
     
     // Only run auth logic in the browser
     if (typeof window !== 'undefined') {
         // Get initial session
-  supabase.auth.getSession().then(async ({ data: { session } }) => {
-    setSession(session);
-    setUser(session?.user ?? null);
-    
-    if (session?.user) {
-      await fetchUserRole(session.user.id);
-    }
-    
-    setLoading(false);
-  }).catch((error) => {
-    console.error('Error getting session:', error);
-    setLoading(false);
-  });
+      console.log('Getting initial session...');
+      
+      // Check if supabase is properly initialized
+      if (!supabase.auth) {
+        console.error('Supabase auth not available');
+        setLoading(false);
+        return;
+      }
+      
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        console.log('Initial session:', session);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          console.log('User found, fetching role...');
+          await fetchUserRole(session.user.id);
+        } else {
+          console.log('No user in session');
+        }
+        
+        setLoading(false);
+      }).catch((error) => {
+        console.error('Error getting session:', error);
+        setLoading(false);
+      });
 
       // Listen for auth changes
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        console.log('Auth state changed:', _event, session);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('User authenticated, fetching role...');
           await fetchUserRole(session.user.id);
         } else {
+          console.log('User signed out');
           setUserRole(null);
         }
         
@@ -80,24 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const fetchUserRole = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-      
-      if (!error && data) {
-        setUserRole(data.role || 'member');
-      }
-    } catch (error) {
-      console.error('Error fetching user role:', error);
-      setUserRole('member'); // Default role
-    }
-  };
-
-         const signUp = async (email: string, password: string, fullName: string, phone?: string, streetAddress?: string, suburb?: string, city?: string, postalCode?: string, role: string = 'member') => {
+  const signUp = async (email: string, password: string, fullName: string, phone?: string, streetAddress?: string, suburb?: string, city?: string, postalCode?: string, role: string = 'member') => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -129,10 +147,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Attempting sign in for:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      if (data.session) {
+        console.log('Sign in successful, session:', data.session);
+      }
 
       return { error };
     } catch (error) {
@@ -143,9 +166,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('Signing out user...');
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Sign out error:', error);
+        return;
+      }
+      
+      // Clear local state immediately
+      console.log('Clearing local state...');
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      setLoading(false);
+      
+      console.log('User signed out successfully');
     } catch (error) {
       console.error('Sign out error:', error);
+      // Even if there's an error, clear local state
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      setLoading(false);
     }
   };
 
@@ -189,6 +232,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const forceLogout = async () => {
+    try {
+      console.log('Force logout: Clearing all authentication state...');
+      
+      // Clear Supabase session
+      await supabase.auth.signOut();
+      
+      // Clear all local state
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      setLoading(false);
+      
+      // Clear any stored data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
+      }
+      
+      console.log('Force logout: All state cleared successfully');
+    } catch (error) {
+      console.error('Force logout error:', error);
+      // Clear state even if there's an error
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      setLoading(false);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     session,
@@ -203,6 +276,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login: signIn, // Alias for compatibility
     updateProfile,
     updateUserRole,
+    forceLogout, // Add this to the context
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

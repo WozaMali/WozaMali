@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 const AuthCallback = () => {
   const router = useRouter();
@@ -38,7 +39,7 @@ const AuthCallback = () => {
 
         if (data.session) {
           setStatus("success");
-          setMessage("Authentication successful! Redirecting...");
+          setMessage("Authentication successful! Checking profile...");
           
           // Show success toast
           toast({
@@ -46,10 +47,32 @@ const AuthCallback = () => {
             description: "You have successfully signed in.",
           });
 
-          // Redirect to dashboard after a short delay
-          setTimeout(() => {
-            router.push("/");
-          }, 1500);
+          // Check if profile is complete, if not redirect to profile completion
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('profile_completed')
+              .eq('id', data.session.user.id)
+              .single();
+
+            if (!profile || !profile.profile_completed) {
+              setMessage("Redirecting to complete your profile...");
+              setTimeout(() => {
+                router.push("/profile/complete");
+              }, 1500);
+            } else {
+              setMessage("Redirecting to dashboard...");
+              setTimeout(() => {
+                router.push("/");
+              }, 1500);
+            }
+          } catch (error) {
+            // If no profile exists, redirect to completion
+            setMessage("Redirecting to complete your profile...");
+            setTimeout(() => {
+              router.push("/profile/complete");
+            }, 1500);
+          }
         } else {
           // No session found, redirect to sign-in
           setStatus("error");
@@ -74,57 +97,92 @@ const AuthCallback = () => {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 relative overflow-hidden">
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center text-white bg-white/10 backdrop-blur-sm p-8 rounded-lg max-w-md mx-4">
-          {/* Logo */}
-          <div className="w-20 h-20 mx-auto mb-6">
+    <div className="min-h-screen bg-white">
+      {/* Orange Horizontal Bar at Top - 50% Bigger */}
+      <div className="h-48 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="w-28 h-28 mx-auto mb-4">
             <Image
               src="/WozaMali-uploads/w white.png"
               alt="Woza Mali Logo"
-              width={80}
-              height={80}
-              className="w-full h-full object-contain"
+              width={64}
+              height={64}
+              className="drop-shadow-lg"
             />
           </div>
+          <h2 className="text-3xl font-bold text-white drop-shadow-lg mb-2">
+            {status === "loading" && "Processing..."}
+            {status === "success" && "Authentication Successful"}
+            {status === "error" && "Authentication Failed"}
+          </h2>
+          <p className="text-white/90 text-sm mb-3">
+            {status === "loading" && "Please wait while we complete your sign-in..."}
+            {status === "success" && "You will be redirected shortly"}
+            {status === "error" && "Please try signing in again"}
+          </p>
+          <p className="text-white/80 text-xs">
+            Powered by Sebenza Nathi Waste
+          </p>
+        </div>
+      </div>
 
+      {/* White Content Section */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center bg-white border border-gray-200 shadow-lg p-8 rounded-lg max-w-md mx-4">
           {/* Status */}
           <div className="mb-6">
             {status === "loading" && (
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
             )}
             {status === "success" && (
-              <div className="text-green-300 text-6xl mb-4">✓</div>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
             )}
             {status === "error" && (
-              <div className="text-red-300 text-6xl mb-4">✗</div>
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
             )}
           </div>
 
           {/* Message */}
-          <h2 className="text-xl font-bold mb-4">
-            {status === "loading" && "Processing..."}
-            {status === "success" && "Success!"}
-            {status === "error" && "Oops!"}
-          </h2>
-          
-          <p className="text-lg mb-6">{message}</p>
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+              {status === "loading" && "Processing Authentication"}
+              {status === "success" && "Welcome to Woza Mali!"}
+              {status === "error" && "Authentication Failed"}
+            </h2>
+            <p className="text-gray-600">
+              {status === "loading" && "Please wait while we complete your sign-in process..."}
+              {status === "success" && "Your account has been successfully authenticated. You will be redirected to the dashboard shortly."}
+              {status === "error" && "There was an issue with your authentication. Please try signing in again or contact support if the problem persists."}
+            </p>
+          </div>
 
-          {/* Progress bar for loading state */}
-          {status === "loading" && (
-            <div className="w-full bg-white/20 rounded-full h-2 mb-6">
-              <div className="bg-white h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
-            </div>
-          )}
-
-          {/* Manual redirect button for error state */}
+          {/* Actions */}
           {status === "error" && (
-            <button
-              onClick={() => router.push("/auth/sign-in")}
-              className="px-6 py-2 bg-white text-orange-600 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-            >
-              Go to Sign In
-            </button>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => window.location.href = '/auth/sign-in'}
+                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                Try Again
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => window.location.href = '/'}
+                className="w-full border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold py-3 px-6 rounded-lg transition-all duration-200"
+              >
+                Go Home
+              </Button>
+            </div>
           )}
         </div>
       </div>

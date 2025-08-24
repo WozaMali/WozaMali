@@ -6,7 +6,7 @@ import Providers from '@/components/Providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'WozaMoney',
+  title: 'Woza Mali',
   description: 'Recycling rewards platform',
   icons: {
     icon: '/WozaMali-uploads/w yellow.png',

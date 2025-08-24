@@ -33,7 +33,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'user:', user);
     if (mounted && !loading && !user) {
+      console.log('Redirecting to sign-in...');
       router.push('/auth/sign-in');
     }
   }, [user, loading, router, mounted]);

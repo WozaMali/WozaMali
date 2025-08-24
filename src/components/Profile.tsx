@@ -33,10 +33,14 @@ const Profile = () => {
 
   const handleLogout = async () => {
     try {
+      console.log('Profile: Starting logout process...');
       await signOut();
+      console.log('Profile: Sign out completed, redirecting to sign-in...');
       navigate.push('/auth/sign-in');
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Profile: Logout failed:', error);
+      // Force redirect even if there's an error
+      navigate.push('/auth/sign-in');
     }
   };
 
