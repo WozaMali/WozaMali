@@ -237,7 +237,7 @@ export default function SignIn() {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder-gray-400"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-gray-300 placeholder-gray-400"
                 placeholder="Enter your email"
                 required
               />
@@ -249,7 +249,7 @@ export default function SignIn() {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-transparent transition-colors duration-200 text-sm text-white placeholder-gray-400"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-transparent transition-colors duration-200 text-sm text-gray-300 placeholder-gray-400"
                 placeholder="Enter your password"
                 required
               />
@@ -265,7 +265,7 @@ export default function SignIn() {
                   id="fullName"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder-gray-400"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-gray-300 placeholder-gray-400"
                   placeholder="Enter your full name"
                   required
                 />
