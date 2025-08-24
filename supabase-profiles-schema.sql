@@ -1,14 +1,21 @@
 -- Create profiles table for storing additional user information
+-- Updated schema to match app expectations
 CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT,
     full_name TEXT,
-    phone_number TEXT,
-    address TEXT,
+    phone TEXT, -- Changed from phone_number to match app
+    street_address TEXT, -- Changed from address to match app
+    suburb TEXT, -- Added to match app schema
+    ext_zone_phase TEXT, -- Added to match app schema
     city TEXT,
-    province TEXT,
-    postal_code TEXT,
-    profile_completed BOOLEAN DEFAULT FALSE,
+    postal_code TEXT, -- Removed province as it's not used
+    avatar_url TEXT, -- Added to match app schema
+    email_verified BOOLEAN DEFAULT FALSE, -- Added to match app schema
+    phone_verified BOOLEAN DEFAULT FALSE, -- Added to match app schema
+    last_login TIMESTAMP WITH TIME ZONE, -- Added to match app schema
+    login_count INTEGER DEFAULT 0, -- Added to match app schema
+    status TEXT DEFAULT 'active', -- Added to match app schema
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -44,4 +51,4 @@ CREATE TRIGGER on_auth_user_created
 
 -- Create index for better performance
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
-CREATE INDEX IF NOT EXISTS idx_profiles_profile_completed ON profiles(profile_completed);
+CREATE INDEX IF NOT EXISTS idx_profiles_status ON profiles(status);
