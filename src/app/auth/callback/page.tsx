@@ -11,10 +11,26 @@ const AuthCallback = () => {
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Processing authentication...");
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure component is mounted on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
+    if (!isClient) {
+      return; // Don't run until component is mounted on client
+    }
+    
     const handleAuthCallback = async () => {
       try {
+        // Ensure we're on the client side
+        if (typeof window === 'undefined') {
+          console.log("Not on client side, skipping callback");
+          return;
+        }
+        
         console.log("Starting auth callback...");
         console.log("Current URL:", window.location.href);
         
@@ -28,11 +44,15 @@ const AuthCallback = () => {
           setStatus("error");
           setMessage(`OAuth error: ${errorDescription || errorParam}`);
           
-          toast({
-            title: "OAuth Authentication Failed",
-            description: errorDescription || errorParam || "Please try signing in again.",
-            variant: "destructive",
-          });
+          try {
+            toast({
+              title: "OAuth Authentication Failed",
+              description: errorDescription || errorParam || "Please try signing in again.",
+              variant: "destructive",
+            });
+          } catch (toastError) {
+            console.error("Toast error:", toastError);
+          }
           
           setTimeout(() => {
             router.push("/auth/sign-in");
@@ -55,11 +75,15 @@ const AuthCallback = () => {
           setMessage(`Authentication failed: ${error.message}`);
           
           // Show error toast
-          toast({
-            title: "Authentication Failed",
-            description: error.message || "Please try signing in again.",
-            variant: "destructive",
-          });
+          try {
+            toast({
+              title: "Authentication Failed",
+              description: error.message || "Please try signing in again.",
+              variant: "destructive",
+            });
+          } catch (toastError) {
+            console.error("Toast error:", toastError);
+          }
 
           // Redirect to sign-in after a delay
           setTimeout(() => {
@@ -74,10 +98,14 @@ const AuthCallback = () => {
           setMessage("Authentication successful! Checking profile...");
           
           // Show success toast
-          toast({
-            title: "Welcome!",
-            description: "You have successfully signed in.",
-          });
+          try {
+            toast({
+              title: "Welcome!",
+              description: "You have successfully signed in.",
+            });
+          } catch (toastError) {
+            console.error("Toast error:", toastError);
+          }
 
           // Check if profile exists and has required fields
           try {
@@ -189,6 +217,18 @@ const AuthCallback = () => {
 
     handleAuthCallback();
   }, [router]);
+
+  // Show loading while component is mounting
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
