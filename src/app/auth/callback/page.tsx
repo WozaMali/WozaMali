@@ -64,10 +64,20 @@ const AuthCallback = () => {
         const codeParam = urlParams.get('code');
         console.log("OAuth code parameter:", codeParam ? "Present" : "Missing");
         
+        // Give the OAuth session a moment to establish
+        console.log("Waiting for OAuth session to establish...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Get the session from the URL hash or query params
+        console.log("Attempting to get session...");
         const { data, error } = await supabase.auth.getSession();
         console.log("Session data:", data);
         console.log("Session error:", error);
+        
+        // Also try to get the user directly
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        console.log("User data:", userData);
+        console.log("User error:", userError);
 
         if (error) {
           console.error("Auth callback error:", error);
@@ -92,8 +102,20 @@ const AuthCallback = () => {
           return;
         }
 
-        if (data.session) {
-          console.log("Session found, user:", data.session.user);
+        // Check if we have either a session or a user
+        if (data.session || userData.user) {
+          const currentUser = data.session?.user || userData.user;
+          if (!currentUser) {
+            console.error("No user found despite having session/user data");
+            setStatus("error");
+            setMessage("Authentication failed: No user data found");
+            setTimeout(() => {
+              router.push("/auth/sign-in");
+            }, 3000);
+            return;
+          }
+          
+          console.log("User authenticated:", currentUser);
           setStatus("success");
           setMessage("Authentication successful! Checking profile...");
           
@@ -107,13 +129,13 @@ const AuthCallback = () => {
             console.error("Toast error:", toastError);
           }
 
-          // Check if profile exists and has required fields
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('full_name, phone, street_address, city, postal_code')
-              .eq('id', data.session.user.id)
-              .single();
+                      // Check if profile exists and has required fields
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name, phone, street_address, city, postal_code')
+                .eq('id', currentUser.id)
+                .single();
 
             // Check if profile has the minimum required information
             if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
@@ -137,7 +159,7 @@ const AuthCallback = () => {
           }
         } else {
           // No session found, try to handle OAuth code manually
-          console.log("No session found in callback");
+          console.log("No session found in callback, attempting manual code exchange...");
           
           if (codeParam) {
             console.log("Attempting to exchange OAuth code manually...");
