@@ -23,6 +23,14 @@ const AuthCallback = () => {
       return; // Don't run until component is mounted on client
     }
     
+    // Add global timeout to prevent infinite limbo
+    const globalTimeout = setTimeout(() => {
+      console.error("Global timeout reached, redirecting to sign-in");
+      setStatus("error");
+      setMessage("Authentication timeout. Please try signing in again.");
+      router.push("/auth/sign-in");
+    }, 30000); // 30 second global timeout
+    
     const handleAuthCallback = async () => {
       try {
         // Ensure we're on the client side
@@ -100,13 +108,21 @@ const AuthCallback = () => {
               setStatus("success");
               setMessage("Authentication successful! Checking profile...");
               
-              // Continue with profile check
+              // Continue with profile check with timeout protection
               try {
-                const { data: profile } = await supabase
+                const profileCheckPromise = supabase
                   .from('profiles')
                   .select('full_name, phone, street_address, city, postal_code')
                   .eq('id', exchangeData.session.user.id)
                   .single();
+
+                // Add timeout to profile check
+                const timeoutPromise = new Promise<never>((_, reject) => 
+                  setTimeout(() => reject(new Error('Profile check timeout')), 10000)
+                );
+
+                const result = await Promise.race([profileCheckPromise, timeoutPromise]);
+                const profile = result.data;
 
                 if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
                   setMessage("Redirecting to complete your profile...");
@@ -120,7 +136,7 @@ const AuthCallback = () => {
                   }, 1500);
                 }
               } catch (profileError) {
-                console.log('Profile check error, redirecting to profile completion:', profileError);
+                console.log('Profile check error or timeout, redirecting to profile completion:', profileError);
                 setMessage("Redirecting to complete your profile...");
                 setTimeout(() => {
                   router.push("/profile/complete");
@@ -258,10 +274,18 @@ const AuthCallback = () => {
         setTimeout(() => {
           router.push("/auth/sign-in");
         }, 3000);
+      } finally {
+        // Clear global timeout since we're done
+        clearTimeout(globalTimeout);
       }
     };
 
     handleAuthCallback();
+    
+    // Cleanup function
+    return () => {
+      clearTimeout(globalTimeout);
+    };
   }, [router]);
 
   // Show loading while component is mounting
