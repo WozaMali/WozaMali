@@ -12,32 +12,24 @@ const nextConfig = {
         hostname: 'localhost',
       },
     ],
-    // Ensure images work in production
     unoptimized: false,
   },
   
-  // Build output configuration - removed standalone for Vercel compatibility
-  // output: 'standalone', // Commented out for Vercel deployment
-  
   // TypeScript and ESLint configuration - temporarily disabled for Vercel deployment
   typescript: {
-    // Temporarily ignore TypeScript errors during build (TODO: fix gradually)
     ignoreBuildErrors: true,
   },
   eslint: {
-    // Temporarily ignore ESLint errors during build (TODO: fix gradually)
     ignoreDuringBuilds: true,
   },
   
   // Experimental features
   experimental: {
-    // Add any experimental features here if needed
     serverComponentsExternalPackages: [],
   },
   
   // Webpack configuration for better build handling
   webpack: (config, { isServer, dev }) => {
-    // Handle any webpack-specific configurations
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -47,7 +39,6 @@ const nextConfig = {
       };
     }
     
-    // Development-specific optimizations
     if (dev) {
       config.watchOptions = {
         poll: 1000,
@@ -58,12 +49,12 @@ const nextConfig = {
     return config;
   },
   
-  // Ensure proper environment variable handling
+  // Environment variable handling
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
   
-  // Headers for better security - simplified for Vercel compatibility
+  // Headers for security - simplified for Vercel compatibility
   async headers() {
     return [
       {
@@ -73,18 +64,15 @@ const nextConfig = {
             key: 'X-Frame-Options',
             value: 'DENY',
           },
-          // Removed X-Content-Type-Options to prevent MIME type issues
         ],
       },
     ];
   },
   
-  // Redirects if needed
+  // Redirects
   async redirects() {
     return [];
   },
-  
-  // Removed invalid rewrites configuration that was causing build errors
 }
 
 module.exports = nextConfig
