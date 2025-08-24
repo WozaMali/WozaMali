@@ -16,15 +16,14 @@ const nextConfig = {
     unoptimized: false,
   },
   
-  // Build output configuration
-  output: 'standalone',
+  // Build output configuration - removed standalone for Vercel compatibility
+  // output: 'standalone', // Commented out for Vercel deployment
   
   // TypeScript and ESLint configuration - temporarily disabled for Vercel deployment
   typescript: {
     // Temporarily ignore TypeScript errors during build (TODO: fix gradually)
     ignoreBuildErrors: true,
   },
-  
   eslint: {
     // Temporarily ignore ESLint errors during build (TODO: fix gradually)
     ignoreDuringBuilds: true,
@@ -37,7 +36,7 @@ const nextConfig = {
   },
   
   // Webpack configuration for better build handling
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Handle any webpack-specific configurations
     if (!isServer) {
       config.resolve.fallback = {
@@ -45,6 +44,14 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
+      };
+    }
+    
+    // Development-specific optimizations
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
       };
     }
     
@@ -56,7 +63,7 @@ const nextConfig = {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
   
-  // Headers for better security
+  // Headers for better security - simplified for Vercel compatibility
   async headers() {
     return [
       {
@@ -66,10 +73,7 @@ const nextConfig = {
             key: 'X-Frame-Options',
             value: 'DENY',
           },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
+          // Removed X-Content-Type-Options to prevent MIME type issues
         ],
       },
     ];
@@ -78,6 +82,22 @@ const nextConfig = {
   // Redirects if needed
   async redirects() {
     return [];
+  },
+  
+  // Ensure proper MIME types for JavaScript files
+  async rewrites() {
+    return [
+      {
+        source: '/_next/static/chunks/:path*',
+        destination: '/_next/static/chunks/:path*',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript',
+          },
+        ],
+      },
+    ];
   },
 }
 
