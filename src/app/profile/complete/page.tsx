@@ -21,7 +21,6 @@ export default function CompleteProfile() {
     phoneNumber: "",
     address: "",
     city: "",
-    province: "",
     postalCode: ""
   });
   
@@ -107,12 +106,10 @@ export default function CompleteProfile() {
           .from('profiles')
           .update({
             full_name: `${formData.firstName} ${formData.lastName}`,
-            phone_number: formData.phoneNumber,
-            address: formData.address,
+            phone: formData.phoneNumber,
+            street_address: formData.address,
             city: formData.city,
-            province: formData.province,
             postal_code: formData.postalCode,
-            profile_completed: true,
             updated_at: new Date().toISOString()
           })
           .eq('id', user.id);
@@ -126,12 +123,10 @@ export default function CompleteProfile() {
             id: user.id,
             email: user.email,
             full_name: `${formData.firstName} ${formData.lastName}`,
-            phone_number: formData.phoneNumber,
-            address: formData.address,
+            phone: formData.phoneNumber,
+            street_address: formData.address,
             city: formData.city,
-            province: formData.province,
             postal_code: formData.postalCode,
-            profile_completed: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
@@ -280,7 +275,7 @@ export default function CompleteProfile() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="city" className="text-sm font-medium text-gray-700">
                         City *
@@ -293,22 +288,6 @@ export default function CompleteProfile() {
                         onChange={handleInputChange}
                         className="mt-1 bg-gray-50 border-gray-300 focus:ring-orange-500 focus:border-orange-500"
                         placeholder="Johannesburg"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="province" className="text-sm font-medium text-gray-700">
-                        Province *
-                      </Label>
-                      <Input
-                        type="text"
-                        id="province"
-                        name="province"
-                        value={formData.province}
-                        onChange={handleInputChange}
-                        className="mt-1 bg-gray-50 border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-                        placeholder="Gauteng"
                         required
                       />
                     </div>
