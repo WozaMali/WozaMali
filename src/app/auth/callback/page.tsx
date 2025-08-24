@@ -39,6 +39,10 @@ const AuthCallback = () => {
         const errorParam = urlParams.get('error');
         const errorDescription = urlParams.get('error_description');
         
+        // Also check URL hash for OAuth response
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        console.log("URL hash parameters:", Object.fromEntries(hashParams.entries()));
+        
         if (errorParam) {
           console.error("OAuth error in URL:", errorParam, errorDescription);
           setStatus("error");
@@ -64,6 +68,9 @@ const AuthCallback = () => {
         const codeParam = urlParams.get('code');
         console.log("OAuth code parameter:", codeParam ? "Present" : "Missing");
         
+        // Log all URL parameters for debugging
+        console.log("All URL parameters:", Object.fromEntries(urlParams.entries()));
+        
         // Give the OAuth session a moment to establish
         console.log("Waiting for OAuth session to establish...");
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -78,6 +85,10 @@ const AuthCallback = () => {
         const { data: userData, error: userError } = await supabase.auth.getUser();
         console.log("User data:", userData);
         console.log("User error:", userError);
+        
+        // Check if we're in the right environment
+        console.log("Current origin:", window.location.origin);
+        console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 
         if (error) {
           console.error("Auth callback error:", error);
