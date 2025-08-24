@@ -1,6 +1,9 @@
+-- Drop existing table if it exists to recreate with new schema
+DROP TABLE IF EXISTS profiles CASCADE;
+
 -- Create profiles table for storing additional user information
 -- Updated schema to match app expectations
-CREATE TABLE IF NOT EXISTS profiles (
+CREATE TABLE profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT,
     full_name TEXT,
@@ -22,6 +25,11 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 -- Enable Row Level Security
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 
 -- Create policies for profiles table
 CREATE POLICY "Users can view own profile" ON profiles
@@ -49,6 +57,10 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Drop existing indexes if they exist
+DROP INDEX IF EXISTS idx_profiles_email;
+DROP INDEX IF EXISTS idx_profiles_profile_completed;
+
 -- Create index for better performance
-CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
-CREATE INDEX IF NOT EXISTS idx_profiles_status ON profiles(status);
+CREATE INDEX idx_profiles_email ON profiles(email);
+CREATE INDEX idx_profiles_status ON profiles(status);
