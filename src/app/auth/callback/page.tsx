@@ -34,93 +34,11 @@ const AuthCallback = () => {
         console.log("Starting auth callback...");
         console.log("Current URL:", window.location.href);
         
-        // Check for OAuth state and error parameters in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const errorParam = urlParams.get('error');
-        const errorDescription = urlParams.get('error_description');
-        
-        // Also check URL hash for OAuth response
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        console.log("URL hash parameters:", Object.fromEntries(hashParams.entries()));
-        
-        // Check for malformed OAuth responses (like %3Canonymous%20code%3E)
-        const currentUrl = window.location.href;
-        if (currentUrl.includes('%3C') || currentUrl.includes('%3E') || currentUrl.includes('anonymous')) {
-          console.error("Malformed OAuth response detected:", currentUrl);
-          setStatus("error");
-          setMessage("OAuth response is malformed. This usually means there's a configuration issue with Google OAuth.");
-          
-          try {
-            toast({
-              title: "OAuth Configuration Error",
-              description: "There's an issue with the Google OAuth configuration. Please contact support.",
-              variant: "destructive",
-            });
-          } catch (toastError) {
-            console.error("Toast error:", toastError);
-          }
-          
-          setTimeout(() => {
-            router.push("/auth/sign-in");
-          }, 5000);
-          return;
-        }
-        
-        if (errorParam) {
-          console.error("OAuth error in URL:", errorParam, errorDescription);
-          setStatus("error");
-          setMessage(`OAuth error: ${errorDescription || errorParam}`);
-          
-          try {
-            toast({
-              title: "OAuth Authentication Failed",
-              description: errorDescription || errorParam || "Please try signing in again.",
-              variant: "destructive",
-            });
-          } catch (toastError) {
-            console.error("Toast error:", toastError);
-          }
-          
-          setTimeout(() => {
-            router.push("/auth/sign-in");
-          }, 3000);
-          return;
-        }
-        
-        // Check for OAuth code parameter
-        const codeParam = urlParams.get('code');
-        console.log("OAuth code parameter:", codeParam ? "Present" : "Missing");
-        
-        // Check if the code parameter is malformed
-        if (codeParam && (codeParam.includes('%3C') || codeParam.includes('%3E') || codeParam.includes('anonymous'))) {
-          console.error("Malformed OAuth code parameter:", codeParam);
-          setStatus("error");
-          setMessage("OAuth code is malformed. This indicates a Google OAuth configuration issue.");
-          
-          try {
-            toast({
-              title: "OAuth Configuration Error",
-              description: "The OAuth response contains invalid data. Please check Google OAuth configuration.",
-              variant: "destructive",
-            });
-          } catch (toastError) {
-            console.error("Toast error:", toastError);
-          }
-          
-          setTimeout(() => {
-            router.push("/auth/sign-in");
-          }, 5000);
-          return;
-        }
-        
-        // Log all URL parameters for debugging
-        console.log("All URL parameters:", Object.fromEntries(urlParams.entries()));
-        
         // Give the OAuth session a moment to establish
         console.log("Waiting for OAuth session to establish...");
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Get the session from the URL hash or query params
+        // Get the session from Supabase
         console.log("Attempting to get session...");
         const { data, error } = await supabase.auth.getSession();
         console.log("Session data:", data);
@@ -185,13 +103,13 @@ const AuthCallback = () => {
             console.error("Toast error:", toastError);
           }
 
-                      // Check if profile exists and has required fields
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name, phone, street_address, city, postal_code')
-                .eq('id', currentUser.id)
-                .single();
+          // Check if profile exists and has required fields
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name, phone, street_address, city, postal_code')
+              .eq('id', currentUser.id)
+              .single();
 
             // Check if profile has the minimum required information
             if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
@@ -214,67 +132,8 @@ const AuthCallback = () => {
             }, 1500);
           }
         } else {
-          // No session found, try to handle OAuth code manually
-          console.log("No session found in callback, attempting manual code exchange...");
-          
-          if (codeParam) {
-            console.log("Attempting to exchange OAuth code manually...");
-            setMessage("Completing OAuth exchange...");
-            
-            try {
-              // Try to exchange the code for a session
-              const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeParam);
-              
-              if (exchangeError) {
-                console.error("Code exchange error:", exchangeError);
-                setStatus("error");
-                setMessage(`OAuth exchange failed: ${exchangeError.message}`);
-                
-                setTimeout(() => {
-                  router.push("/auth/sign-in");
-                }, 3000);
-                return;
-              }
-              
-              if (exchangeData.session) {
-                console.log("Code exchange successful, session:", exchangeData.session);
-                setStatus("success");
-                setMessage("Authentication successful! Checking profile...");
-                
-                // Continue with profile check
-                try {
-                  const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('full_name, phone, street_address, city, postal_code')
-                    .eq('id', exchangeData.session.user.id)
-                    .single();
-
-                  if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
-                    setMessage("Redirecting to complete your profile...");
-                    setTimeout(() => {
-                      router.push("/profile/complete");
-                    }, 1500);
-                  } else {
-                    setMessage("Redirecting to dashboard...");
-                    setTimeout(() => {
-                      router.push("/");
-                    }, 1500);
-                  }
-                } catch (profileError) {
-                  console.log('Profile check error, redirecting to profile completion:', profileError);
-                  setMessage("Redirecting to complete your profile...");
-                  setTimeout(() => {
-                    router.push("/profile/complete");
-                  }, 1500);
-                }
-                return;
-              }
-            } catch (exchangeError) {
-              console.error("Manual code exchange failed:", exchangeError);
-            }
-          }
-          
-          // If we get here, no session and no successful code exchange
+          // No session found
+          console.log("No session found in callback");
           setStatus("error");
           setMessage("No active session found. This usually means the OAuth flow didn't complete properly. Redirecting to sign-in...");
           
