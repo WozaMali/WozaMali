@@ -15,8 +15,39 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        console.log("Starting auth callback...");
+        console.log("Current URL:", window.location.href);
+        
+        // Check for OAuth state and error parameters in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorParam = urlParams.get('error');
+        const errorDescription = urlParams.get('error_description');
+        
+        if (errorParam) {
+          console.error("OAuth error in URL:", errorParam, errorDescription);
+          setStatus("error");
+          setMessage(`OAuth error: ${errorDescription || errorParam}`);
+          
+          toast({
+            title: "OAuth Authentication Failed",
+            description: errorDescription || errorParam || "Please try signing in again.",
+            variant: "destructive",
+          });
+          
+          setTimeout(() => {
+            router.push("/auth/sign-in");
+          }, 3000);
+          return;
+        }
+        
+        // Check for OAuth code parameter
+        const codeParam = urlParams.get('code');
+        console.log("OAuth code parameter:", codeParam ? "Present" : "Missing");
+        
         // Get the session from the URL hash or query params
         const { data, error } = await supabase.auth.getSession();
+        console.log("Session data:", data);
+        console.log("Session error:", error);
 
         if (error) {
           console.error("Auth callback error:", error);
@@ -77,9 +108,69 @@ const AuthCallback = () => {
             }, 1500);
           }
         } else {
-          // No session found, redirect to sign-in
+          // No session found, try to handle OAuth code manually
+          console.log("No session found in callback");
+          
+          if (codeParam) {
+            console.log("Attempting to exchange OAuth code manually...");
+            setMessage("Completing OAuth exchange...");
+            
+            try {
+              // Try to exchange the code for a session
+              const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeParam);
+              
+              if (exchangeError) {
+                console.error("Code exchange error:", exchangeError);
+                setStatus("error");
+                setMessage(`OAuth exchange failed: ${exchangeError.message}`);
+                
+                setTimeout(() => {
+                  router.push("/auth/sign-in");
+                }, 3000);
+                return;
+              }
+              
+              if (exchangeData.session) {
+                console.log("Code exchange successful, session:", exchangeData.session);
+                setStatus("success");
+                setMessage("Authentication successful! Checking profile...");
+                
+                // Continue with profile check
+                try {
+                  const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('full_name, phone, street_address, city, postal_code')
+                    .eq('id', exchangeData.session.user.id)
+                    .single();
+
+                  if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
+                    setMessage("Redirecting to complete your profile...");
+                    setTimeout(() => {
+                      router.push("/profile/complete");
+                    }, 1500);
+                  } else {
+                    setMessage("Redirecting to dashboard...");
+                    setTimeout(() => {
+                      router.push("/");
+                    }, 1500);
+                  }
+                } catch (profileError) {
+                  console.log('Profile check error, redirecting to profile completion:', profileError);
+                  setMessage("Redirecting to complete your profile...");
+                  setTimeout(() => {
+                    router.push("/profile/complete");
+                  }, 1500);
+                }
+                return;
+              }
+            } catch (exchangeError) {
+              console.error("Manual code exchange failed:", exchangeError);
+            }
+          }
+          
+          // If we get here, no session and no successful code exchange
           setStatus("error");
-          setMessage("No active session found. Redirecting to sign-in...");
+          setMessage("No active session found. This usually means the OAuth flow didn't complete properly. Redirecting to sign-in...");
           
           setTimeout(() => {
             router.push("/auth/sign-in");
