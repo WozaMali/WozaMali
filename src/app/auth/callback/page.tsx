@@ -34,6 +34,115 @@ const AuthCallback = () => {
         console.log("Starting auth callback...");
         console.log("Current URL:", window.location.href);
         
+        // Check for OAuth parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const codeParam = urlParams.get('code');
+        const errorParam = urlParams.get('error');
+        const errorDescription = urlParams.get('error_description');
+        
+        console.log("OAuth code parameter:", codeParam ? "Present" : "Missing");
+        console.log("OAuth error parameter:", errorParam);
+        console.log("All URL parameters:", Object.fromEntries(urlParams.entries()));
+        
+        // Check for OAuth errors
+        if (errorParam) {
+          console.error("OAuth error in URL:", errorParam, errorDescription);
+          setStatus("error");
+          setMessage(`OAuth error: ${errorDescription || errorParam}`);
+          
+          try {
+            toast({
+              title: "OAuth Authentication Failed",
+              description: errorDescription || errorParam || "Please try signing in again.",
+              variant: "destructive",
+            });
+          } catch (toastError) {
+            console.error("Toast error:", toastError);
+          }
+          
+          setTimeout(() => {
+            router.push("/auth/sign-in");
+          }, 3000);
+          return;
+        }
+        
+        // If we have a code, exchange it for a session
+        if (codeParam) {
+          console.log("Exchanging OAuth code for session...");
+          setMessage("Completing OAuth exchange...");
+          
+          try {
+            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeParam);
+            
+            if (exchangeError) {
+              console.error("Code exchange error:", exchangeError);
+              setStatus("error");
+              setMessage(`OAuth exchange failed: ${exchangeError.message}`);
+              
+              try {
+                toast({
+                  title: "Authentication Failed",
+                  description: exchangeError.message || "Please try signing in again.",
+                  variant: "destructive",
+                });
+              } catch (toastError) {
+                console.error("Toast error:", toastError);
+              }
+              
+              setTimeout(() => {
+                router.push("/auth/sign-in");
+              }, 3000);
+              return;
+            }
+            
+            if (exchangeData.session) {
+              console.log("Code exchange successful, session:", exchangeData.session);
+              setStatus("success");
+              setMessage("Authentication successful! Checking profile...");
+              
+              // Continue with profile check
+              try {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('full_name, phone, street_address, city, postal_code')
+                  .eq('id', exchangeData.session.user.id)
+                  .single();
+
+                if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
+                  setMessage("Redirecting to complete your profile...");
+                  setTimeout(() => {
+                    router.push("/profile/complete");
+                  }, 1500);
+                } else {
+                  setMessage("Redirecting to dashboard...");
+                  setTimeout(() => {
+                    router.push("/");
+                  }, 1500);
+                }
+              } catch (profileError) {
+                console.log('Profile check error, redirecting to profile completion:', profileError);
+                setMessage("Redirecting to complete your profile...");
+                setTimeout(() => {
+                  router.push("/profile/complete");
+                }, 1500);
+              }
+              return;
+            }
+          } catch (exchangeError) {
+            console.error("Manual code exchange failed:", exchangeError);
+            setStatus("error");
+            setMessage("OAuth exchange failed. Please try signing in again.");
+            
+            setTimeout(() => {
+              router.push("/auth/sign-in");
+            }, 3000);
+            return;
+          }
+        }
+        
+        // If we get here, no code and no session, try to get existing session
+        console.log("No OAuth code found, checking for existing session...");
+        
         // Give the OAuth session a moment to establish
         console.log("Waiting for OAuth session to establish...");
         await new Promise(resolve => setTimeout(resolve, 1000));
