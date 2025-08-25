@@ -167,28 +167,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       console.log('Signing out user...');
+      
+      // First, clear local state immediately to prevent UI issues
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      setLoading(false);
+      
+      // Then attempt to sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Sign out error:', error);
-        return;
+        console.error('Supabase sign out error:', error);
+        // Don't return here, continue with cleanup
       }
       
-      // Clear local state immediately
-      console.log('Clearing local state...');
+      // Clear any stored data
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('supabase.auth.refreshToken');
+          sessionStorage.clear();
+        } catch (storageError) {
+          console.warn('Error clearing storage:', storageError);
+        }
+      }
+      
+      console.log('User signed out successfully');
+      
+      // Force a page reload to clear any remaining state
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/sign-in';
+      }
+      
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Even if there's an error, clear local state and redirect
       setUser(null);
       setSession(null);
       setUserRole(null);
       setLoading(false);
       
-      console.log('User signed out successfully');
-    } catch (error) {
-      console.error('Sign out error:', error);
-      // Even if there's an error, clear local state
-      setUser(null);
-      setSession(null);
-      setUserRole(null);
-      setLoading(false);
+      // Force redirect even on error
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/sign-in';
+      }
     }
   };
 
@@ -236,10 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Force logout: Clearing all authentication state...');
       
-      // Clear Supabase session
-      await supabase.auth.signOut();
-      
-      // Clear all local state
+      // Clear all local state immediately
       setUser(null);
       setSession(null);
       setUserRole(null);
@@ -247,18 +267,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Clear any stored data
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('supabase.auth.token');
-        sessionStorage.clear();
+        try {
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('supabase.auth.refreshToken');
+          sessionStorage.clear();
+          localStorage.clear();
+        } catch (storageError) {
+          console.warn('Error clearing storage:', storageError);
+        }
+      }
+      
+      // Attempt to clear Supabase session (don't wait for it)
+      try {
+        await supabase.auth.signOut();
+      } catch (supabaseError) {
+        console.warn('Supabase sign out error during force logout:', supabaseError);
       }
       
       console.log('Force logout: All state cleared successfully');
+      
+      // Force a complete page reload
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/sign-in';
+      }
+      
     } catch (error) {
       console.error('Force logout error:', error);
-      // Clear state even if there's an error
+      // Clear state even if there's an error and force redirect
       setUser(null);
       setSession(null);
       setUserRole(null);
       setLoading(false);
+      
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/sign-in';
+      }
     }
   };
 

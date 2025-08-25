@@ -19,28 +19,13 @@ const AuthCallback = () => {
   }, []);
 
   useEffect(() => {
-    if (!isClient) {
-      return; // Don't run until component is mounted on client
-    }
-    
-    // Add global timeout to prevent infinite limbo
-    const globalTimeout = setTimeout(() => {
-      console.error("Global timeout reached, redirecting to sign-in");
-      setStatus("error");
-      setMessage("Authentication timeout. Please try signing in again.");
-      router.push("/auth/sign-in");
-    }, 30000); // 30 second global timeout
+    if (!isClient) return;
+
+    let timeoutId: NodeJS.Timeout;
     
     const handleAuthCallback = async () => {
       try {
-        // Ensure we're on the client side
-        if (typeof window === 'undefined') {
-          console.log("Not on client side, skipping callback");
-          return;
-        }
-        
         console.log("Starting auth callback...");
-        console.log("Current URL:", window.location.href);
         
         // Check for OAuth parameters
         const urlParams = new URLSearchParams(window.location.search);
@@ -48,29 +33,21 @@ const AuthCallback = () => {
         const errorParam = urlParams.get('error');
         const errorDescription = urlParams.get('error_description');
         
-        console.log("OAuth code parameter:", codeParam ? "Present" : "Missing");
-        console.log("OAuth error parameter:", errorParam);
-        console.log("All URL parameters:", Object.fromEntries(urlParams.entries()));
+        console.log("OAuth parameters:", { codeParam: !!codeParam, errorParam, errorDescription });
         
-        // Check for OAuth errors
+        // Handle OAuth errors
         if (errorParam) {
-          console.error("OAuth error in URL:", errorParam, errorDescription);
+          console.error("OAuth error:", errorParam, errorDescription);
           setStatus("error");
-          setMessage(`OAuth error: ${errorDescription || errorParam}`);
+          setMessage(`Authentication failed: ${errorDescription || errorParam}`);
           
-          try {
-            toast({
-              title: "OAuth Authentication Failed",
-              description: errorDescription || errorParam || "Please try signing in again.",
-              variant: "destructive",
-            });
-          } catch (toastError) {
-            console.error("Toast error:", toastError);
-          }
+          toast({
+            title: "Authentication Failed",
+            description: errorDescription || errorParam || "Please try signing in again.",
+            variant: "destructive",
+          });
           
-          setTimeout(() => {
-            router.push("/auth/sign-in");
-          }, 3000);
+          timeoutId = setTimeout(() => router.push("/auth/sign-in"), 3000);
           return;
         }
         
@@ -79,214 +56,126 @@ const AuthCallback = () => {
           console.log("Exchanging OAuth code for session...");
           setMessage("Completing OAuth exchange...");
           
-          try {
-            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeParam);
-            
-            if (exchangeError) {
-              console.error("Code exchange error:", exchangeError);
-              setStatus("error");
-              setMessage(`OAuth exchange failed: ${exchangeError.message}`);
-              
-              try {
-                toast({
-                  title: "Authentication Failed",
-                  description: exchangeError.message || "Please try signing in again.",
-                  variant: "destructive",
-                });
-              } catch (toastError) {
-                console.error("Toast error:", toastError);
-              }
-              
-              setTimeout(() => {
-                router.push("/auth/sign-in");
-              }, 3000);
-              return;
-            }
-            
-            if (exchangeData.session) {
-              console.log("Code exchange successful, session:", exchangeData.session);
-              setStatus("success");
-              setMessage("Authentication successful! Checking profile...");
-              
-              // Continue with profile check with timeout protection
-              try {
-                const profileCheckPromise = supabase
-                  .from('profiles')
-                  .select('full_name, phone, street_address, city, postal_code')
-                  .eq('id', exchangeData.session.user.id)
-                  .single();
-
-                // Add timeout to profile check
-                const timeoutPromise = new Promise<never>((_, reject) => 
-                  setTimeout(() => reject(new Error('Profile check timeout')), 10000)
-                );
-
-                const result = await Promise.race([profileCheckPromise, timeoutPromise]);
-                const profile = result.data;
-
-                if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
-                  setMessage("Redirecting to complete your profile...");
-                  setTimeout(() => {
-                    router.push("/profile/complete");
-                  }, 1500);
-                } else {
-                  setMessage("Redirecting to dashboard...");
-                  setTimeout(() => {
-                    router.push("/");
-                  }, 1500);
-                }
-              } catch (profileError) {
-                console.log('Profile check error or timeout, redirecting to profile completion:', profileError);
-                setMessage("Redirecting to complete your profile...");
-                setTimeout(() => {
-                  router.push("/profile/complete");
-                }, 1500);
-              }
-              return;
-            }
-          } catch (exchangeError) {
-            console.error("Manual code exchange failed:", exchangeError);
-            setStatus("error");
-            setMessage("OAuth exchange failed. Please try signing in again.");
-            
-            setTimeout(() => {
-              router.push("/auth/sign-in");
-            }, 3000);
-            return;
-          }
-        }
-        
-        // If we get here, no code and no session, try to get existing session
-        console.log("No OAuth code found, checking for existing session...");
-        
-        // Give the OAuth session a moment to establish
-        console.log("Waiting for OAuth session to establish...");
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Get the session from Supabase
-        console.log("Attempting to get session...");
-        const { data, error } = await supabase.auth.getSession();
-        console.log("Session data:", data);
-        console.log("Session error:", error);
-        
-        // Also try to get the user directly
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        console.log("User data:", userData);
-        console.log("User error:", userError);
-        
-        // Check if we're in the right environment
-        console.log("Current origin:", window.location.origin);
-        console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-
-        if (error) {
-          console.error("Auth callback error:", error);
-          setStatus("error");
-          setMessage(`Authentication failed: ${error.message}`);
+          const { data, error } = await supabase.auth.exchangeCodeForSession(codeParam);
           
-          // Show error toast
-          try {
+          if (error) {
+            console.error("Code exchange error:", error);
+            setStatus("error");
+            setMessage(`Authentication failed: ${error.message}`);
+            
             toast({
               title: "Authentication Failed",
               description: error.message || "Please try signing in again.",
               variant: "destructive",
             });
-          } catch (toastError) {
-            console.error("Toast error:", toastError);
-          }
-
-          // Redirect to sign-in after a delay
-          setTimeout(() => {
-            router.push("/auth/sign-in");
-          }, 3000);
-          return;
-        }
-
-        // Check if we have either a session or a user
-        if (data.session || userData.user) {
-          const currentUser = data.session?.user || userData.user;
-          if (!currentUser) {
-            console.error("No user found despite having session/user data");
-            setStatus("error");
-            setMessage("Authentication failed: No user data found");
-            setTimeout(() => {
-              router.push("/auth/sign-in");
-            }, 3000);
+            
+            timeoutId = setTimeout(() => router.push("/auth/sign-in"), 3000);
             return;
           }
           
-          console.log("User authenticated:", currentUser);
-          setStatus("success");
-          setMessage("Authentication successful! Checking profile...");
-          
-          // Show success toast
-          try {
-            toast({
-              title: "Welcome!",
-              description: "You have successfully signed in.",
-            });
-          } catch (toastError) {
-            console.error("Toast error:", toastError);
-          }
+          if (data.session) {
+            console.log("Code exchange successful");
+            setStatus("success");
+            setMessage("Authentication successful! Redirecting...");
+            
+            // Wait a moment for the session to be fully established
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Check if profile exists and redirect accordingly
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name, phone, street_address, city, postal_code')
+                .eq('id', data.session.user.id)
+                .single();
 
-          // Check if profile exists and has required fields
+              if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
+                setMessage("Redirecting to complete your profile...");
+                timeoutId = setTimeout(() => router.push("/profile/complete"), 1500);
+              } else {
+                setMessage("Redirecting to dashboard...");
+                timeoutId = setTimeout(() => router.push("/"), 1500);
+              }
+            } catch (profileError) {
+              console.log('Profile check error, redirecting to profile completion:', profileError);
+              setMessage("Redirecting to complete your profile...");
+              timeoutId = setTimeout(() => router.push("/profile/complete"), 1500);
+            }
+            return;
+          }
+        }
+        
+        // If no code, check for existing session
+        console.log("No OAuth code found, checking for existing session...");
+        
+        // Wait a moment for any pending OAuth session to establish
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          console.log("User authenticated:", session.user);
+          setStatus("success");
+          setMessage("Authentication successful! Redirecting...");
+          
+          toast({
+            title: "Welcome!",
+            description: "You have successfully signed in.",
+          });
+          
+          // Check profile and redirect
           try {
             const { data: profile } = await supabase
               .from('profiles')
               .select('full_name, phone, street_address, city, postal_code')
-              .eq('id', currentUser.id)
+              .eq('id', session.user.id)
               .single();
 
-            // Check if profile has the minimum required information
             if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
               setMessage("Redirecting to complete your profile...");
-              setTimeout(() => {
-                router.push("/profile/complete");
-              }, 1500);
+              timeoutId = setTimeout(() => router.push("/profile/complete"), 1500);
             } else {
               setMessage("Redirecting to dashboard...");
-              setTimeout(() => {
-                router.push("/");
-              }, 1500);
+              timeoutId = setTimeout(() => router.push("/"), 1500);
             }
           } catch (error) {
-            // If no profile exists or any error occurs, redirect to completion
             console.log('Profile check error, redirecting to profile completion:', error);
             setMessage("Redirecting to complete your profile...");
-            setTimeout(() => {
-              router.push("/profile/complete");
-            }, 1500);
+            timeoutId = setTimeout(() => router.push("/profile/complete"), 1500);
           }
         } else {
           // No session found
-          console.log("No session found in callback");
+          console.log("No session found");
           setStatus("error");
-          setMessage("No active session found. This usually means the OAuth flow didn't complete properly. Redirecting to sign-in...");
+          setMessage("No active session found. Redirecting to sign-in...");
           
-          setTimeout(() => {
-            router.push("/auth/sign-in");
-          }, 2000);
+          timeoutId = setTimeout(() => router.push("/auth/sign-in"), 2000);
         }
       } catch (error: any) {
         console.error("Unexpected error in auth callback:", error);
         setStatus("error");
         setMessage("An unexpected error occurred. Redirecting to sign-in...");
         
-        setTimeout(() => {
-          router.push("/auth/sign-in");
-        }, 3000);
-      } finally {
-        // Clear global timeout since we're done
-        clearTimeout(globalTimeout);
+        timeoutId = setTimeout(() => router.push("/auth/sign-in"), 3000);
       }
     };
+
+    // Add a global timeout to prevent infinite loading
+    const globalTimeout = setTimeout(() => {
+      console.error("Global timeout reached, redirecting to sign-in");
+      setStatus("error");
+      setMessage("Authentication timeout. Please try signing in again.");
+      router.push("/auth/sign-in");
+    }, 15000); // 15 second global timeout
 
     handleAuthCallback();
     
     // Cleanup function
     return () => {
+      clearTimeout(timeoutId);
       clearTimeout(globalTimeout);
     };
-  }, [router]);
+  }, [router, isClient]);
 
   // Show loading while component is mounting
   if (!isClient) {
@@ -302,7 +191,7 @@ const AuthCallback = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Orange Horizontal Bar at Top - 50% Bigger */}
+      {/* Orange Horizontal Bar at Top */}
       <div className="h-48 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
         <div className="text-center text-white">
           <div className="w-28 h-28 mx-auto mb-4">
@@ -364,9 +253,7 @@ const AuthCallback = () => {
               {status === "error" && "Authentication Failed"}
             </h2>
             <p className="text-gray-600">
-              {status === "loading" && "Please wait while we complete your sign-in process..."}
-              {status === "success" && "Your account has been successfully authenticated. You will be redirected to the dashboard shortly."}
-              {status === "error" && "There was an issue with your authentication. Please try signing in again or contact support if the problem persists."}
+              {message}
             </p>
           </div>
 

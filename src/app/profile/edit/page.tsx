@@ -74,7 +74,9 @@ const EditPersonalDetails = () => {
     setLoading(true);
 
     try {
-      // Update user metadata
+      console.log('Starting profile update for user:', user?.id);
+      
+      // First, update the user metadata in Supabase auth
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           full_name: formData.fullName,
@@ -87,8 +89,11 @@ const EditPersonalDetails = () => {
       });
 
       if (updateError) {
+        console.error('User metadata update error:', updateError);
         throw updateError;
       }
+
+      console.log('User metadata updated successfully');
 
       // Update profile in profiles table
       if (user) {
@@ -108,6 +113,9 @@ const EditPersonalDetails = () => {
         if (profileError) {
           console.error('Profile update error:', profileError);
           // Don't throw here as the user metadata was updated successfully
+          // But log it for debugging
+        } else {
+          console.log('Profile table updated successfully');
         }
       }
 

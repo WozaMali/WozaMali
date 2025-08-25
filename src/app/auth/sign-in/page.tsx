@@ -43,15 +43,24 @@ export default function SignIn() {
     
     try {
       console.log('Starting Google OAuth...');
+      
+      // Clear any existing errors
+      setError("");
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
       if (error) {
         console.error('Google sign in error:', error);
+        setError(error.message || "Google sign-in failed. Please try again.");
         toast({
           title: "Google Sign In Failed",
           description: error.message || "Please try again.",
@@ -61,9 +70,14 @@ export default function SignIn() {
         console.log('Google OAuth initiated successfully:', data);
         // User will be redirected to Google OAuth
         // After OAuth callback, they will be redirected to the callback page
+        toast({
+          title: "Redirecting to Google",
+          description: "Please complete the Google sign-in process.",
+        });
       }
     } catch (error: any) {
       console.error('Google sign in error:', error);
+      setError(error.message || "An unexpected error occurred during Google sign-in.");
       toast({
         title: "Google Sign In Failed",
         description: error.message || "An unexpected error occurred.",
@@ -156,14 +170,14 @@ export default function SignIn() {
       {/* Orange Horizontal Bar at Top - 50% Bigger */}
       <div className="h-64 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
         <div className="text-center text-white">
-          <div className="inline-flex items-center justify-center w-48 h-48">
+          <div className="inline-flex items-center justify-center w-48 h-48 mb-4">
             <img
               src="/WozaMali-uploads/w white.png"
               alt="Woza Mali Logo"
-              className="w-28 h-28 drop-shadow-lg"
+              className="w-32 h-32 drop-shadow-lg"
             />
           </div>
-          <div className="text-center -mt-6">
+          <div className="text-center">
             <p className="text-white/90 text-sm mb-1">
               Powered by
             </p>
@@ -240,7 +254,7 @@ export default function SignIn() {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-gray-300 placeholder-gray-400"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder:text-gray-300"
                 placeholder="Enter your email"
                 required
               />
@@ -252,7 +266,7 @@ export default function SignIn() {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:border-transparent transition-colors duration-200 text-sm text-gray-300 placeholder-gray-400"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder:text-gray-300"
                 placeholder="Enter your password"
                 required
               />
@@ -268,7 +282,7 @@ export default function SignIn() {
                   id="fullName"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-gray-300 placeholder-gray-400"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder:text-gray-300"
                   placeholder="Enter your full name"
                   required
                 />

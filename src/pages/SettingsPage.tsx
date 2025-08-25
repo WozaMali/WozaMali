@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
 const SettingsPage = () => {
-  const navigate = useRouter();
+  const router = useRouter();
   
   // Try to use auth context, but handle the case where it might not be ready
   let authContext;
@@ -20,10 +20,10 @@ const SettingsPage = () => {
   } catch (error) {
     // AuthProvider not ready yet, show loading
     return (
-      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading settings...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600">Loading settings...</p>
         </div>
       </div>
     );
@@ -40,10 +40,14 @@ const SettingsPage = () => {
 
   const handleLogout = async () => {
     try {
+      console.log('Settings: Starting logout process...');
       await signOut();
-      navigate.push('/auth/sign-in');
+      console.log('Settings: Sign out completed, redirecting to sign-in...');
+      router.push('/auth/sign-in');
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Settings: Logout failed:', error);
+      // Force redirect even if there's an error
+      router.push('/auth/sign-in');
     }
   };
 
@@ -88,14 +92,14 @@ const SettingsPage = () => {
           title: "Profile",
           description: "Update your personal information",
           type: "button",
-          action: () => navigate.push("/profile/edit")
+          action: () => router.push("/profile/edit")
         },
         {
           icon: Shield,
           title: "Privacy & Security",
           description: "Manage your privacy settings",
           type: "button",
-          action: () => navigate.push("/profile/security")
+          action: () => router.push("/profile/security")
         }
       ]
     },
@@ -120,12 +124,12 @@ const SettingsPage = () => {
       return (
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <Icon className="h-4 w-4 text-primary" />
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Icon className="h-4 w-4 text-blue-600" />
             </div>
             <div>
               <p className="font-medium">{item.title}</p>
-              <p className="text-sm text-muted-foreground">{item.description}</p>
+              <p className="text-sm text-gray-600">{item.description}</p>
             </div>
           </div>
           <Switch 
@@ -140,12 +144,12 @@ const SettingsPage = () => {
       return (
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <Icon className="h-4 w-4 text-primary" />
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Icon className="h-4 w-4 text-blue-600" />
             </div>
             <div>
               <p className="font-medium">{item.title}</p>
-              <p className="text-sm text-muted-foreground">{item.description}</p>
+              <p className="text-sm text-gray-600">{item.description}</p>
             </div>
           </div>
           <Select value={item.value} onValueChange={item.onChange}>
@@ -171,12 +175,12 @@ const SettingsPage = () => {
         onClick={item.action}
       >
         <div className="flex items-center space-x-3 w-full py-3">
-          <div className="p-2 bg-primary/20 rounded-lg">
-            <Icon className="h-4 w-4 text-primary" />
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Icon className="h-4 w-4 text-blue-600" />
           </div>
           <div className="text-left">
             <p className="font-medium">{item.title}</p>
-            <p className="text-sm text-muted-foreground">{item.description}</p>
+            <p className="text-sm text-gray-600">{item.description}</p>
           </div>
         </div>
       </Button>
@@ -184,14 +188,14 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-warm pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pb-20">
       {/* Header */}
-      <div className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border z-10">
+      <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 z-10">
         <div className="flex items-center p-4">
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => navigate.back()}
+            onClick={() => router.back()}
             className="mr-3"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -202,7 +206,7 @@ const SettingsPage = () => {
 
       <div className="p-4 space-y-6">
         {settingSections.map((section, index) => (
-          <Card key={index} className="shadow-card">
+          <Card key={index} className="shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">{section.title}</CardTitle>
             </CardHeader>
@@ -218,11 +222,11 @@ const SettingsPage = () => {
         ))}
 
         {/* Logout Section */}
-        <Card className="shadow-card border-destructive/20">
+        <Card className="shadow-sm border-red-200">
           <CardContent className="p-4">
             <Button 
               variant="ghost" 
-              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-3" />
@@ -233,8 +237,8 @@ const SettingsPage = () => {
 
         {/* App Version */}
         <div className="text-center">
-          <p className="text-sm text-muted-foreground">Woza Mali v1.0.0</p>
-          <p className="text-xs text-muted-foreground">Powered by Sebenza Nathi Waste</p>
+          <p className="text-sm text-gray-500">Woza Mali v1.0.0</p>
+          <p className="text-xs text-gray-400">Powered by Sebenza Nathi Waste</p>
         </div>
       </div>
     </div>

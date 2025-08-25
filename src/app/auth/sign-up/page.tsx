@@ -114,26 +114,41 @@ const SignUp = () => {
   // Handle Google Sign Up
   const handleGoogleSignUp = async () => {
     setGoogleLoading(true);
+    setError(""); // Clear any existing errors
     
     try {
+      console.log('Starting Google OAuth sign-up...');
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
       if (error) {
         console.error('Google sign up error:', error);
+        setError(error.message || "Google sign-up failed. Please try again.");
         toast({
           title: "Google Sign Up Failed",
           description: error.message || "Please try again.",
           variant: "destructive",
         });
+      } else {
+        console.log('Google OAuth initiated successfully:', data);
+        toast({
+          title: "Redirecting to Google",
+          description: "Please complete the Google sign-up process.",
+        });
+        // If successful, user will be redirected to Google OAuth
       }
-      // If successful, user will be redirected to Google OAuth
     } catch (error: any) {
       console.error('Google sign up error:', error);
+      setError(error.message || "An unexpected error occurred during Google sign-up.");
       toast({
         title: "Google Sign Up Failed",
         description: error.message || "An unexpected error occurred.",
@@ -268,14 +283,14 @@ const SignUp = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Orange Horizontal Bar at Top - 50% Bigger */}
-      <div className="h-48 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
+      <div className="h-48 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center relative">
         <div className="text-center text-white">
-          <div className="inline-flex items-center justify-center w-28 h-28 mb-4">
+          <div className="inline-flex items-center justify-center w-32 h-32 mb-4">
             <Image
               src="/WozaMali-uploads/w white.png"
               alt="Woza Mali Logo"
-              width={64}
-              height={64}
+              width={80}
+              height={80}
               className="drop-shadow-lg"
             />
           </div>
@@ -304,7 +319,7 @@ const SignUp = () => {
                 id="fullName"
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-gray-600"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-white placeholder:text-gray-300"
                 placeholder="Enter your full name"
                 required
               />
@@ -319,7 +334,7 @@ const SignUp = () => {
                 id="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-gray-600"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-white placeholder:text-gray-300"
                 placeholder="Enter your email"
                 required
               />
@@ -334,7 +349,7 @@ const SignUp = () => {
                 id="password"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-gray-600"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-white placeholder:text-gray-300"
                 placeholder="Enter your password"
                 required
               />
@@ -349,7 +364,7 @@ const SignUp = () => {
                 id="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-gray-600"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-white placeholder:text-gray-300"
                 placeholder="Confirm your password"
                 required
               />
@@ -364,10 +379,10 @@ const SignUp = () => {
                   placeholder="House Number and Street Name (e.g., 652 Hashe Street)"
                   value={formData.streetAddress}
                   onChange={(e) => handleInputChange('streetAddress', e.target.value)}
-                  className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                  className="pl-10 h-10 text-center text-sm font-medium bg-gray-700 border-2 border-gray-600 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-300 text-white"
                   style={{
-                    WebkitTextFillColor: 'rgb(75, 85, 99)',
-                    color: 'rgb(75, 85, 99)'
+                    WebkitTextFillColor: 'white',
+                    color: 'white'
                   }}
                 />
               </div>
@@ -380,7 +395,7 @@ const SignUp = () => {
                 <select 
                   value={formData.township} 
                   onChange={(e) => handleTownshipChange(e.target.value)}
-                  className="w-full pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 text-gray-600 rounded-md"
+                  className="w-full pl-10 h-10 text-center text-sm font-medium bg-gray-700 border-2 border-gray-600 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 transition-all duration-200 text-white rounded-md"
                   required
                 >
                   <option value="">Select Township</option>
@@ -400,7 +415,7 @@ const SignUp = () => {
                 <select 
                   value={formData.city} 
                   onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 text-gray-600 rounded-md"
+                  className="w-full pl-10 h-10 text-center text-sm font-medium bg-gray-700 border-2 border-gray-600 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 transition-all duration-200 text-white rounded-md"
                   required
                 >
                   <option value="">Select City</option>
@@ -421,10 +436,10 @@ const SignUp = () => {
                   placeholder="Postal Code"
                   value={formData.postalCode}
                   onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                  className="pl-10 h-10 text-center text-sm font-medium bg-white border-2 border-gray-600 focus:border-gray-600 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-400 text-gray-600 [&:-webkit-autofill]:bg-white [&:-webkit-autofill]:text-gray-600 [&:-webkit-autofill]:shadow-[0_0_0_30px_white_inset] [&:-webkit-autofill]:border-gray-600 [&:-webkit-autofill]:-webkit-text-fill-color-gray-600"
+                  className="pl-10 h-10 text-center text-sm font-medium bg-gray-700 border-2 border-gray-600 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-300 text-white"
                   style={{
-                    WebkitTextFillColor: 'rgb(75, 85, 99)',
-                    color: 'rgb(75, 85, 99)'
+                    WebkitTextFillColor: 'white',
+                    color: 'white'
                   }}
                 />
               </div>
