@@ -108,6 +108,96 @@ export interface Database {
           updated_at?: string
         }
       }
+      enhanced_wallets: {
+        Row: {
+          id: string
+          user_id: string
+          balance: number
+          total_points: number
+          tier: string
+          sync_status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          balance?: number
+          total_points?: number
+          tier?: string
+          sync_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          balance?: number
+          total_points?: number
+          tier?: string
+          sync_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      pickups: {
+        Row: {
+          id: string
+          user_id: string
+          weight_kg: number
+          status: string
+          pickup_date: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          weight_kg?: number
+          status?: string
+          pickup_date?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          weight_kg?: number
+          status?: string
+          pickup_date?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_metrics: {
+        Row: {
+          id: string
+          user_id: string
+          co2_saved_kg: number
+          water_saved_liters: number
+          landfill_saved_kg: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          co2_saved_kg?: number
+          water_saved_liters?: number
+          landfill_saved_kg?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          co2_saved_kg?: number
+          water_saved_liters?: number
+          landfill_saved_kg?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       password_reset_tokens: {
         Row: {
           id: string
