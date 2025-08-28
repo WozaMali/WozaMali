@@ -12,16 +12,76 @@ import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import Logo from "./Logo";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGreenScholarFund } from "@/hooks/useGreenScholarFund";
+import { BottleCollection } from "@/lib/greenScholarFundService";
+
+interface ApplicationData {
+  // Personal Information
+  fullName: string;
+  dateOfBirth: string;
+  phoneNumber: string;
+  email: string;
+  idNumber: string;
+  
+  // Academic Information
+  schoolName: string;
+  grade: string;
+  studentNumber: string;
+  academicPerformance: string;
+  
+  // Financial Information
+  householdIncome: string;
+  householdSize: string;
+  employmentStatus: string;
+  otherIncomeSources: string;
+  
+  // Support Needs
+  supportType: string[];
+  urgentNeeds: string;
+  previousSupport: string;
+  
+  // Documentation
+  hasIdDocument: boolean;
+  hasSchoolReport: boolean;
+  hasIncomeProof: boolean;
+  hasBankStatement: boolean;
+  
+  // Additional Information
+  specialCircumstances: string;
+  communityInvolvement: string;
+  references_info: string;
+}
 
 const GreenScholarFund = () => {
   const { user } = useAuth();
+  const {
+    fundStats,
+    userBottleContributions,
+    userDonations,
+    userBottleCollections,
+    loading: fundLoading,
+    submitBottleCollection,
+    submitDonation,
+    submitApplication
+  } = useGreenScholarFund();
+  
   const [donationAmount, setDonationAmount] = useState<number>(0);
   const [showApplication, setShowApplication] = useState(false);
   const [showDonationDialog, setShowDonationDialog] = useState(false);
+  const [showBottleCollectionDialog, setShowBottleCollectionDialog] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'mtn-momo' | null>(null);
   const [isProcessingDonation, setIsProcessingDonation] = useState(false);
+  const [isProcessingBottleCollection, setIsProcessingBottleCollection] = useState(false);
   const [applicationStep, setApplicationStep] = useState(1);
-  const [applicationData, setApplicationData] = useState({
+  const [bottleCollectionData, setBottleCollectionData] = useState({
+    bottle_count: 0,
+    weight_kg: 0,
+    bottle_type: 'PET' as 'PET' | 'HDPE' | 'Other',
+    collection_date: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
+
+  const [applicationData, setApplicationData] = useState<ApplicationData>({
     // Personal Information
     fullName: '',
     dateOfBirth: '',
@@ -42,7 +102,7 @@ const GreenScholarFund = () => {
     otherIncomeSources: '',
     
     // Support Needs
-    supportType: [],
+    supportType: [] as string[],
     urgentNeeds: '',
     previousSupport: '',
     
@@ -55,15 +115,10 @@ const GreenScholarFund = () => {
     // Additional Information
     specialCircumstances: '',
     communityInvolvement: '',
-    references: ''
+    references_info: ''
   });
 
-  const fundStats = {
-    totalRaised: 0.00,
-    monthlyGoal: 50000,
-    beneficiaries: 0,
-    thisMonthDonations: 0.00
-  };
+
 
   // User's contribution breakdown
   const userContributions = {
@@ -120,6 +175,60 @@ const GreenScholarFund = () => {
     ]
   };
 
+  // Handle bottle collection submission
+  const handleBottleCollection = async () => {
+    if (!bottleCollectionData.bottle_count || !bottleCollectionData.weight_kg) {
+      toast({
+        title: "Invalid Data",
+        description: "Please enter valid bottle count and weight.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessingBottleCollection(true);
+
+    try {
+      const result = await submitBottleCollection({
+        bottle_count: bottleCollectionData.bottle_count,
+        weight_kg: bottleCollectionData.weight_kg,
+        bottle_type: bottleCollectionData.bottle_type,
+        collection_date: bottleCollectionData.collection_date,
+        notes: bottleCollectionData.notes
+      });
+
+      if (result.success) {
+        // Reset form and show success
+        setBottleCollectionData({
+          bottle_count: 0,
+          weight_kg: 0,
+          bottle_type: 'PET',
+          collection_date: new Date().toISOString().split('T')[0],
+          notes: ''
+        });
+        setShowBottleCollectionDialog(false);
+        
+        toast({
+          title: "Collection Submitted!",
+          description: `Your collection of ${bottleCollectionData.bottle_count} bottles (${bottleCollectionData.weight_kg}kg) has been submitted.`,
+          variant: "default",
+        });
+      } else {
+        throw new Error(result.error || 'Collection submission failed');
+      }
+
+    } catch (error) {
+      console.error('Bottle collection error:', error);
+      toast({
+        title: "Collection Failed",
+        description: "There was an error submitting your collection. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingBottleCollection(false);
+    }
+  };
+
   // Handle donation processing
   const handleDonation = async () => {
     if (!donationAmount || donationAmount <= 0) {
@@ -143,24 +252,30 @@ const GreenScholarFund = () => {
     setIsProcessingDonation(true);
 
     try {
-      if (paymentMethod === 'wallet') {
-        // Process wallet donation
-        await processWalletDonation();
-      } else if (paymentMethod === 'mtn-momo') {
-        // Process MTN MoMo donation
-        await processMTNMoMoDonation();
-      }
-
-      // Reset form and show success
-      setDonationAmount(0);
-      setPaymentMethod(null);
-      setShowDonationDialog(false);
-      
-      toast({
-        title: "Donation Successful!",
-        description: `Thank you for your R${donationAmount} donation to the Green Scholar Fund.`,
-        variant: "default",
+      // Submit donation to database
+      const result = await submitDonation({
+        amount: donationAmount,
+        payment_method: paymentMethod,
+        transaction_reference: `GSF_${Date.now()}`
       });
+
+      if (result.success) {
+        // Store amount for success message before resetting
+        const successfulAmount = donationAmount;
+        
+        // Reset form and show success
+        setDonationAmount(0);
+        setPaymentMethod(null);
+        setShowDonationDialog(false);
+        
+        toast({
+          title: "Donation Successful!",
+          description: `Thank you for your R${successfulAmount} donation to the Green Scholar Fund.`,
+          variant: "default",
+        });
+      } else {
+        throw new Error(result.error || 'Donation failed');
+      }
 
     } catch (error) {
       console.error('Donation error:', error);
@@ -174,34 +289,13 @@ const GreenScholarFund = () => {
     }
   };
 
-  // Process wallet donation
-  const processWalletDonation = async () => {
-    // TODO: Integrate with actual wallet API
-    // For now, simulate the process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Here you would:
-    // 1. Check user's wallet balance
-    // 2. Deduct the donation amount
-    // 3. Record the transaction
-    // 4. Update fund statistics
-  };
 
-  // Process MTN MoMo donation
-  const processMTNMoMoDonation = async () => {
-    // TODO: Integrate with MTN MoMo API
-    // For now, simulate the process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Here you would:
-    // 1. Generate payment request
-    // 2. Send to MTN MoMo
-    // 3. Handle payment confirmation
-    // 4. Update fund statistics
-  };
 
   // Handle input changes for application form
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = <K extends keyof ApplicationData>(
+    field: K, 
+    value: ApplicationData[K]
+  ) => {
     setApplicationData(prev => ({
       ...prev,
       [field]: value
@@ -211,25 +305,52 @@ const GreenScholarFund = () => {
   // Handle application submission
   const handleApplicationSubmit = async () => {
     try {
-      // TODO: Submit application to database
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Application Submitted",
-        description: "Your application has been submitted successfully. We'll review it and get back to you soon.",
-        variant: "default",
+      const result = await submitApplication({
+        full_name: applicationData.fullName,
+        date_of_birth: applicationData.dateOfBirth,
+        phone_number: applicationData.phoneNumber,
+        email: applicationData.email,
+        id_number: applicationData.idNumber,
+        school_name: applicationData.schoolName,
+        grade: applicationData.grade,
+        student_number: applicationData.studentNumber,
+        academic_performance: applicationData.academicPerformance,
+        household_income: applicationData.householdIncome,
+        household_size: applicationData.householdSize,
+        employment_status: applicationData.employmentStatus,
+        other_income_sources: applicationData.otherIncomeSources,
+        support_type: applicationData.supportType,
+        urgent_needs: applicationData.urgentNeeds,
+        previous_support: applicationData.previousSupport,
+        has_id_document: applicationData.hasIdDocument,
+        has_school_report: applicationData.hasSchoolReport,
+        has_income_proof: applicationData.hasIncomeProof,
+        has_bank_statement: applicationData.hasBankStatement,
+        special_circumstances: applicationData.specialCircumstances,
+        community_involvement: applicationData.communityInvolvement,
+        references_info: applicationData.references_info
       });
-      
-      setShowApplication(false);
-      setApplicationStep(1);
-      setApplicationData({
-        fullName: '', dateOfBirth: '', phoneNumber: '', email: '', idNumber: '',
-        schoolName: '', grade: '', studentNumber: '', academicPerformance: '',
-        householdIncome: '', householdSize: '', employmentStatus: '', otherIncomeSources: '',
-        supportType: [], urgentNeeds: '', previousSupport: '',
-        hasIdDocument: false, hasSchoolReport: false, hasIncomeProof: false, hasBankStatement: false,
-        specialCircumstances: '', communityInvolvement: '', references: ''
-      });
+
+      if (result.success) {
+        toast({
+          title: "Application Submitted",
+          description: "Your application has been submitted successfully. We'll review it and get back to you soon.",
+          variant: "default",
+        });
+        
+        setShowApplication(false);
+        setApplicationStep(1);
+        setApplicationData({
+          fullName: '', dateOfBirth: '', phoneNumber: '', email: '', idNumber: '',
+          schoolName: '', grade: '', studentNumber: '', academicPerformance: '',
+          householdIncome: '', householdSize: '', employmentStatus: '', otherIncomeSources: '',
+          supportType: [] as string[], urgentNeeds: '', previousSupport: '',
+          hasIdDocument: false, hasSchoolReport: false, hasIncomeProof: false, hasBankStatement: false,
+          specialCircumstances: '', communityInvolvement: '', references_info: ''
+        });
+      } else {
+        throw new Error(result.error || 'Application submission failed');
+      }
     } catch (error) {
       toast({
         title: "Application Failed",
@@ -425,7 +546,7 @@ const GreenScholarFund = () => {
                         id={`support-${index}`}
                         checked={applicationData.supportType.includes(type)}
                         onCheckedChange={(checked) => {
-                          if (checked) {
+                          if (checked === true) {
                             handleInputChange('supportType', [...applicationData.supportType, type]);
                           } else {
                             handleInputChange('supportType', applicationData.supportType.filter(t => t !== type));
@@ -473,7 +594,7 @@ const GreenScholarFund = () => {
                   <Checkbox
                     id="hasIdDocument"
                     checked={applicationData.hasIdDocument}
-                    onCheckedChange={(checked) => handleInputChange('hasIdDocument', checked)}
+                    onCheckedChange={(checked) => handleInputChange('hasIdDocument', checked === true)}
                   />
                   <Label htmlFor="hasIdDocument">I have my ID document or birth certificate</Label>
                 </div>
@@ -482,7 +603,7 @@ const GreenScholarFund = () => {
                   <Checkbox
                     id="hasSchoolReport"
                     checked={applicationData.hasSchoolReport}
-                    onCheckedChange={(checked) => handleInputChange('hasSchoolReport', checked)}
+                    onCheckedChange={(checked) => handleInputChange('hasSchoolReport', checked === true)}
                   />
                   <Label htmlFor="hasSchoolReport">I have my recent school report</Label>
                 </div>
@@ -491,7 +612,7 @@ const GreenScholarFund = () => {
                   <Checkbox
                     id="hasIncomeProof"
                     checked={applicationData.hasIncomeProof}
-                    onCheckedChange={(checked) => handleInputChange('hasIncomeProof', checked)}
+                    onCheckedChange={(checked) => handleInputChange('hasIncomeProof', checked === true)}
                   />
                   <Label htmlFor="hasIncomeProof">I have proof of household income</Label>
                 </div>
@@ -500,7 +621,7 @@ const GreenScholarFund = () => {
                   <Checkbox
                     id="hasBankStatement"
                     checked={applicationData.hasBankStatement}
-                    onCheckedChange={(checked) => handleInputChange('hasBankStatement', checked)}
+                    onCheckedChange={(checked) => handleInputChange('hasBankStatement', checked === true)}
                   />
                   <Label htmlFor="hasBankStatement">I have bank statements (last 3 months)</Label>
                 </div>
@@ -529,11 +650,11 @@ const GreenScholarFund = () => {
               </div>
               
               <div>
-                <Label htmlFor="references">References</Label>
-                <Textarea
-                  id="references"
-                  value={applicationData.references}
-                  onChange={(e) => handleInputChange('references', e.target.value)}
+                        <Label htmlFor="references_info">References</Label>
+        <Textarea
+          id="references_info"
+          value={applicationData.references_info}
+          onChange={(e) => handleInputChange('references_info', e.target.value)}
                   placeholder="Names and contact details of people who can vouch for you"
                   rows={3}
                 />
@@ -560,33 +681,57 @@ const GreenScholarFund = () => {
 
       {/* Fund Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="shadow-card text-center">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-primary">R{fundStats.totalRaised.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">Total Raised</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-card text-center">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-secondary">R{fundStats.monthlyGoal.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">Monthly Goal</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-card text-center">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-success">{fundStats.beneficiaries}</div>
-            <div className="text-sm text-muted-foreground">Beneficiaries</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-card text-center">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-accent">R{fundStats.thisMonthDonations.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground">This Month</div>
-          </CardContent>
-        </Card>
+                 <Card className="shadow-card text-center">
+           <CardContent className="p-4">
+             <div className="text-2xl font-bold text-primary">
+               {fundLoading ? (
+                 <div className="animate-pulse h-8 bg-muted rounded"></div>
+               ) : (
+                 `R${fundStats?.total_fund.toLocaleString() || '0'}`
+               )}
+             </div>
+             <div className="text-sm text-muted-foreground">Total Fund</div>
+           </CardContent>
+         </Card>
+         
+         <Card className="shadow-card text-center">
+           <CardContent className="p-4">
+             <div className="text-2xl font-bold text-secondary">
+               {fundLoading ? (
+                 <div className="animate-pulse h-8 bg-muted rounded"></div>
+               ) : (
+                 `R${fundStats?.monthly_goal.toLocaleString() || '50,000'}`
+               )}
+             </div>
+             <div className="text-sm text-muted-foreground">Monthly Goal</div>
+           </CardContent>
+         </Card>
+         
+         <Card className="shadow-card text-center">
+           <CardContent className="p-4">
+             <div className="text-2xl font-bold text-success">
+               {fundLoading ? (
+                 <div className="animate-pulse h-8 bg-muted rounded"></div>
+               ) : (
+                 `${fundStats?.progress_percentage || 0}%`
+               )}
+             </div>
+             <div className="text-sm text-muted-foreground">Progress</div>
+           </CardContent>
+         </Card>
+         
+         <Card className="shadow-card text-center">
+           <CardContent className="p-4">
+             <div className="text-2xl font-bold text-accent">
+               {fundLoading ? (
+                 <div className="animate-pulse h-8 bg-muted rounded"></div>
+               ) : (
+                 `R${fundStats?.remaining_amount.toLocaleString() || '50,000'}`
+               )}
+             </div>
+             <div className="text-sm text-muted-foreground">Remaining</div>
+           </CardContent>
+         </Card>
       </div>
 
       {/* Quick Donation */}
@@ -635,8 +780,150 @@ const GreenScholarFund = () => {
         </CardContent>
       </Card>
 
-      {/* Donation Payment Dialog */}
-      <Dialog open={showDonationDialog} onOpenChange={setShowDonationDialog}>
+      {/* PET/Plastic Bottle Collection */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center space-x-2">
+            <Shirt className="h-5 w-5 text-secondary" />
+            <span>Submit PET/Plastic Bottles</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-secondary">{userBottleContributions.total_bottles}</div>
+              <div className="text-sm text-muted-foreground">Total Bottles</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-secondary">{userBottleContributions.total_weight.toFixed(2)} kg</div>
+              <div className="text-sm text-muted-foreground">Total Weight</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-secondary">R{userBottleContributions.total_value.toFixed(2)}</div>
+              <div className="text-sm text-muted-foreground">Total Value</div>
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <Button 
+              variant="secondary" 
+              onClick={() => setShowBottleCollectionDialog(true)}
+              className="w-full md:w-auto"
+            >
+              Submit New Collection
+            </Button>
+          </div>
+          
+          <p className="text-xs text-muted-foreground text-center">
+            Each kg of PET bottles contributes R2 to the Green Scholar Fund
+          </p>
+        </CardContent>
+      </Card>
+
+             {/* Bottle Collection Dialog */}
+       <Dialog open={showBottleCollectionDialog} onOpenChange={setShowBottleCollectionDialog}>
+         <DialogContent className="max-w-md">
+           <DialogHeader>
+             <DialogTitle>Submit PET/Plastic Bottle Collection</DialogTitle>
+           </DialogHeader>
+           
+           <div className="space-y-4">
+             <div>
+               <Label htmlFor="bottleCount">Number of Bottles</Label>
+               <Input
+                 id="bottleCount"
+                 type="number"
+                 placeholder="Enter bottle count"
+                 min="1"
+                 onChange={(e) => setBottleCollectionData(prev => ({
+                   ...prev,
+                   bottle_count: parseInt(e.target.value) || 0
+                 }))}
+               />
+             </div>
+             
+             <div>
+               <Label htmlFor="weightKg">Weight (kg)</Label>
+               <Input
+                 id="weightKg"
+                 type="number"
+                 step="0.01"
+                 placeholder="Enter weight in kg"
+                 min="0.01"
+                 onChange={(e) => setBottleCollectionData(prev => ({
+                   ...prev,
+                   weight_kg: parseFloat(e.target.value) || 0
+                 }))}
+               />
+             </div>
+             
+             <div>
+               <Label htmlFor="bottleType">Bottle Type</Label>
+               <Select 
+                 value={bottleCollectionData.bottle_type} 
+                 onValueChange={(value: 'PET' | 'HDPE' | 'Other') => 
+                   setBottleCollectionData(prev => ({ ...prev, bottle_type: value }))
+                 }
+               >
+                 <SelectTrigger>
+                   <SelectValue placeholder="Select bottle type" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="PET">PET (Polyethylene Terephthalate)</SelectItem>
+                   <SelectItem value="HDPE">HDPE (High-Density Polyethylene)</SelectItem>
+                   <SelectItem value="Other">Other</SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
+             
+             <div>
+               <Label htmlFor="collectionDate">Collection Date</Label>
+               <Input
+                 id="collectionDate"
+                 type="date"
+                 value={bottleCollectionData.collection_date}
+                 onChange={(e) => setBottleCollectionData(prev => ({
+                   ...prev,
+                   collection_date: e.target.value
+                 }))}
+               />
+             </div>
+             
+             <div>
+               <Label htmlFor="notes">Notes (Optional)</Label>
+               <Textarea
+                 id="notes"
+                 placeholder="Any additional notes about this collection"
+                 rows={3}
+                 onChange={(e) => setBottleCollectionData(prev => ({
+                   ...prev,
+                   notes: e.target.value
+                 }))}
+               />
+             </div>
+             
+             <div className="flex space-x-2 pt-4">
+               <Button
+                 variant="outline"
+                 onClick={() => setShowBottleCollectionDialog(false)}
+                 className="flex-1"
+               >
+                 Cancel
+               </Button>
+               <Button
+                 onClick={handleBottleCollection}
+                 disabled={!bottleCollectionData.bottle_count || !bottleCollectionData.weight_kg || isProcessingBottleCollection}
+                 className="flex-1"
+               >
+                 {isProcessingBottleCollection ? 'Submitting...' : 'Submit Collection'}
+               </Button>
+             </div>
+           </div>
+         </DialogContent>
+       </Dialog>
+
+       {/* Donation Payment Dialog */}
+       <Dialog open={showDonationDialog} onOpenChange={setShowDonationDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Complete Your Donation</DialogTitle>

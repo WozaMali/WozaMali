@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart, Star, Calendar, Clock, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Logo from "./Logo";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWallet } from "@/hooks/useWallet";
 
 const Dashboard = () => {
   const navigate = useRouter();
@@ -30,10 +31,30 @@ const Dashboard = () => {
 
   const { user } = authContext;
   
-  const walletBalance = 0;
-  const totalKgRecycled = 0;
-  const co2Saved = 0;
-  const monthlyGrowth = 0;
+  // Use the enhanced wallet hook to get comprehensive data
+  const { 
+    balance: walletBalance, 
+    points: totalPoints,
+    tier: userTier,
+    totalEarnings,
+    loading: walletLoading,
+    error: walletError,
+    refreshWallet,
+    // Enhanced properties
+    environmentalImpact,
+    nextTierRequirements,
+    totalWeightKg
+  } = useWallet(user?.id);
+
+  // Simple useEffect to refresh wallet data when user changes
+  useEffect(() => {
+    if (user?.id && refreshWallet && typeof refreshWallet === 'function') {
+      refreshWallet();
+    }
+  }, [user?.id, refreshWallet]);
+  
+  const totalKgRecycled = totalWeightKg || totalPoints; // Use actual weight if available
+  const co2Saved = environmentalImpact?.co2_saved_kg || (totalKgRecycled * 0.5); // Use calculated impact if available
 
   // Collection scheduling
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -82,32 +103,19 @@ const Dashboard = () => {
     alert(`Collection booked for ${selectedDate}`);
   };
 
-  // Determine recycler tier based on total kg
-  const getTier = () => {
-    if (totalKgRecycled >= 1000) return { tier: 'Diamond Recycler', color: 'text-accent' };
-    if (totalKgRecycled >= 500) return { tier: 'Platinum Recycler', color: 'text-muted-foreground' };
-    return { tier: 'Gold Recycler', color: 'text-warning' };
-  };
+  // Simple balance display - use the working wallet balance
+  const displayBalance = walletBalance || 0;
 
-  const getNextTier = () => {
-    if (totalKgRecycled >= 1000) return 'Max Level';
-    if (totalKgRecycled >= 500) return 'Diamond Recycler';
-    return 'Platinum Recycler';
-  };
-
-  const getKgToNext = () => {
-    if (totalKgRecycled >= 1000) return 0;
-    if (totalKgRecycled >= 500) return 1000 - totalKgRecycled;
-    return 500 - totalKgRecycled;
-  };
-
-  const getProgressPercentage = () => {
-    if (totalKgRecycled >= 1000) return 100;
-    if (totalKgRecycled >= 500) return ((totalKgRecycled - 500) / 500) * 100;
-    return (totalKgRecycled / 500) * 100;
-  };
-
-  const tierInfo = getTier();
+  // Debug logging to see what's happening
+  console.log('Dashboard Debug - Wallet Values:', {
+    walletBalance,
+    displayBalance,
+    totalPoints,
+    tier: userTier,
+    totalWeightKg,
+    walletLoading,
+    error: walletError
+  });
 
   return (
     <div className="relative pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
@@ -128,9 +136,52 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm opacity-90 mb-1">Wallet Balance</p>
-              <p className="text-3xl font-bold">R {walletBalance.toFixed(2)}</p>
+              {walletLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-white/20 rounded mb-2"></div>
+                  <div className="h-3 bg-white/20 rounded w-24"></div>
+                </div>
+              ) : walletError ? (
+                <div>
+                  <p className="text-xl font-bold text-red-200">Error</p>
+                  <p className="text-xs opacity-75 mt-1">Failed to load balance</p>
+                  <button
+                    onClick={() => {
+                      if (refreshWallet && typeof refreshWallet === 'function') {
+                        refreshWallet();
+                      }
+                    }}
+                    className="text-xs text-blue-200 underline hover:text-blue-100 mt-1"
+                  >
+                    Click to retry
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-3xl font-bold">R {displayBalance.toFixed(2)}</p>
+                  <p className="text-xs opacity-75 mt-1">
+                    {displayBalance === 0 ? 'No balance yet - Complete pickups to earn real money!' : 'Available for withdrawal'}
+                  </p>
+                </>
+              )}
             </div>
-            <Wallet className="h-12 w-12 opacity-80" />
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => navigate.push('/withdrawal')}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                title="Withdrawal"
+              >
+                <ArrowUpRight className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => navigate.push('/guides')}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                title="Recycling Guide"
+              >
+                <Recycle className="h-5 w-5" />
+              </button>
+              <Wallet className="h-12 w-12 opacity-80" />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -140,8 +191,8 @@ const Dashboard = () => {
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-semibold text-foreground">{tierInfo.tier}</h3>
-              <p className="text-sm text-muted-foreground">{totalKgRecycled} kg recycled</p>
+              <h3 className="font-semibold text-foreground">{userTier.charAt(0).toUpperCase() + userTier.slice(1)} Recycler</h3>
+              <p className="text-sm text-muted-foreground">{totalWeightKg || 0} kg recycled</p>
             </div>
             <div className="p-2 bg-gradient-impact rounded-lg">
               <Recycle className="h-6 w-6 text-success-foreground" />
@@ -150,13 +201,13 @@ const Dashboard = () => {
           
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Progress to {getNextTier()}</span>
-              <span className="font-medium">{getKgToNext()} kg to go</span>
+              <span className="text-muted-foreground">Progress to {nextTierRequirements.nextTier ? `${nextTierRequirements.nextTier.charAt(0).toUpperCase() + nextTierRequirements.nextTier.slice(1)} Recycler` : 'Max Level'}</span>
+                              <span className="font-medium">{nextTierRequirements.weightNeeded} kg to go</span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div 
                 className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
-                style={{ width: `${getProgressPercentage()}%` }}
+                style={{ width: `${nextTierRequirements.progressPercentage}%` }}
               />
             </div>
           </div>
@@ -173,7 +224,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">CO₂ Saved</p>
-                <p className="text-xl font-bold text-foreground">{co2Saved} kg</p>
+                <p className="text-xl font-bold text-foreground">{co2Saved.toFixed(1)} kg</p>
               </div>
             </div>
           </CardContent>
@@ -187,8 +238,8 @@ const Dashboard = () => {
                   <TrendingUp className="h-6 w-6 text-success" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Monthly Growth</p>
-                  <p className="text-lg font-bold text-success">+{monthlyGrowth}%</p>
+                  <p className="text-sm text-muted-foreground">Total Weight</p>
+                                     <p className="text-lg font-bold text-success">{(totalWeightKg || 0).toFixed(1)} kg</p>
                 </div>
               </div>
               <ArrowUpRight className="h-5 w-5 text-success" />
@@ -254,10 +305,10 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm font-medium">Recycling Credit</p>
-                <p className="text-xs text-muted-foreground">0.0 kg processed</p>
+                                 <p className="text-xs text-muted-foreground">{(totalWeightKg || 0).toFixed(1)} kg processed</p>
               </div>
             </div>
-            <p className="text-sm font-bold text-success">+R 0.00</p>
+            <p className="text-sm font-bold text-success">+R {displayBalance.toFixed(2)}</p>
           </div>
           
           <div className="flex items-center justify-between">
@@ -297,12 +348,12 @@ const Dashboard = () => {
                 <Clock className="h-4 w-4 opacity-80" />
                 <span>{nextCollectionTime}</span>
               </div>
-                          <div className="flex items-center space-x-2">
-              <MapPin className="h-4 w-4 opacity-80" />
-              <span className="text-sm">
-                {nextCollectionArea}
-              </span>
-            </div>
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-4 w-4 opacity-80" />
+                <span className="text-sm">
+                  {nextCollectionArea}
+                </span>
+              </div>
             </div>
             
             {!hasAddress ? (

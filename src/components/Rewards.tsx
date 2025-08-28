@@ -2,8 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Coffee, ShoppingBag, Fuel, Clock, Star, Gift, ChefHat } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWallet } from "@/hooks/useWallet";
 
 const Rewards = () => {
+  const { user } = useAuth();
+  const { points: userPoints, loading: walletLoading } = useWallet(user?.id);
+  
+
   const rewards = [
     {
       id: 1,
@@ -15,44 +21,11 @@ const Rewards = () => {
       timeLeft: "2 weeks",
       partner: "AmaPelePele",
       savings: "Free delivery",
-      website: "amapelepele.co.za"
-    },
-    {
-      id: 2,
-      title: "Free Coffee at Bean There",
-      description: "Get a free coffee at any Bean There location",
-      pointsRequired: 50,
-      icon: Coffee,
-      category: "Food & Drink",
-      timeLeft: "3 days",
-      partner: "Bean There",
-      savings: "R 25",
-    },
-    {
-      id: 3,
-      title: "10% Off at Woolworths",
-      description: "Enjoy 10% discount on your next grocery shop",
-      pointsRequired: 75,
-      icon: ShoppingBag,
-      category: "Retail",
-      timeLeft: "1 week",
-      partner: "Woolworths",
-      savings: "Up to R 200",
-    },
-    {
-      id: 4,
-      title: "R20 Fuel Voucher",
-      description: "Get R20 off your next fuel purchase",
-      pointsRequired: 60,
-      icon: Fuel,
-      category: "Transport",
-      timeLeft: "5 days",
-      partner: "Shell",
-      savings: "R 20",
+      website: "www.amapelepele.co.za"
     },
   ];
 
-  const userPoints = 0;
+
 
   return (
     <div className="pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
@@ -66,10 +39,18 @@ const Rewards = () => {
       <Card className="bg-gradient-primary text-primary-foreground shadow-warm border-0">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90 mb-1">Available Points</p>
-              <p className="text-3xl font-bold">{userPoints} pts</p>
-              <p className="text-xs opacity-75 mt-1">Earned from {(userPoints * 0.8).toFixed(0)} kg recycled</p>
+                         <div>
+               <p className="text-sm opacity-90 mb-1">1kg = 1 point</p>
+              {walletLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-white/20 rounded mb-2"></div>
+                  <div className="h-3 bg-white/20 rounded w-24"></div>
+                </div>
+                             ) : (
+                 <>
+                   <p className="text-3xl font-bold">{userPoints || 0} pts</p>
+                 </>
+               )}
             </div>
             <Star className="h-12 w-12 opacity-80" />
           </div>
@@ -82,8 +63,42 @@ const Rewards = () => {
           <div className="flex items-center space-x-3">
             <Gift className="h-6 w-6 text-secondary" />
             <div>
-              <p className="text-sm font-medium text-foreground">Earn 1 point per kg recycled</p>
-              <p className="text-xs text-muted-foreground">Points never expire • Use them for rewards</p>
+                             <p className="text-sm font-medium text-foreground">1kg = 1 point</p>
+                             <p className="text-xs text-muted-foreground">Points never expire</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Points Progress */}
+      <Card className="shadow-card border-success/20 bg-success/5">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-foreground">Your Progress</h4>
+              <Badge variant="outline" className="text-success border-success">
+                {userPoints || 0} pts
+              </Badge>
+            </div>
+            
+            <div className="space-y-2">
+              {rewards.map((reward) => {
+                const pointsNeeded = reward.pointsRequired - (userPoints || 0);
+                const canRedeem = (userPoints || 0) >= reward.pointsRequired;
+                
+                return (
+                  <div key={reward.id} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{reward.title}</span>
+                    {canRedeem ? (
+                      <Badge variant="default" className="text-xs">Ready to Redeem!</Badge>
+                    ) : (
+                      <span className="text-warning-foreground">
+                        Need {pointsNeeded} more pts
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </CardContent>
@@ -159,6 +174,28 @@ const Rewards = () => {
           );
         })}
       </div>
+
+      {/* Rewards Summary */}
+      <Card className="shadow-card border-primary/20 bg-primary/5">
+        <CardContent className="p-4">
+          <div className="text-center space-y-2">
+            <h4 className="font-semibold text-foreground">Total Rewards Value</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+                             <div>
+                 <p className="text-muted-foreground">Your Points</p>
+                 <p className="text-lg font-bold text-primary">{userPoints || 0} pts</p>
+               </div>
+              <div>
+                <p className="text-muted-foreground">Available Rewards</p>
+                <p className="text-lg font-bold text-success">
+                  {rewards.filter(r => (userPoints || 0) >= r.pointsRequired).length} of {rewards.length}
+                </p>
+                <p className="text-xs text-muted-foreground">Ready to redeem</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Coming Soon */}
       <Card className="shadow-card border-dashed border-muted-foreground/30">
