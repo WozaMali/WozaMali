@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { SimpleWalletService, SimpleWalletData } from '@/lib/simpleWalletService';
+import { getWalletCache, saveWalletCache, clearWalletCache } from '@/lib/session-utils';
 
 export interface WalletData {
   balance: number;
@@ -29,121 +29,182 @@ export const useWallet = (userId?: string) => {
   const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
 
   const fetchWalletData = useCallback(async () => {
     if (!userId) return;
 
-    try {
-      setLoading(true);
-      setError(null);
+    // Check if we have recent data in cache
+    const now = Date.now();
+    if (walletData && (now - lastFetchTime) < CACHE_DURATION) {
+      console.log('Using cached wallet data');
+      return;
+    }
 
-      // Fetch simple wallet data
-      const simpleWallet = await SimpleWalletService.getWalletData(userId);
+    // Check localStorage cache first
+    const cachedData = getWalletCache(userId);
+    if (cachedData) {
+      console.log('Using localStorage cached wallet data');
+      setWalletData(cachedData);
+      setLastFetchTime(now);
+      setIsInitialized(true);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('Fetching fresh wallet data...');
       
-      if (!simpleWallet) {
-        setError('No wallet data found');
-        setLoading(false);
-        return;
+      // Fetch wallet data - try enhanced_wallets first, then fallback to wallets
+      let wallet = null;
+      let walletError = null;
+      
+      try {
+        // Try enhanced_wallets first
+        const { data: enhancedWallet, error: enhancedError } = await supabase
+          .from('enhanced_wallets')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+          
+        if (enhancedWallet) {
+          wallet = enhancedWallet;
+          console.log('Found wallet in enhanced_wallets table');
+        } else if (enhancedError && enhancedError.code === 'PGRST116') {
+          // Table doesn't exist or no data, try wallets table
+          console.log('enhanced_wallets table empty, trying wallets table');
+          const { data: regularWallet, error: regularError } = await supabase
+            .from('wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+            
+          if (regularWallet) {
+            wallet = regularWallet;
+            console.log('Found wallet in wallets table');
+          } else if (regularError && regularError.code === 'PGRST116') {
+            console.log('No wallet found in either table');
+          } else if (regularError) {
+            walletError = regularError;
+          }
+        } else if (enhancedError) {
+          walletError = enhancedError;
+        }
+      } catch (error) {
+        console.warn('Error fetching wallet data:', error);
+        // Try wallets table as fallback
+        try {
+          const { data: fallbackWallet, error: fallbackError } = await supabase
+            .from('wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+            
+          if (fallbackWallet) {
+            wallet = fallbackWallet;
+            console.log('Found wallet in wallets table (fallback)');
+          } else if (fallbackError) {
+            walletError = fallbackError;
+          }
+        } catch (fallbackError) {
+          console.warn('Fallback wallet fetch also failed:', fallbackError);
+        }
       }
 
-             // Fetch additional data from other tables with error handling
-       let pickups: any[] = [];
-       let environmental: any = null;
-       
-       try {
-         const [pickupsResult, environmentalResult] = await Promise.all([
-           supabase
-             .from('pickups')
-             .select('*')
-             .eq('user_id', userId),
-           supabase
-             .from('user_metrics')
-             .select('*')
-             .eq('user_id', userId)
-             .single()
-         ]);
-         
-         pickups = pickupsResult.data || [];
-         environmental = environmentalResult.data;
-         
-         console.log('Successfully fetched pickups and metrics:', {
-           pickupsCount: pickups.length,
-           hasEnvironmental: !!environmental
-         });
-       } catch (error) {
-         console.warn('Could not fetch pickups/metrics, using fallback data:', error);
-         // Use fallback data - this prevents the 403 errors from breaking the wallet display
-         pickups = [];
-         environmental = null;
-       }
+      if (walletError && walletError.code !== 'PGRST116') {
+        throw walletError;
+      }
 
-             // Calculate environmental impact with fallback to points-based weight
-       let totalWeight = pickups.reduce((sum, pickup) => sum + (pickup.weight_kg || 0), 0);
-       
-       // If no pickup data available, estimate weight from points (assuming 1 point = 0.1 kg)
-       if (totalWeight === 0 && simpleWallet.total_points > 0) {
-         totalWeight = simpleWallet.total_points * 0.1;
-         console.log('Using points-based weight estimation:', {
-           points: simpleWallet.total_points,
-           estimatedWeight: totalWeight
-         });
-       }
-       
-       const co2Saved = environmental?.co2_saved_kg || (totalWeight * 0.5);
-       const waterSaved = environmental?.water_saved_liters || (totalWeight * 0.1);
-       const landfillSaved = environmental?.landfill_saved_kg || (totalWeight * 0.3);
+      // Fetch user metrics
+      const { data: metrics, error: metricsError } = await supabase
+        .from('user_metrics')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-      // Calculate tier based on actual weight recycled
-      const calculatedTier = getTierFromWeight(totalWeight);
+      if (metricsError && metricsError.code !== 'PGRST116') {
+        console.warn('Could not fetch pickups/metrics, using fallback data:', metricsError);
+      }
+
+      // Fetch recent pickups for tier calculation
+      const { data: pickups, error: pickupsError } = await supabase
+        .from('pickups')
+        .select('total_kg, status')
+        .eq('user_id', userId)
+        .eq('status', 'approved');
+
+      if (pickupsError) {
+        console.warn('Could not fetch pickups for tier calculation:', pickupsError);
+      }
+
+      // Calculate total weight from approved pickups
+      const totalWeightKg = pickups?.reduce((sum, pickup) => sum + (pickup.total_kg || 0), 0) || 0;
       
-      // Debug logging for tier calculation
-      console.log('Tier Calculation Debug:', {
-        totalWeight,
-        calculatedTier,
-        originalTier: simpleWallet.tier,
-        pointsFromWeight: totalWeight, // 1kg = 1 point
-        originalPoints: simpleWallet.total_points
-      });
+      // Calculate tier based on weight
+      const calculatedTier = getTierFromWeight(totalWeightKg);
       
-      // Calculate tier benefits based on calculated tier
+      // Get tier benefits
       const tierBenefits = getTierBenefits(calculatedTier);
       
-      // Calculate next tier requirements based on weight recycled
-      const nextTierReqs = getNextTierRequirements(totalWeight);
+      // Calculate next tier requirements
+      const nextTierRequirements = getNextTierRequirements(totalWeightKg);
 
-      const data: WalletData = {
-        balance: simpleWallet.balance,
-        points: totalWeight, // 1kg = 1 point
-        tier: calculatedTier, // Use calculated tier instead of wallet tier
-        totalEarnings: simpleWallet.balance,
-        environmentalImpact: {
-          co2_saved_kg: co2Saved,
-          water_saved_liters: waterSaved,
-          landfill_saved_kg: landfillSaved
-        },
-        tierBenefits,
-        nextTierRequirements: nextTierReqs,
-        totalPickups: pickups.length,
-        approvedPickups: pickups.filter(p => p.status === 'approved').length,
-        pendingPickups: pickups.filter(p => p.status === 'pending').length,
-        rejectedPickups: pickups.filter(p => p.status === 'rejected').length,
-        totalWeightKg: totalWeight
+      // Calculate environmental impact
+      const environmentalImpact = {
+        co2_saved_kg: totalWeightKg * 0.5, // Rough estimate: 0.5kg CO2 saved per kg recycled
+        water_saved_liters: totalWeightKg * 10, // Rough estimate: 10L water saved per kg recycled
+        landfill_saved_kg: totalWeightKg * 0.8 // Rough estimate: 0.8kg landfill waste saved per kg recycled
       };
 
-      setWalletData(data);
-    } catch (err) {
+      // Calculate points: 1kg recycled = 1 point
+      const calculatedPoints = totalWeightKg;
+      
+      // Use wallet balance from database, or calculate from points if not available
+      const walletBalance = wallet?.balance || (calculatedPoints * 0.10); // 10 cents per point
+
+      const combinedData: WalletData = {
+        balance: walletBalance,
+        points: calculatedPoints, // Points = weight recycled (1kg = 1 point)
+        tier: calculatedTier,
+        totalEarnings: wallet?.total_earnings || walletBalance,
+        environmentalImpact,
+        tierBenefits,
+        nextTierRequirements,
+        totalPickups: metrics?.total_pickups || 0,
+        approvedPickups: metrics?.approved_pickups || 0,
+        pendingPickups: metrics?.pending_pickups || 0,
+        rejectedPickups: metrics?.rejected_pickups || 0,
+        totalWeightKg
+      };
+
+      setWalletData(combinedData);
+      setLastFetchTime(now);
+      setIsInitialized(true);
+      
+      // Save to localStorage cache
+      saveWalletCache(userId, combinedData);
+      
+    } catch (err: any) {
       console.error('Error fetching wallet data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err.message || 'Failed to fetch wallet data');
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, walletData, lastFetchTime]);
 
   useEffect(() => {
     fetchWalletData();
   }, [fetchWalletData]);
 
   const refreshWallet = useCallback(() => {
+    // Clear all caches and force refresh
+    setLastFetchTime(0);
+    clearWalletCache();
     fetchWalletData();
   }, [fetchWalletData]);
 

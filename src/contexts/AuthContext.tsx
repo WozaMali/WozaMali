@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { saveSessionData, clearSessionData, updateLastActivity } from '@/lib/session-utils';
 
 interface AuthContextType {
   user: User | null;
@@ -82,23 +83,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       // Listen for auth changes
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        console.log('Auth state changed:', _event, session);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          console.log('User authenticated, fetching role...');
-          await fetchUserRole(session.user.id);
-        } else {
-          console.log('User signed out');
-          setUserRole(null);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('Auth state change:', event, session?.user?.email);
+          
+          if (event === 'SIGNED_IN' && session) {
+            setSession(session);
+            setUser(session.user);
+            await fetchUserRole(session.user.id);
+            
+            // Save session data for persistence
+            if (session.user.id) {
+              saveSessionData(session.user.id, session.user.user_metadata?.role || 'member');
+            }
+          } else if (event === 'SIGNED_OUT') {
+            setSession(null);
+            setUser(null);
+            setUserRole(null);
+            
+            // Clear session data
+            clearSessionData();
+          } else if (event === 'TOKEN_REFRESHED' && session) {
+            setSession(session);
+            setUser(session.user);
+            
+            // Update last activity
+            updateLastActivity();
+          }
+          
+          setLoading(false);
         }
-        
-        setLoading(false);
-      });
+      );
 
       return () => subscription.unsubscribe();
     } else {
@@ -166,15 +181,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      console.log('Signing out user...');
+      console.log('Starting sign out process...');
       
-      // First, clear local state immediately to prevent UI issues
+      // Clear local state first
       setUser(null);
       setSession(null);
       setUserRole(null);
       setLoading(false);
       
-      // Then attempt to sign out from Supabase
+      // Clear session data
+      clearSessionData();
+      
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -195,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log('User signed out successfully');
       
-      // Force a page reload to clear any remaining state
+      // Use window.location for sign out to ensure complete state reset
       if (typeof window !== 'undefined') {
         window.location.href = '/auth/sign-in';
       }
@@ -207,6 +225,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setUserRole(null);
       setLoading(false);
+      
+      // Clear session data
+      clearSessionData();
       
       // Force redirect even on error
       if (typeof window !== 'undefined') {

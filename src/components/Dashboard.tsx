@@ -48,10 +48,16 @@ const Dashboard = () => {
 
   // Simple useEffect to refresh wallet data when user changes
   useEffect(() => {
+    // Only refresh if user changes and we have a valid refresh function
     if (user?.id && refreshWallet && typeof refreshWallet === 'function') {
-      refreshWallet();
+      // Add a small delay to prevent immediate refresh on mount
+      const timer = setTimeout(() => {
+        refreshWallet();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
-  }, [user?.id, refreshWallet]);
+  }, [user?.id]); // Remove refreshWallet from dependencies to prevent infinite loops
   
   const totalKgRecycled = totalWeightKg || totalPoints; // Use actual weight if available
   const co2Saved = environmentalImpact?.co2_saved_kg || (totalKgRecycled * 0.5); // Use calculated impact if available
@@ -116,6 +122,12 @@ const Dashboard = () => {
     walletLoading,
     error: walletError
   });
+
+  const handleRefreshBalance = () => {
+    if (refreshWallet && typeof refreshWallet === 'function') {
+      refreshWallet();
+    }
+  };
 
   return (
     <div className="relative pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">

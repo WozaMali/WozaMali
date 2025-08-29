@@ -23,16 +23,21 @@ const Index = () => {
     return 'dashboard';
   };
   
-  const [activeTab, setActiveTab] = useState(getActiveTabFromPath(pathname));
+  const [activeTab, setActiveTab] = useState(() => getActiveTabFromPath(pathname));
 
-  // Update active tab when URL changes
+  // Update active tab when URL changes (e.g., on browser refresh)
   useEffect(() => {
-    setActiveTab(getActiveTabFromPath(pathname));
-  }, [pathname]);
+    const newActiveTab = getActiveTabFromPath(pathname);
+    if (newActiveTab !== activeTab) {
+      setActiveTab(newActiveTab);
+    }
+  }, [pathname, activeTab]);
 
   // Handle tab change and navigation
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+    
+    // Use Next.js router for client-side navigation instead of full page reload
     if (tab === 'rewards') {
       router.push('/rewards');
     } else if (tab === 'scholar') {

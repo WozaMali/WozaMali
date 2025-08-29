@@ -34,12 +34,16 @@ export default function Home() {
 
   useEffect(() => {
     console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'user:', user);
-    if (mounted && !loading && !user) {
+    
+    // Only redirect if we're mounted, not loading, and definitely no user
+    // This prevents unnecessary redirects on page refresh
+    if (mounted && !loading && user === null) {
       console.log('Redirecting to sign-in...');
       router.push('/auth/sign-in');
     }
   }, [user, loading, router, mounted]);
 
+  // Show loading while authentication is being determined
   if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
@@ -51,9 +55,11 @@ export default function Home() {
     );
   }
 
-  if (!user) {
-    return null; // Will redirect to login
+  // Don't render anything if user is null (will redirect)
+  if (user === null) {
+    return null;
   }
 
+  // User is authenticated, render the main app
   return <Index />;
 }
