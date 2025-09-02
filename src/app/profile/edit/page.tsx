@@ -47,17 +47,51 @@ const EditPersonalDetails = () => {
   useEffect(() => {
     setMounted(true);
     
-    // Populate form with existing user data
-    if (user) {
-      setFormData({
-        fullName: user.user_metadata?.full_name || "",
-        phone: user.user_metadata?.phone || "",
-        streetAddress: user.user_metadata?.street_address || "",
-        suburb: user.user_metadata?.suburb || "",
-        city: user.user_metadata?.city || "",
-        postalCode: user.user_metadata?.postal_code || ""
-      });
-    }
+    // Populate form with existing user data from unified address system
+    const populateForm = async () => {
+      if (!user?.id) return;
+      
+      try {
+        // Fetch user's primary address from user_addresses table
+        const { data: addressData, error: addressError } = await supabase
+          .from('user_addresses')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('address_type', 'primary')
+          .eq('is_default', true)
+          .eq('is_active', true)
+          .single();
+
+        // Fetch user profile data
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        setFormData({
+          fullName: profileData?.full_name || user.user_metadata?.full_name || "",
+          phone: profileData?.phone || user.user_metadata?.phone || "",
+          streetAddress: addressData?.address_line1 || user.user_metadata?.street_address || "",
+          suburb: addressData?.address_line2 || user.user_metadata?.suburb || "",
+          city: addressData?.city || user.user_metadata?.city || "",
+          postalCode: addressData?.postal_code || user.user_metadata?.postal_code || ""
+        });
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Fallback to user metadata
+        setFormData({
+          fullName: user.user_metadata?.full_name || "",
+          phone: user.user_metadata?.phone || "",
+          streetAddress: user.user_metadata?.street_address || "",
+          suburb: user.user_metadata?.suburb || "",
+          city: user.user_metadata?.city || "",
+          postalCode: user.user_metadata?.postal_code || ""
+        });
+      }
+    };
+
+    populateForm();
   }, [user]);
 
   if (!mounted) return null;
@@ -76,7 +110,83 @@ const EditPersonalDetails = () => {
     try {
       console.log('Starting profile update for user:', user?.id);
       
-      // First, update the user metadata in Supabase auth
+      if (!user?.id) throw new Error('User not found');
+
+      // Update profile in profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.fullName,
+          phone: formData.phone,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        throw profileError;
+      }
+
+      console.log('Profile table updated successfully');
+
+      // Update or create primary address in user_addresses table
+      const { data: existingAddress, error: fetchError } = await supabase
+        .from('user_addresses')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('address_type', 'primary')
+        .eq('is_default', true)
+        .eq('is_active', true)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching existing address:', fetchError);
+        throw fetchError;
+      }
+
+      const addressData = {
+        user_id: user.id,
+        address_type: 'primary',
+        address_line1: formData.streetAddress,
+        address_line2: formData.suburb,
+        city: formData.city,
+        province: 'Western Cape', // Default province
+        postal_code: formData.postalCode,
+        country: 'South Africa',
+        is_default: true,
+        is_active: true,
+        updated_at: new Date().toISOString()
+      };
+
+      if (existingAddress) {
+        // Update existing address
+        const { error: updateAddressError } = await supabase
+          .from('user_addresses')
+          .update(addressData)
+          .eq('id', existingAddress.id);
+
+        if (updateAddressError) {
+          console.error('Address update error:', updateAddressError);
+          throw updateAddressError;
+        }
+        console.log('Address updated successfully');
+      } else {
+        // Create new address
+        const { error: insertAddressError } = await supabase
+          .from('user_addresses')
+          .insert({
+            ...addressData,
+            created_at: new Date().toISOString()
+          });
+
+        if (insertAddressError) {
+          console.error('Address insert error:', insertAddressError);
+          throw insertAddressError;
+        }
+        console.log('Address created successfully');
+      }
+
+      // Also update user metadata for backward compatibility
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           full_name: formData.fullName,
@@ -90,33 +200,9 @@ const EditPersonalDetails = () => {
 
       if (updateError) {
         console.error('User metadata update error:', updateError);
-        throw updateError;
-      }
-
-      console.log('User metadata updated successfully');
-
-      // Update profile in profiles table
-      if (user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            full_name: formData.fullName,
-            phone: formData.phone,
-            street_address: formData.streetAddress,
-            suburb: formData.suburb,
-            city: formData.city,
-            postal_code: formData.postalCode,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id);
-
-        if (profileError) {
-          console.error('Profile update error:', profileError);
-          // Don't throw here as the user metadata was updated successfully
-          // But log it for debugging
-        } else {
-          console.log('Profile table updated successfully');
-        }
+        // Don't throw here as the main data was saved successfully
+      } else {
+        console.log('User metadata updated successfully');
       }
 
       toast({

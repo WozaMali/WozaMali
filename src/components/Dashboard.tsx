@@ -69,22 +69,49 @@ const Dashboard = () => {
   const nextCollectionDate = "2025-08-12";
   const nextCollectionTime = "09:00 - 12:00";
   
-  // Use user's address from signup instead of hardcoded area
+  // Fetch user's primary address from unified user_addresses table
+  const [userAddress, setUserAddress] = useState<any>(null);
+  const [addressLoading, setAddressLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserAddress = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_addresses')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('address_type', 'primary')
+          .eq('is_default', true)
+          .eq('is_active', true)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+          console.error('Error fetching user address:', error);
+        } else {
+          setUserAddress(data);
+        }
+      } catch (error) {
+        console.error('Error fetching user address:', error);
+      } finally {
+        setAddressLoading(false);
+      }
+    };
+
+    fetchUserAddress();
+  }, [user?.id]);
+
   const getUserAddress = () => {
-    if (!user?.user_metadata) return "Address not provided";
+    if (addressLoading) return "Loading address...";
+    if (!userAddress) return "Address not provided";
     
-    const { street_address, suburb, city, postal_code } = user.user_metadata;
+    const { address_line1, address_line2, city, province, postal_code } = userAddress;
     
-    // Debug logging to help troubleshoot
-    console.log('User metadata:', user.user_metadata);
-    console.log('Address fields:', { street_address, suburb, city, postal_code });
-    
-    if (street_address && suburb && city) {
-      return `${street_address}, ${suburb}, ${city}${postal_code ? `, ${postal_code}` : ''}`;
-    } else if (street_address && city) {
-      return `${street_address}, ${city}`;
+    if (address_line1 && city) {
+      return `${address_line1}${address_line2 ? `, ${address_line2}` : ''}, ${city}, ${province}${postal_code ? `, ${postal_code}` : ''}`;
     } else if (city) {
-      return city;
+      return `${city}, ${province}`;
     }
     
     return "Address not provided";
@@ -93,9 +120,9 @@ const Dashboard = () => {
   const nextCollectionArea = getUserAddress();
   
   // Check if user has provided address information
-  const hasAddress = user?.user_metadata && (
-    user.user_metadata.street_address || 
-    user.user_metadata.city
+  const hasAddress = userAddress && (
+    userAddress.address_line1 || 
+    userAddress.city
   );
 
   const handleBookCollection = (date: string) => {

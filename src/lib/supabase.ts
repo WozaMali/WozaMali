@@ -140,6 +140,108 @@ export interface Database {
           updated_at?: string
         }
       }
+      materials: {
+        Row: {
+          id: string
+          name: string
+          category: string
+          unit_price: number
+          unit: string
+          description: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          category: string
+          unit_price?: number
+          unit?: string
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          category?: string
+          unit_price?: number
+          unit?: string
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      pickup_items: {
+        Row: {
+          id: string
+          pickup_id: string
+          material_id: string
+          quantity: number
+          unit_price: number
+          total_price: number
+          quality_rating: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          pickup_id: string
+          material_id: string
+          quantity: number
+          unit_price?: number
+          total_price?: number
+          quality_rating?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          pickup_id?: string
+          material_id?: string
+          quantity?: number
+          unit_price?: number
+          total_price?: number
+          quality_rating?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      pickup_photos: {
+        Row: {
+          id: string
+          pickup_id: string
+          photo_url: string
+          photo_type: 'before' | 'after' | 'general' | 'verification'
+          taken_at: string
+          uploaded_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          pickup_id: string
+          photo_url: string
+          photo_type: 'before' | 'after' | 'general' | 'verification'
+          taken_at?: string
+          uploaded_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          pickup_id?: string
+          photo_url?: string
+          photo_type?: 'before' | 'after' | 'general' | 'verification'
+          taken_at?: string
+          uploaded_by?: string | null
+          created_at?: string
+        }
+      }
       pickups: {
         Row: {
           id: string
@@ -384,4 +486,125 @@ export interface Database {
       }
     }
   }
+}
+
+// ============================================================================
+// UNIFIED SCHEMA TYPES
+// ============================================================================
+
+// Material types
+export interface Material {
+  id: string;
+  name: string;
+  category: string;
+  unit_price: number;
+  unit: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaterialInsert {
+  id?: string;
+  name: string;
+  category: string;
+  unit_price?: number;
+  unit?: string;
+  description?: string | null;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MaterialUpdate {
+  id?: string;
+  name?: string;
+  category?: string;
+  unit_price?: number;
+  unit?: string;
+  description?: string | null;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Pickup Item types
+export interface PickupItem {
+  id: string;
+  pickup_id: string;
+  material_id: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  quality_rating: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PickupItemInsert {
+  id?: string;
+  pickup_id: string;
+  material_id: string;
+  quantity: number;
+  unit_price?: number;
+  total_price?: number;
+  quality_rating?: number | null;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface PickupItemUpdate {
+  id?: string;
+  pickup_id?: string;
+  material_id?: string;
+  quantity?: number;
+  unit_price?: number;
+  total_price?: number;
+  quality_rating?: number | null;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Pickup Photo types
+export interface PickupPhoto {
+  id: string;
+  pickup_id: string;
+  photo_url: string;
+  photo_type: 'before' | 'after' | 'general' | 'verification';
+  taken_at: string;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
+export interface PickupPhotoInsert {
+  id?: string;
+  pickup_id: string;
+  photo_url: string;
+  photo_type: 'before' | 'after' | 'general' | 'verification';
+  taken_at?: string;
+  uploaded_by?: string | null;
+  created_at?: string;
+}
+
+export interface PickupPhotoUpdate {
+  id?: string;
+  pickup_id?: string;
+  photo_url?: string;
+  photo_type?: 'before' | 'after' | 'general' | 'verification';
+  taken_at?: string;
+  uploaded_by?: string | null;
+  created_at?: string;
+}
+
+// Extended types with relationships
+export interface PickupItemWithMaterial extends PickupItem {
+  material?: Material;
+}
+
+export interface MaterialWithPickupItems extends Material {
+  pickup_items?: PickupItem[];
 }

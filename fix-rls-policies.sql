@@ -179,3 +179,104 @@ ORDER BY tablename, policyname;
 -- 1. Try signing in with Google OAuth again
 -- 2. Check if you can access your profile
 -- 3. Look for any remaining 403 errors in the browser console
+
+-- Fix RLS Policies for user_profiles table
+-- Run this in your Supabase SQL Editor to resolve the infinite recursion error
+
+-- 1. First, disable RLS temporarily to clear the problematic policies
+ALTER TABLE public.user_profiles DISABLE ROW LEVEL SECURITY;
+
+-- 2. Drop all existing policies on user_profiles table
+DO $$ 
+BEGIN
+    -- Drop all policies on user_profiles table
+    FOR r IN (
+        SELECT policyname 
+        FROM pg_policies 
+        WHERE tablename = 'user_profiles' 
+        AND schemaname = 'public'
+    ) LOOP
+        EXECUTE format('DROP POLICY IF EXISTS "%s" ON public.user_profiles', r.policyname);
+    END LOOP;
+END $$;
+
+-- 3. Re-enable RLS
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- 4. Create new, clean RLS policies for user_profiles
+-- Policy for users to view their own profile
+CREATE POLICY "Users can view own profile" ON public.user_profiles
+    FOR SELECT USING (auth.uid() = id);
+
+-- Policy for users to update their own profile
+CREATE POLICY "Users can update own profile" ON public.user_profiles
+    FOR UPDATE USING (auth.uid() = id);
+
+-- Policy for users to insert their own profile
+CREATE POLICY "Users can insert own profile" ON public.user_profiles
+    FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Policy for users to delete their own profile
+CREATE POLICY "Users can delete own profile" ON public.user_profiles
+    FOR DELETE USING (auth.uid() = id);
+
+-- Policy for admins to view all profiles (for office app)
+CREATE POLICY "Admins can view all profiles" ON public.user_profiles
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.user_profiles 
+            WHERE id = auth.uid() 
+            AND role IN ('admin', 'office_staff')
+        )
+    );
+
+-- Policy for admins to update all profiles (for office app)
+CREATE POLICY "Admins can update all profiles" ON public.user_profiles
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.user_profiles 
+            WHERE id = auth.uid() 
+            AND role IN ('admin', 'office_staff')
+        )
+    );
+
+-- Policy for admins to insert profiles (for office app)
+CREATE POLICY "Admins can insert profiles" ON public.user_profiles
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.user_profiles 
+            WHERE id = auth.uid() 
+            AND role IN ('admin', 'office_staff')
+        )
+    );
+
+-- Policy for admins to delete profiles (for office app)
+CREATE POLICY "Admins can delete profiles" ON public.user_profiles
+    FOR DELETE USING (
+        EXISTS (
+            SELECT 1 FROM public.user_profiles 
+            WHERE id = auth.uid() 
+            AND role IN ('admin', 'office_staff')
+        )
+    );
+
+-- 5. Create a service role bypass policy for system operations
+CREATE POLICY "Service role bypass" ON public.user_profiles
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- 6. Verify the policies were created correctly
+SELECT 
+    schemaname,
+    tablename,
+    policyname,
+    permissive,
+    roles,
+    cmd,
+    qual
+FROM pg_policies 
+WHERE tablename = 'user_profiles' 
+AND schemaname = 'public'
+ORDER BY policyname;
+
+-- 7. Test the connection (this should work now)
+SELECT COUNT(*) FROM public.user_profiles LIMIT 1;
