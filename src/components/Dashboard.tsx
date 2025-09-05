@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import Logo from "./Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWallet } from "@/hooks/useWallet";
+import { supabase } from "@/lib/supabase";
 
 const Dashboard = () => {
   const navigate = useRouter();
@@ -46,6 +47,22 @@ const Dashboard = () => {
     totalWeightKg
   } = useWallet(user?.id);
 
+  // Add error boundary for wallet data
+  const safeWalletBalance = walletBalance || 0;
+  const safeTotalPoints = totalPoints || 0;
+  const safeUserTier = userTier || 'bronze';
+  const safeTotalWeightKg = totalWeightKg || 0;
+  const safeEnvironmentalImpact = environmentalImpact || {
+    co2_saved_kg: 0,
+    water_saved_liters: 0,
+    landfill_saved_kg: 0
+  };
+  const safeNextTierRequirements = nextTierRequirements || {
+    nextTier: 'silver',
+    weightNeeded: 20,
+    progressPercentage: 0
+  };
+
   // Simple useEffect to refresh wallet data when user changes
   useEffect(() => {
     // Only refresh if user changes and we have a valid refresh function
@@ -59,8 +76,8 @@ const Dashboard = () => {
     }
   }, [user?.id]); // Remove refreshWallet from dependencies to prevent infinite loops
   
-  const totalKgRecycled = totalWeightKg || totalPoints; // Use actual weight if available
-  const co2Saved = environmentalImpact?.co2_saved_kg || (totalKgRecycled * 0.5); // Use calculated impact if available
+  const totalKgRecycled = safeTotalWeightKg || safeTotalPoints; // Use actual weight if available
+  const co2Saved = safeEnvironmentalImpact?.co2_saved_kg || (totalKgRecycled * 0.5); // Use calculated impact if available
 
   // Collection scheduling
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -78,13 +95,12 @@ const Dashboard = () => {
       if (!user?.id) return;
       
       try {
+        // Fetch address from Office App schema (addresses table)
         const { data, error } = await supabase
-          .from('user_addresses')
+          .from('addresses')
           .select('*')
           .eq('user_id', user.id)
-          .eq('address_type', 'primary')
-          .eq('is_default', true)
-          .eq('is_active', true)
+          .eq('is_primary', true)
           .single();
 
         if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
@@ -106,12 +122,12 @@ const Dashboard = () => {
     if (addressLoading) return "Loading address...";
     if (!userAddress) return "Address not provided";
     
-    const { address_line1, address_line2, city, province, postal_code } = userAddress;
+    const { line1, suburb, city, postal_code } = userAddress;
     
-    if (address_line1 && city) {
-      return `${address_line1}${address_line2 ? `, ${address_line2}` : ''}, ${city}, ${province}${postal_code ? `, ${postal_code}` : ''}`;
+    if (line1 && city) {
+      return `${line1}, ${suburb}, ${city}${postal_code ? `, ${postal_code}` : ''}`;
     } else if (city) {
-      return `${city}, ${province}`;
+      return `${city}`;
     }
     
     return "Address not provided";
@@ -121,7 +137,7 @@ const Dashboard = () => {
   
   // Check if user has provided address information
   const hasAddress = userAddress && (
-    userAddress.address_line1 || 
+    userAddress.line1 || 
     userAddress.city
   );
 
@@ -137,15 +153,15 @@ const Dashboard = () => {
   };
 
   // Simple balance display - use the working wallet balance
-  const displayBalance = walletBalance || 0;
+  const displayBalance = safeWalletBalance;
 
   // Debug logging to see what's happening
   console.log('Dashboard Debug - Wallet Values:', {
-    walletBalance,
+    walletBalance: safeWalletBalance,
     displayBalance,
-    totalPoints,
-    tier: userTier,
-    totalWeightKg,
+    totalPoints: safeTotalPoints,
+    tier: safeUserTier,
+    totalWeightKg: safeTotalWeightKg,
     walletLoading,
     error: walletError
   });
@@ -230,8 +246,8 @@ const Dashboard = () => {
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-semibold text-foreground">{userTier.charAt(0).toUpperCase() + userTier.slice(1)} Recycler</h3>
-              <p className="text-sm text-muted-foreground">{totalWeightKg || 0} kg recycled</p>
+              <h3 className="font-semibold text-foreground">{safeUserTier.charAt(0).toUpperCase() + safeUserTier.slice(1)} Recycler</h3>
+              <p className="text-sm text-muted-foreground">{safeTotalWeightKg} kg recycled</p>
             </div>
             <div className="p-2 bg-gradient-impact rounded-lg">
               <Recycle className="h-6 w-6 text-success-foreground" />
@@ -240,13 +256,13 @@ const Dashboard = () => {
           
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Progress to {nextTierRequirements.nextTier ? `${nextTierRequirements.nextTier.charAt(0).toUpperCase() + nextTierRequirements.nextTier.slice(1)} Recycler` : 'Max Level'}</span>
-                              <span className="font-medium">{nextTierRequirements.weightNeeded} kg to go</span>
+              <span className="text-muted-foreground">Progress to {safeNextTierRequirements.nextTier ? `${safeNextTierRequirements.nextTier.charAt(0).toUpperCase() + safeNextTierRequirements.nextTier.slice(1)} Recycler` : 'Max Level'}</span>
+              <span className="font-medium">{safeNextTierRequirements.weightNeeded} kg to go</span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div 
                 className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
-                style={{ width: `${nextTierRequirements.progressPercentage}%` }}
+                style={{ width: `${safeNextTierRequirements.progressPercentage}%` }}
               />
             </div>
           </div>
@@ -278,7 +294,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Weight</p>
-                                     <p className="text-lg font-bold text-success">{(totalWeightKg || 0).toFixed(1)} kg</p>
+                  <p className="text-lg font-bold text-success">{safeTotalWeightKg.toFixed(1)} kg</p>
                 </div>
               </div>
               <ArrowUpRight className="h-5 w-5 text-success" />
@@ -344,7 +360,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm font-medium">Recycling Credit</p>
-                                 <p className="text-xs text-muted-foreground">{(totalWeightKg || 0).toFixed(1)} kg processed</p>
+                <p className="text-xs text-muted-foreground">{safeTotalWeightKg.toFixed(1)} kg processed</p>
               </div>
             </div>
             <p className="text-sm font-bold text-success">+R {displayBalance.toFixed(2)}</p>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { WorkingWalletService, WorkingWalletInfo } from '@/lib/workingWalletService';
 import { getWalletCache, saveWalletCache, clearWalletCache } from '@/lib/session-utils';
 
 export interface WalletData {
@@ -44,142 +44,33 @@ export const useWallet = (userId?: string) => {
       return;
     }
 
-    // Check localStorage cache first
-    const cachedData = getWalletCache(userId);
-    if (cachedData) {
-      console.log('Using localStorage cached wallet data');
-      setWalletData(cachedData);
-      setLastFetchTime(now);
-      setIsInitialized(true);
-      return;
-    }
+    // Clear old cache - we're now using calculated views
+    clearWalletCache();
+    console.log('Cleared old wallet cache - fetching fresh data from calculated views');
 
     setLoading(true);
     setError(null);
 
     try {
-      console.log('Fetching fresh wallet data...');
+      console.log('Fetching fresh wallet data from unified schema...');
       
-      // Fetch wallet data - try enhanced_wallets first, then fallback to wallets
-      let wallet = null;
-      let walletError = null;
+      // Use the new working wallet service
+      const workingData = await WorkingWalletService.getWalletData(userId);
       
-      try {
-        // Try enhanced_wallets first
-        const { data: enhancedWallet, error: enhancedError } = await supabase
-          .from('enhanced_wallets')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
-          
-        if (enhancedWallet) {
-          wallet = enhancedWallet;
-          console.log('Found wallet in enhanced_wallets table');
-        } else if (enhancedError && enhancedError.code === 'PGRST116') {
-          // Table doesn't exist or no data, try wallets table
-          console.log('enhanced_wallets table empty, trying wallets table');
-          const { data: regularWallet, error: regularError } = await supabase
-            .from('wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-            
-          if (regularWallet) {
-            wallet = regularWallet;
-            console.log('Found wallet in wallets table');
-          } else if (regularError && regularError.code === 'PGRST116') {
-            console.log('No wallet found in either table');
-          } else if (regularError) {
-            walletError = regularError;
-          }
-        } else if (enhancedError) {
-          walletError = enhancedError;
-        }
-      } catch (error) {
-        console.warn('Error fetching wallet data:', error);
-        // Try wallets table as fallback
-        try {
-          const { data: fallbackWallet, error: fallbackError } = await supabase
-            .from('wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-            
-          if (fallbackWallet) {
-            wallet = fallbackWallet;
-            console.log('Found wallet in wallets table (fallback)');
-          } else if (fallbackError) {
-            walletError = fallbackError;
-          }
-        } catch (fallbackError) {
-          console.warn('Fallback wallet fetch also failed:', fallbackError);
-        }
-      }
-
-      if (walletError && walletError.code !== 'PGRST116') {
-        throw walletError;
-      }
-
-      // Fetch user metrics
-      const { data: metrics, error: metricsError } = await supabase
-        .from('user_metrics')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (metricsError && metricsError.code !== 'PGRST116') {
-        console.warn('Could not fetch pickups/metrics, using fallback data:', metricsError);
-      }
-
-      // Fetch recent pickups for tier calculation
-      const { data: pickups, error: pickupsError } = await supabase
-        .from('pickups')
-        .select('total_kg, status')
-        .eq('user_id', userId)
-        .eq('status', 'approved');
-
-      if (pickupsError) {
-        console.warn('Could not fetch pickups for tier calculation:', pickupsError);
-      }
-
-      // Calculate total weight from approved pickups
-      const totalWeightKg = pickups?.reduce((sum, pickup) => sum + (pickup.total_kg || 0), 0) || 0;
-      
-      // Calculate tier based on weight
-      const calculatedTier = getTierFromWeight(totalWeightKg);
-      
-      // Get tier benefits
-      const tierBenefits = getTierBenefits(calculatedTier);
-      
-      // Calculate next tier requirements
-      const nextTierRequirements = getNextTierRequirements(totalWeightKg);
-
-      // Calculate environmental impact
-      const environmentalImpact = {
-        co2_saved_kg: totalWeightKg * 0.5, // Rough estimate: 0.5kg CO2 saved per kg recycled
-        water_saved_liters: totalWeightKg * 10, // Rough estimate: 10L water saved per kg recycled
-        landfill_saved_kg: totalWeightKg * 0.8 // Rough estimate: 0.8kg landfill waste saved per kg recycled
-      };
-
-      // Calculate points: 1kg recycled = 1 point
-      const calculatedPoints = totalWeightKg;
-      
-      // Use wallet balance from database, or calculate from points if not available
-      const walletBalance = wallet?.balance || (calculatedPoints * 0.10); // 10 cents per point
-
+      // Convert working data to the expected WalletData format
       const combinedData: WalletData = {
-        balance: walletBalance,
-        points: calculatedPoints, // Points = weight recycled (1kg = 1 point)
-        tier: calculatedTier,
-        totalEarnings: wallet?.total_earnings || walletBalance,
-        environmentalImpact,
-        tierBenefits,
-        nextTierRequirements,
-        totalPickups: metrics?.total_pickups || 0,
-        approvedPickups: metrics?.approved_pickups || 0,
-        pendingPickups: metrics?.pending_pickups || 0,
-        rejectedPickups: metrics?.rejected_pickups || 0,
-        totalWeightKg
+        balance: workingData.balance,
+        points: workingData.points,
+        tier: workingData.tier,
+        totalEarnings: workingData.balance,
+        environmentalImpact: workingData.environmentalImpact,
+        tierBenefits: getTierBenefits(workingData.tier),
+        nextTierRequirements: workingData.nextTierRequirements,
+        totalPickups: workingData.collectionSummary.total_pickups,
+        approvedPickups: workingData.collectionSummary.total_pickups, // Assuming all are approved
+        pendingPickups: 0,
+        rejectedPickups: 0,
+        totalWeightKg: workingData.totalWeightKg
       };
 
       setWalletData(combinedData);
@@ -201,12 +92,43 @@ export const useWallet = (userId?: string) => {
     fetchWalletData();
   }, [fetchWalletData]);
 
-  const refreshWallet = useCallback(() => {
+  const refreshWallet = useCallback(async () => {
     // Clear all caches and force refresh
     setLastFetchTime(0);
     clearWalletCache();
-    fetchWalletData();
-  }, [fetchWalletData]);
+    
+    if (userId) {
+      try {
+        const workingData = await WorkingWalletService.refreshWalletData(userId);
+        
+        // Convert working data to the expected WalletData format
+        const combinedData: WalletData = {
+          balance: workingData.balance,
+          points: workingData.points,
+          tier: workingData.tier,
+          totalEarnings: workingData.balance,
+          environmentalImpact: workingData.environmentalImpact,
+          tierBenefits: getTierBenefits(workingData.tier),
+          nextTierRequirements: workingData.nextTierRequirements,
+          totalPickups: workingData.collectionSummary.total_pickups,
+          approvedPickups: workingData.collectionSummary.total_pickups,
+          pendingPickups: 0,
+          rejectedPickups: 0,
+          totalWeightKg: workingData.totalWeightKg
+        };
+
+        setWalletData(combinedData);
+        setLastFetchTime(Date.now());
+        setIsInitialized(true);
+        
+        // Save to localStorage cache
+        saveWalletCache(userId, combinedData);
+      } catch (err: any) {
+        console.error('Error refreshing wallet data:', err);
+        setError(err.message || 'Failed to refresh wallet data');
+      }
+    }
+  }, [userId]);
 
   const syncWalletBalances = useCallback(async () => {
     if (!userId) return;
@@ -214,22 +136,22 @@ export const useWallet = (userId?: string) => {
     try {
       // This would typically sync with external systems
       console.log('Syncing wallet balances...');
-      await fetchWalletData();
+      await refreshWallet();
     } catch (err) {
       console.error('Error syncing wallet:', err);
     }
-  }, [userId, fetchWalletData]);
+  }, [userId, refreshWallet]);
 
   const refreshCustomerPerformance = useCallback(async () => {
     if (!userId) return;
     
     try {
       console.log('Refreshing customer performance...');
-      await fetchWalletData();
+      await refreshWallet();
     } catch (err) {
       console.error('Error refreshing performance:', err);
     }
-  }, [userId, fetchWalletData]);
+  }, [userId, refreshWallet]);
 
   return {
     // Main data
