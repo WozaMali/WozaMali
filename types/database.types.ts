@@ -1,3 +1,101 @@
+// Canonical Supabase database types for all apps
+// Generate from Supabase or keep in sync manually as needed
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      materials: {
+        Row: {
+          id: string
+          name: string
+          category: string | null
+          unit_price: number
+          unit: string
+          description: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['materials']['Row']> & { name: string }
+        Update: Partial<Database['public']['Tables']['materials']['Row']>
+      }
+      pickups: {
+        Row: {
+          id: string
+          user_id: string
+          weight_kg: number | null
+          status: string
+          pickup_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['pickups']['Row']> & { user_id: string }
+        Update: Partial<Database['public']['Tables']['pickups']['Row']>
+      }
+      pickup_items: {
+        Row: {
+          id: string
+          pickup_id: string
+          material_id: string
+          quantity: number
+          unit_price: number
+          total_price: number
+          quality_rating: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['pickup_items']['Row']> & { pickup_id: string; material_id: string; quantity: number }
+        Update: Partial<Database['public']['Tables']['pickup_items']['Row']>
+      }
+      pickup_photos: {
+        Row: {
+          id: string
+          pickup_id: string
+          photo_url: string
+          photo_type: 'before' | 'after' | 'general' | 'verification'
+          taken_at: string
+          uploaded_by: string | null
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['pickup_photos']['Row']> & { pickup_id: string; photo_url: string; photo_type: Database['public']['Tables']['pickup_photos']['Row']['photo_type'] }
+        Update: Partial<Database['public']['Tables']['pickup_photos']['Row']>
+      }
+      wallets: {
+        Row: {
+          id: string
+          user_id: string
+          balance: number
+          total_points: number
+          tier: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['wallets']['Row']> & { user_id: string }
+        Update: Partial<Database['public']['Tables']['wallets']['Row']>
+      }
+    }
+    Functions: {
+      get_user_wallet_balance: {
+        Args: { p_user_id: string }
+        Returns: { balance: number; total_points: number }
+      }
+      update_wallet_simple: {
+        Args: { p_user_id: string; p_amount: number; p_points: number }
+        Returns: unknown
+      }
+    }
+  }
+}
+
 // Woza Mali Database Types for Supabase
 // Generated TypeScript types for the unified schema
 

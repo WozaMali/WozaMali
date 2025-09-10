@@ -1,323 +1,376 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './supabase';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-export interface BottleCollection {
-  id?: string;
-  user_id: string;
-  bottle_count: number;
-  weight_kg: number;
-  bottle_type: 'PET' | 'HDPE' | 'Other';
-  collection_date: string;
-  status: 'pending' | 'verified' | 'processed';
-  notes?: string;
+export interface GreenScholarFundData {
+  totalBalance: number;
+  totalContributions: number;
+  totalDistributions: number;
+  recentTransactions: GreenScholarTransaction[];
+  beneficiaryStats: {
+    schools: number;
+    childHeadedHomes: number;
+    totalBeneficiaries: number;
+  };
 }
 
-export interface Donation {
-  id?: string;
-  user_id: string;
+export interface GreenScholarTransaction {
+  id: string;
+  transactionType: 'contribution' | 'distribution' | 'donation';
   amount: number;
-  payment_method: 'wallet' | 'mtn-momo' | 'cash';
+  sourceType?: string;
+  sourceId?: string;
+  beneficiaryType?: 'school' | 'child_headed_home' | 'general';
+  beneficiaryId?: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface School {
+  id: string;
+  name: string;
+  schoolType: 'primary' | 'secondary' | 'special_needs';
+  address: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  contactPerson: string;
+  contactPhone: string;
+  contactEmail: string;
+  studentCount: number;
+  isActive: boolean;
+}
+
+export interface ChildHeadedHome {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  contactPerson: string;
+  contactPhone: string;
+  contactEmail: string;
+  childCount: number;
+  isActive: boolean;
+}
+
+export interface UserDonation {
+  id: string;
+  userId: string;
+  amount: number;
+  beneficiaryType: 'school' | 'child_headed_home' | 'general';
+  beneficiaryId?: string;
+  isAnonymous: boolean;
+  message?: string;
   status: 'pending' | 'completed' | 'failed';
-  transaction_reference?: string;
+  createdAt: string;
 }
 
-export interface FundStats {
-  month_year: string;
-  monthly_goal: number;
-  total_donations: number;
-  total_bottle_value: number;
-  total_fund: number;
-  progress_percentage: number;
-  remaining_amount: number;
-  beneficiaries_count: number;
-}
-
-export interface UserBottleContributions {
-  total_bottles: number;
-  total_weight: number;
-  total_value: number;
-}
-
-export interface ApplicationData {
-  id?: string;
-  user_id: string;
-  full_name: string;
-  date_of_birth: string;
-  phone_number: string;
-  email?: string;
-  id_number?: string;
-  school_name: string;
-  grade: string;
-  student_number?: string;
-  academic_performance: string;
-  household_income: string;
-  household_size: string;
-  employment_status?: string;
-  other_income_sources?: string;
-  support_type: string[];
-  urgent_needs?: string;
-  previous_support?: string;
-  has_id_document: boolean;
-  has_school_report: boolean;
-  has_income_proof: boolean;
-  has_bank_statement: boolean;
-  special_circumstances?: string;
-  community_involvement?: string;
-  references_info?: string;
-  status?: 'pending' | 'under_review' | 'approved' | 'rejected';
-}
-
-class GreenScholarFundService {
-  // Submit a bottle collection
-  async submitBottleCollection(collection: BottleCollection) {
+export class GreenScholarFundService {
+  /**
+   * Get Green Scholar Fund overview data
+   */
+  static async getFundData(): Promise<GreenScholarFundData> {
     try {
-      const { data, error } = await supabase
-        .from('green_scholar_fund_bottles')
-        .insert([collection])
-        .select()
-        .single();
+      console.log('GreenScholarFundService: Fetching fund data...');
 
-      if (error) throw error;
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error submitting bottle collection:', error);
-      return { success: false, error };
-    }
-  }
+      // Get fund balance (be resilient to schema differences)
+      let fundBalance: any = null;
+      let balanceError: any = null;
+      try {
+        const resp = await supabase
+          .from('green_scholar_fund_balance')
+          .select('*')
+          .single();
+        fundBalance = resp.data;
+        balanceError = resp.error;
+      } catch (e: any) {
+        balanceError = e;
+      }
 
-  // Get user's bottle collections
-  async getUserBottleCollections(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('green_scholar_fund_bottles')
+      if (balanceError) {
+        console.error('Error fetching fund balance:', balanceError);
+        throw balanceError;
+      }
+
+      // Get recent transactions
+      const { data: transactions, error: transactionsError } = await supabase
+        .from('green_scholar_transactions')
         .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-      if (error) throw error;
-      return { success: true, data };
+      if (transactionsError) {
+        console.error('Error fetching transactions:', transactionsError);
+        throw transactionsError;
+      }
+
+      // Get beneficiary statistics
+      const [schoolsResult, homesResult] = await Promise.all([
+        supabase.from('schools').select('id').eq('is_active', true),
+        supabase.from('child_headed_homes').select('id').eq('is_active', true)
+      ]);
+
+      const schoolsCount = schoolsResult.data?.length || 0;
+      const homesCount = homesResult.data?.length || 0;
+
+      const result: GreenScholarFundData = {
+        totalBalance: Number(fundBalance?.total_balance) || 0,
+        totalContributions: Number(fundBalance?.total_contributions ?? fundBalance?.contributions) || 0,
+        totalDistributions: Number(fundBalance?.total_distributions ?? fundBalance?.distributions) || 0,
+        recentTransactions: transactions?.map(t => ({
+          id: t.id,
+          transactionType: t.transaction_type,
+          amount: t.amount,
+          sourceType: t.source_type,
+          sourceId: t.source_id,
+          beneficiaryType: t.beneficiary_type,
+          beneficiaryId: t.beneficiary_id,
+          description: t.description,
+          createdAt: t.created_at
+        })) || [],
+        beneficiaryStats: {
+          schools: schoolsCount,
+          childHeadedHomes: homesCount,
+          totalBeneficiaries: schoolsCount + homesCount
+        }
+      };
+
+      console.log('GreenScholarFundService: Fund data retrieved successfully:', result);
+      return result;
+
     } catch (error) {
-      console.error('Error fetching user bottle collections:', error);
-      return { success: false, error };
+      console.error('GreenScholarFundService: Error fetching fund data:', error);
+      throw error;
     }
   }
 
-  // Get user's total bottle contributions
-  async getUserBottleContributions(userId: string): Promise<UserBottleContributions> {
+  /**
+   * Get all active schools
+   */
+  static async getSchools(): Promise<School[]> {
     try {
       const { data, error } = await supabase
-        .rpc('get_user_bottle_contributions', { user_uuid: userId });
-
-      if (error) throw error;
-      return data[0] || { total_bottles: 0, total_weight: 0, total_value: 0 };
-    } catch (error) {
-      console.error('Error fetching user bottle contributions:', error);
-      return { total_bottles: 0, total_weight: 0, total_value: 0 };
-    }
-  }
-
-  // Submit a donation
-  async submitDonation(donation: Donation) {
-    try {
-      const { data, error } = await supabase
-        .from('green_scholar_fund_donations')
-        .insert([donation])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error submitting donation:', error);
-      return { success: false, error };
-    }
-  }
-
-  // Get user's donations
-  async getUserDonations(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('green_scholar_fund_donations')
+        .from('schools')
         .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .eq('is_active', true)
+        .order('name');
 
-      if (error) throw error;
-      return { success: true, data };
+      if (error) {
+        console.error('Error fetching schools:', error);
+        throw error;
+      }
+
+      return data?.map(school => ({
+        id: school.id,
+        name: school.name,
+        schoolType: school.school_type,
+        address: school.address,
+        city: school.city,
+        province: school.province,
+        postalCode: school.postal_code,
+        contactPerson: school.contact_person,
+        contactPhone: school.contact_phone,
+        contactEmail: school.contact_email,
+        studentCount: school.student_count,
+        isActive: school.is_active
+      })) || [];
+
     } catch (error) {
-      console.error('Error fetching user donations:', error);
-      return { success: false, error };
+      console.error('GreenScholarFundService: Error fetching schools:', error);
+      throw error;
     }
   }
 
-  // Get current fund statistics
-  async getCurrentFundStats(): Promise<FundStats | null> {
+  /**
+   * Get all active child-headed homes
+   */
+  static async getChildHeadedHomes(): Promise<ChildHeadedHome[]> {
     try {
       const { data, error } = await supabase
-        .from('current_fund_status')
+        .from('child_headed_homes')
         .select('*')
-        .single();
+        .eq('is_active', true)
+        .order('name');
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching child-headed homes:', error);
+        throw error;
+      }
+
+      return data?.map(home => ({
+        id: home.id,
+        name: home.name,
+        address: home.address,
+        city: home.city,
+        province: home.province,
+        postalCode: home.postal_code,
+        contactPerson: home.contact_person,
+        contactPhone: home.contact_phone,
+        contactEmail: home.contact_email,
+        childCount: home.child_count,
+        isActive: home.is_active
+      })) || [];
+
     } catch (error) {
-      console.error('Error fetching fund stats:', error);
-      return null;
+      console.error('GreenScholarFundService: Error fetching child-headed homes:', error);
+      throw error;
     }
   }
 
-  // Get fund statistics for a specific month
-  async getFundStatsForMonth(monthYear: string): Promise<FundStats | null> {
+  /**
+   * Make a donation to the Green Scholar Fund
+   */
+  static async makeDonation(donation: {
+    userId: string;
+    amount: number;
+    beneficiaryType: 'school' | 'child_headed_home' | 'general';
+    beneficiaryId?: string;
+    isAnonymous: boolean;
+    message?: string;
+  }): Promise<UserDonation> {
     try {
-      const { data, error } = await supabase
-        .from('green_scholar_fund_stats')
-        .select('*')
-        .eq('month_year', monthYear)
-        .single();
+      console.log('GreenScholarFundService: Making donation:', donation);
 
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching fund stats for month:', error);
-      return null;
-    }
-  }
-
-  // Submit an application
-  async submitApplication(application: ApplicationData) {
-    try {
-      const { data, error } = await supabase
-        .from('green_scholar_fund_applications')
-        .insert([application])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error submitting application:', error);
-      return { success: false, error };
-    }
-  }
-
-  // Get user's applications
-  async getUserApplications(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('green_scholar_fund_applications')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error fetching user applications:', error);
-      return { success: false, error };
-    }
-  }
-
-  // Get all pending applications (for admin review)
-  async getPendingApplications() {
-    try {
-      const { data, error } = await supabase
-        .from('green_scholar_fund_applications')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error fetching pending applications:', error);
-      return { success: false, error };
-    }
-  }
-
-  // Update application status
-  async updateApplicationStatus(applicationId: string, status: string, reviewNotes?: string) {
-    try {
-      const { data, error } = await supabase
-        .from('green_scholar_fund_applications')
-        .update({
-          status,
-          review_notes: reviewNotes,
-          reviewed_at: new Date().toISOString()
+      // Create user donation record
+      const { data: userDonation, error: donationError } = await supabase
+        .from('user_donations')
+        .insert({
+          user_id: donation.userId,
+          amount: donation.amount,
+          beneficiary_type: donation.beneficiaryType,
+          beneficiary_id: donation.beneficiaryId,
+          is_anonymous: donation.isAnonymous,
+          message: donation.message,
+          status: 'completed'
         })
-        .eq('id', applicationId)
         .select()
         .single();
 
-      if (error) throw error;
-      return { success: true, data };
+      if (donationError) {
+        console.error('Error creating user donation:', donationError);
+        throw donationError;
+      }
+
+      // Create Green Scholar Fund transaction
+      const { error: transactionError } = await supabase
+        .from('green_scholar_transactions')
+        .insert({
+          transaction_type: 'donation',
+          amount: donation.amount,
+          source_type: 'user_donation',
+          source_id: userDonation.id,
+          beneficiary_type: donation.beneficiaryType,
+          beneficiary_id: donation.beneficiaryId,
+          description: `Donation from ${donation.isAnonymous ? 'Anonymous' : 'User'}: ${donation.message || 'Supporting education'}`,
+          created_by: donation.userId
+        });
+
+      if (transactionError) {
+        console.error('Error creating fund transaction:', transactionError);
+        throw transactionError;
+      }
+
+      // Update fund balance
+      const { error: balanceError } = await supabase
+        .from('green_scholar_fund_balance')
+        .update({
+          total_balance: supabase.sql`total_balance + ${donation.amount}`,
+          total_contributions: supabase.sql`total_contributions + ${donation.amount}`,
+          last_updated: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (balanceError) {
+        console.error('Error updating fund balance:', balanceError);
+        throw balanceError;
+      }
+
+      const result: UserDonation = {
+        id: userDonation.id,
+        userId: userDonation.user_id,
+        amount: userDonation.amount,
+        beneficiaryType: userDonation.beneficiary_type,
+        beneficiaryId: userDonation.beneficiary_id,
+        isAnonymous: userDonation.is_anonymous,
+        message: userDonation.message,
+        status: userDonation.status,
+        createdAt: userDonation.created_at
+      };
+
+      console.log('GreenScholarFundService: Donation completed successfully:', result);
+      return result;
+
     } catch (error) {
-      console.error('Error updating application status:', error);
-      return { success: false, error };
+      console.error('GreenScholarFundService: Error making donation:', error);
+      throw error;
     }
   }
 
-  // Subscribe to real-time fund statistics updates
-  subscribeToFundStats(callback: (stats: FundStats) => void) {
-    return supabase
-      .channel('fund_stats_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'green_scholar_fund_stats'
-        },
-        async () => {
-          const stats = await this.getCurrentFundStats();
-          if (stats) callback(stats);
-        }
-      )
-      .subscribe();
+  /**
+   * Get user's donation history
+   */
+  static async getUserDonations(userId: string): Promise<UserDonation[]> {
+    try {
+      const { data, error } = await supabase
+        .from('user_donations')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching user donations:', error);
+        throw error;
+      }
+
+      return data?.map(donation => ({
+        id: donation.id,
+        userId: donation.user_id,
+        amount: donation.amount,
+        beneficiaryType: donation.beneficiary_type,
+        beneficiaryId: donation.beneficiary_id,
+        isAnonymous: donation.is_anonymous,
+        message: donation.message,
+        status: donation.status,
+        createdAt: donation.created_at
+      })) || [];
+
+    } catch (error) {
+      console.error('GreenScholarFundService: Error fetching user donations:', error);
+      throw error;
+    }
   }
 
-  // Subscribe to real-time bottle collection updates
-  subscribeToBottleCollections(userId: string, callback: (collections: BottleCollection[]) => void) {
-    return supabase
-      .channel(`bottle_collections_${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'green_scholar_fund_bottles',
-          filter: `user_id=eq.${userId}`
-        },
-        async () => {
-          const result = await this.getUserBottleCollections(userId);
-          if (result.success && result.data) callback(result.data);
-        }
-      )
-      .subscribe();
-  }
+  /**
+   * Get fund transaction history
+   */
+  static async getTransactionHistory(limit: number = 50): Promise<GreenScholarTransaction[]> {
+    try {
+      const { data, error } = await supabase
+        .from('green_scholar_transactions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-  // Subscribe to real-time donation updates
-  subscribeToDonations(userId: string, callback: (donations: Donation[]) => void) {
-    return supabase
-      .channel(`donations_${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'green_scholar_fund_donations',
-          filter: `user_id=eq.${userId}`
-        },
-        async () => {
-          const result = await this.getUserDonations(userId);
-          if (result.success && result.data) callback(result.data);
-        }
-      )
-      .subscribe();
+      if (error) {
+        console.error('Error fetching transaction history:', error);
+        throw error;
+      }
+
+      return data?.map(transaction => ({
+        id: transaction.id,
+        transactionType: transaction.transaction_type,
+        amount: transaction.amount,
+        sourceType: transaction.source_type,
+        sourceId: transaction.source_id,
+        beneficiaryType: transaction.beneficiary_type,
+        beneficiaryId: transaction.beneficiary_id,
+        description: transaction.description,
+        createdAt: transaction.created_at
+      })) || [];
+
+    } catch (error) {
+      console.error('GreenScholarFundService: Error fetching transaction history:', error);
+      throw error;
+    }
   }
 }
-
-export const greenScholarFundService = new GreenScholarFundService();
-export default greenScholarFundService;

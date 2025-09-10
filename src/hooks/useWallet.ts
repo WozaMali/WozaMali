@@ -83,6 +83,10 @@ export const useWallet = (userId?: string) => {
     } catch (err: any) {
       console.error('Error fetching wallet data:', err);
       setError(err.message || 'Failed to fetch wallet data');
+      
+      // Clear cache on error to prevent showing stale data
+      clearWalletCache();
+      setWalletData(null);
     } finally {
       setLoading(false);
     }
@@ -126,6 +130,10 @@ export const useWallet = (userId?: string) => {
       } catch (err: any) {
         console.error('Error refreshing wallet data:', err);
         setError(err.message || 'Failed to refresh wallet data');
+        
+        // Clear cache on error to prevent showing stale data
+        clearWalletCache();
+        setWalletData(null);
       }
     }
   }, [userId]);
@@ -154,11 +162,11 @@ export const useWallet = (userId?: string) => {
   }, [userId, refreshWallet]);
 
   return {
-    // Main data
-    balance: walletData?.balance || 0,
-    points: walletData?.points || 0,
-    tier: walletData?.tier || 'bronze',
-    totalEarnings: walletData?.totalEarnings || 0,
+    // Main data - show 0 if no data or if there's an error
+    balance: (walletData && !error) ? walletData.balance : 0,
+    points: (walletData && !error) ? walletData.points : 0,
+    tier: (walletData && !error) ? walletData.tier : 'bronze',
+    totalEarnings: (walletData && !error) ? walletData.totalEarnings : 0,
     
     // Environmental impact
     environmentalImpact: walletData?.environmentalImpact || {

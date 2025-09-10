@@ -3,23 +3,157 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Check if we're in the browser and environment variables are missing
-if (typeof window !== 'undefined' && (!supabaseUrl || !supabaseAnonKey)) {
-  console.error('Missing Supabase environment variables:', {
-    hasUrl: !!supabaseUrl,
-    hasKey: !!supabaseAnonKey
-  });
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
 }
 
-// Create a fallback client or the real client
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : createClient('https://placeholder.supabase.co', 'placeholder-key');
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Database types for TypeScript
 export interface Database {
   public: {
     Tables: {
+      // ============================================================================
+      // UNIFIED SCHEMA TABLES
+      // ============================================================================
+      roles: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          permissions: any
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          permissions?: any
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          permissions?: any
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      areas: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          city: string
+          province: string | null
+          postal_code: string
+          subdivisions: any | null
+          boundaries: any | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          city?: string
+          province?: string | null
+          postal_code: string
+          subdivisions?: any | null
+          boundaries?: any | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          city?: string
+          province?: string | null
+          postal_code?: string
+          subdivisions?: any | null
+          boundaries?: any | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      users: {
+        Row: {
+          id: string
+          first_name: string | null
+          last_name: string | null
+          full_name: string | null
+          date_of_birth: string | null
+          phone: string | null
+          email: string
+          role_id: string
+          area_id: string | null
+          street_addr: string | null
+          township_id: string | null
+          subdivision: string | null
+          city: string
+          postal_code: string | null
+          suburb: string | null
+          status: 'active' | 'suspended' | 'deleted'
+          last_login: string | null
+          login_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          first_name?: string | null
+          last_name?: string | null
+          full_name?: string | null
+          date_of_birth?: string | null
+          phone?: string | null
+          email: string
+          role_id: string
+          area_id?: string | null
+          street_addr?: string | null
+          township_id?: string | null
+          subdivision?: string | null
+          city?: string
+          postal_code?: string | null
+          suburb?: string | null
+          status?: 'active' | 'suspended' | 'deleted'
+          last_login?: string | null
+          login_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          first_name?: string | null
+          last_name?: string | null
+          full_name?: string | null
+          date_of_birth?: string | null
+          phone?: string | null
+          email?: string
+          role_id?: string
+          area_id?: string | null
+          street_addr?: string | null
+          township_id?: string | null
+          subdivision?: string | null
+          city?: string
+          postal_code?: string | null
+          suburb?: string | null
+          status?: 'active' | 'suspended' | 'deleted'
+          last_login?: string | null
+          login_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      // ============================================================================
+      // LEGACY TABLES (KEPT FOR BACKWARD COMPATIBILITY)
+      // ============================================================================
       profiles: {
         Row: {
           id: string
@@ -607,4 +741,161 @@ export interface PickupItemWithMaterial extends PickupItem {
 
 export interface MaterialWithPickupItems extends Material {
   pickup_items?: PickupItem[];
+}
+
+// ============================================================================
+// UNIFIED SCHEMA TYPES
+// ============================================================================
+
+// User types
+export interface User {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  date_of_birth?: string;
+  phone?: string;
+  email: string;
+  role_id: string;
+  area_id?: string;
+  street_addr?: string;
+  township_id?: string;
+  subdivision?: string;
+  city: string;
+  postal_code?: string;
+  suburb?: string; // Legacy field
+  status: 'active' | 'suspended' | 'deleted';
+  last_login?: string;
+  login_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserInsert {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  date_of_birth?: string;
+  phone?: string;
+  email: string;
+  role_id: string;
+  area_id?: string;
+  street_addr?: string;
+  township_id?: string;
+  subdivision?: string;
+  city?: string;
+  postal_code?: string;
+  suburb?: string;
+  status?: 'active' | 'suspended' | 'deleted';
+  last_login?: string;
+  login_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UserUpdate {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  date_of_birth?: string;
+  phone?: string;
+  email?: string;
+  role_id?: string;
+  area_id?: string;
+  street_addr?: string;
+  township_id?: string;
+  subdivision?: string;
+  city?: string;
+  postal_code?: string;
+  suburb?: string;
+  status?: 'active' | 'suspended' | 'deleted';
+  last_login?: string;
+  login_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Role types
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: any;
+  created_at: string;
+  updated_at: string;
+}
+
+// Area types
+export interface Area {
+  id: string;
+  name: string;
+  description?: string;
+  city: string;
+  province?: string;
+  postal_code: string;
+  subdivisions?: string[];
+  boundaries?: any;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Township dropdown types
+export interface TownshipDropdown {
+  id: string;
+  township_name: string;
+  postal_code: string;
+  city: string;
+  subdivisions: string[];
+}
+
+// Subdivision dropdown types
+export interface SubdivisionDropdown {
+  area_id: string;
+  township_name: string;
+  postal_code: string;
+  subdivision: string;
+}
+
+// Residents view types
+export interface Resident {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  email: string;
+  phone?: string;
+  date_of_birth?: string;
+  street_addr?: string;
+  township_id?: string;
+  township_name?: string;
+  subdivision?: string;
+  suburb?: string; // Legacy field
+  city: string;
+  postal_code?: string;
+  status: 'active' | 'suspended' | 'deleted';
+  created_at: string;
+  updated_at: string;
+  address_status: 'complete' | 'legacy' | 'incomplete';
+}
+
+// Extended types with relationships
+export interface UserWithRole extends User {
+  role?: Role;
+}
+
+export interface UserWithArea extends User {
+  area?: Area;
+}
+
+export interface UserWithTownship extends User {
+  township?: Area;
+}
+
+export interface UserComplete extends User {
+  role?: Role;
+  area?: Area;
+  township?: Area;
 }

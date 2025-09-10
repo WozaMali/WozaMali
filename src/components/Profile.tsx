@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, ChevronRight, Bell, BookOpen, TrendingUp } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, ChevronRight, Bell, BookOpen, TrendingUp, MapPin } from "lucide-react";
 
 const Profile = () => {
   const navigate = useRouter();
@@ -30,6 +31,92 @@ const Profile = () => {
 
   const { user, signOut, userRole } = authContext;
   const [isEditing, setIsEditing] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch user data from unified database
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user?.id) return;
+      
+      try {
+        // Query all user fields including address information
+        const { data, error } = await supabase
+          .from('users')
+          .select(`
+            id,
+            email,
+            first_name,
+            last_name,
+            full_name,
+            phone,
+            role_id,
+            status,
+            street_addr,
+            township_id,
+            subdivision,
+            city,
+            postal_code,
+            created_at,
+            areas!township_id (
+              name
+            )
+          `)
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          if (error.code === 'PGRST116') {
+            // User not found in users table - this is expected for new users
+            console.log('Profile: User not found in users table - using auth user data');
+            setUserData({
+              id: user.id,
+              email: user.email || '',
+              first_name: user.user_metadata?.first_name || '',
+              last_name: user.user_metadata?.last_name || '',
+              full_name: user.user_metadata?.full_name || '',
+              phone: user.user_metadata?.phone || '',
+              role_id: null,
+              status: 'active',
+              street_addr: user.user_metadata?.street_address || null,
+              township_id: user.user_metadata?.township_id || null,
+              subdivision: user.user_metadata?.subdivision || null,
+              city: user.user_metadata?.city || 'Soweto',
+              postal_code: user.user_metadata?.postal_code || null,
+              created_at: user.created_at
+            });
+          } else {
+            console.error('Error fetching user data:', error);
+          }
+        } else {
+          setUserData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Fallback to auth user data
+        setUserData({
+          id: user.id,
+          email: user.email || '',
+          first_name: user.user_metadata?.first_name || '',
+          last_name: user.user_metadata?.last_name || '',
+          full_name: user.user_metadata?.full_name || '',
+          phone: user.user_metadata?.phone || '',
+          role_id: null,
+          status: 'active',
+          street_addr: user.user_metadata?.street_address || null,
+          township_id: user.user_metadata?.township_id || null,
+          subdivision: user.user_metadata?.subdivision || null,
+          city: user.user_metadata?.city || 'Soweto',
+          postal_code: user.user_metadata?.postal_code || null,
+          created_at: user.created_at
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [user?.id]);
 
   const handleLogout = async () => {
     try {
@@ -61,20 +148,22 @@ const Profile = () => {
   };
 
   const userProfile = {
-    name: user?.user_metadata?.full_name || "User",
-    phone: user?.user_metadata?.phone || "No phone number",
-    email: user?.email || "No email",
-    streetAddress: user?.user_metadata?.street_address || "No address",
-    suburb: user?.user_metadata?.suburb || "No suburb",
-    city: user?.user_metadata?.city || "No city",
-    postalCode: user?.user_metadata?.postal_code || "No postal code",
+    name: userData?.full_name || `${userData?.first_name || ''} ${userData?.last_name || ''}`.trim() || user?.user_metadata?.full_name || "User",
+    phone: userData?.phone || user?.user_metadata?.phone || "No phone number",
+    email: userData?.email || user?.email || "No email",
+    streetAddress: userData?.street_addr || user?.user_metadata?.street_address || "No address provided",
+    subdivision: userData?.subdivision || user?.user_metadata?.subdivision || "",
+    township: userData?.areas?.name || "",
+    city: userData?.city || user?.user_metadata?.city || "Soweto",
+    postalCode: userData?.postal_code || user?.user_metadata?.postal_code || "No postal code",
     kycStatus: "verified",
-    memberSince: formatMemberSince(user?.created_at),
+    memberSince: formatMemberSince(userData?.created_at || user?.created_at),
     totalRecycled: 0,
     level: "Gold Recycler",
     nextLevel: "Platinum",
     pointsToNext: 0,
   };
+
 
   const achievements = [
     { title: "First Recycle", icon: Recycle, earned: true },
@@ -141,24 +230,68 @@ const Profile = () => {
           <CardTitle className="text-base">Address Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {userProfile.streetAddress !== "No address" && (
+          {loading ? (
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-primary/20 rounded-lg">
-                <User className="h-4 w-4 text-primary" />
+                <MapPin className="h-4 w-4 text-primary" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-foreground">{userProfile.streetAddress}</p>
-                <p className="text-sm text-muted-foreground">
-                  {userProfile.suburb !== "No suburb" && userProfile.suburb}, {userProfile.city !== "No city" && userProfile.city}
-                  {userProfile.postalCode !== "No postal code" && `, ${userProfile.postalCode}`}
+                <p className="text-sm text-muted-foreground">Loading address...</p>
+              </div>
+            </div>
+          ) : userProfile.streetAddress !== "No address provided" ? (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <MapPin className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">{userProfile.streetAddress}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {userProfile.subdivision && `${userProfile.subdivision}, `}
+                    {userProfile.township && `${userProfile.township}, `}
+                    {userProfile.city}
+                    {userProfile.postalCode !== "No postal code" && ` ${userProfile.postalCode}`}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Address Details */}
+              <div className="pl-11 space-y-2 text-sm">
+                {userProfile.subdivision && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subdivision:</span>
+                    <span className="font-medium">{userProfile.subdivision}</span>
+                  </div>
+                )}
+                {userProfile.township && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Township:</span>
+                    <span className="font-medium">{userProfile.township}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">City:</span>
+                  <span className="font-medium">{userProfile.city}</span>
+                </div>
+                {userProfile.postalCode !== "No postal code" && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Postal Code:</span>
+                    <span className="font-medium">{userProfile.postalCode}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <div className="p-3 bg-muted/50 rounded-lg mb-3">
+                <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No address information provided</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Address information will be available after completing your profile
                 </p>
               </div>
             </div>
-          )}
-          {userProfile.streetAddress === "No address" && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No address information provided
-            </p>
           )}
         </CardContent>
       </Card>

@@ -1,12 +1,55 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import greenScholarFundService, {
-  BottleCollection,
-  Donation,
-  FundStats,
-  UserBottleContributions,
-  ApplicationData
-} from '@/lib/greenScholarFundService';
+import { GreenScholarFundService } from '@/lib/greenScholarFundService';
+
+// Type definitions for Green Scholar Fund
+interface FundStats {
+  total_balance: number;
+  total_contributions: number;
+  total_distributions: number;
+  progress_percentage: number;
+  remaining_amount: number;
+}
+
+interface UserBottleContributions {
+  total_bottles: number;
+  total_weight: number;
+  total_value: number;
+}
+
+interface Donation {
+  id: string;
+  user_id: string;
+  amount: number;
+  beneficiary_type: 'school' | 'child_headed_home' | 'general';
+  beneficiary_id?: string;
+  is_anonymous: boolean;
+  message?: string;
+  status: 'pending' | 'completed' | 'failed';
+  created_at: string;
+}
+
+interface BottleCollection {
+  id: string;
+  user_id: string;
+  weight_kg: number;
+  bottle_count: number;
+  value: number;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+interface ApplicationData {
+  id: string;
+  user_id: string;
+  school_name: string;
+  student_name: string;
+  grade: string;
+  amount_requested: number;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
 
 export const useGreenScholarFund = () => {
   const { user } = useAuth();
@@ -30,31 +73,19 @@ export const useGreenScholarFund = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch fund stats
-      const stats = await greenScholarFundService.getCurrentFundStats();
-      if (stats) setFundStats(stats);
-
-      // Fetch user contributions
-      const contributions = await greenScholarFundService.getUserBottleContributions(user.id);
-      setUserBottleContributions(contributions);
+      // Fetch fund data
+      const fundData = await GreenScholarFundService.getFundData();
+      setFundStats({
+        total_balance: fundData.totalBalance,
+        total_contributions: fundData.totalContributions,
+        total_distributions: fundData.totalDistributions,
+        progress_percentage: 0, // Calculate based on your business logic
+        remaining_amount: 0 // Calculate based on your business logic
+      });
 
       // Fetch user donations
-      const donationsResult = await greenScholarFundService.getUserDonations(user.id);
-      if (donationsResult.success && donationsResult.data) {
-        setUserDonations(donationsResult.data);
-      }
-
-      // Fetch user bottle collections
-      const collectionsResult = await greenScholarFundService.getUserBottleCollections(user.id);
-      if (collectionsResult.success && collectionsResult.data) {
-        setUserBottleCollections(collectionsResult.data);
-      }
-
-      // Fetch user applications
-      const applicationsResult = await greenScholarFundService.getUserApplications(user.id);
-      if (applicationsResult.success && applicationsResult.data) {
-        setUserApplications(applicationsResult.data);
-      }
+      const userDonations = await GreenScholarFundService.getUserDonations(user.id);
+      setUserDonations(userDonations);
 
     } catch (err) {
       console.error('Error fetching initial data:', err);
@@ -64,114 +95,39 @@ export const useGreenScholarFund = () => {
     }
   }, [user?.id]);
 
-  // Submit bottle collection
-  const submitBottleCollection = useCallback(async (collection: Omit<BottleCollection, 'user_id' | 'status'>) => {
-    if (!user?.id) return { success: false, error: 'User not authenticated' };
-
-    try {
-      const result = await greenScholarFundService.submitBottleCollection({
-        ...collection,
-        user_id: user.id,
-        status: 'pending'
-      });
-
-      if (result.success) {
-        // Update local state
-        setUserBottleCollections(prev => [result.data, ...prev]);
-        
-        // Recalculate user contributions
-        const contributions = await greenScholarFundService.getUserBottleContributions(user.id);
-        setUserBottleContributions(contributions);
-      }
-
-      return result;
-    } catch (err) {
-      console.error('Error submitting bottle collection:', err);
-      return { success: false, error: 'Failed to submit bottle collection' };
-    }
-  }, [user?.id]);
-
   // Submit donation
-  const submitDonation = useCallback(async (donation: Omit<Donation, 'user_id' | 'status'>) => {
+  const submitDonation = useCallback(async (donation: {
+    amount: number;
+    beneficiaryType: 'school' | 'child_headed_home' | 'general';
+    beneficiaryId?: string;
+    isAnonymous: boolean;
+    message?: string;
+  }) => {
     if (!user?.id) return { success: false, error: 'User not authenticated' };
 
     try {
-      const result = await greenScholarFundService.submitDonation({
-        ...donation,
-        user_id: user.id,
-        status: 'completed'
+      const result = await GreenScholarFundService.makeDonation({
+        userId: user.id,
+        ...donation
       });
 
-      if (result.success) {
+      if (result) {
         // Update local state
-        setUserDonations(prev => [result.data, ...prev]);
+        setUserDonations(prev => [result, ...prev]);
+        return { success: true, data: result };
       }
 
-      return result;
+      return { success: false, error: 'Failed to submit donation' };
     } catch (err) {
       console.error('Error submitting donation:', err);
       return { success: false, error: 'Failed to submit donation' };
     }
   }, [user?.id]);
 
-  // Submit application
-  const submitApplication = useCallback(async (application: Omit<ApplicationData, 'user_id' | 'status'>) => {
-    if (!user?.id) return { success: false, error: 'User not authenticated' };
-
-    try {
-      const result = await greenScholarFundService.submitApplication({
-        ...application,
-        user_id: user.id,
-        status: 'pending'
-      });
-
-      if (result.success) {
-        // Update local state
-        setUserApplications(prev => [result.data, ...prev]);
-      }
-
-      return result;
-    } catch (err) {
-      console.error('Error submitting application:', err);
-      return { success: false, error: 'Failed to submit application' };
-    }
-  }, [user?.id]);
-
-  // Setup real-time subscriptions
+  // Fetch initial data on mount
   useEffect(() => {
-    if (!user?.id) return;
-
-    // Subscribe to fund stats changes
-    const fundStatsSubscription = greenScholarFundService.subscribeToFundStats((stats) => {
-      setFundStats(stats);
-    });
-
-    // Subscribe to user bottle collections changes
-    const bottleCollectionsSubscription = greenScholarFundService.subscribeToBottleCollections(
-      user.id,
-      (collections) => {
-        setUserBottleCollections(collections);
-      }
-    );
-
-    // Subscribe to user donations changes
-    const donationsSubscription = greenScholarFundService.subscribeToDonations(
-      user.id,
-      (donations) => {
-        setUserDonations(donations);
-      }
-    );
-
-    // Fetch initial data
     fetchInitialData();
-
-    // Cleanup subscriptions
-    return () => {
-      fundStatsSubscription.unsubscribe();
-      bottleCollectionsSubscription.unsubscribe();
-      donationsSubscription.unsubscribe();
-    };
-  }, [user?.id, fetchInitialData]);
+  }, [fetchInitialData]);
 
   // Calculate progress percentage
   const progressPercentage = fundStats ? fundStats.progress_percentage : 0;
@@ -197,9 +153,7 @@ export const useGreenScholarFund = () => {
     userTotalContribution,
     
     // Actions
-    submitBottleCollection,
     submitDonation,
-    submitApplication,
     fetchInitialData,
     
     // Utility

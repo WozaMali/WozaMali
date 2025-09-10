@@ -81,17 +81,17 @@ const AuthCallback = () => {
             // Wait a moment for the session to be fully established
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Check if profile exists and redirect accordingly
+            // Check if user profile exists in unified schema
             try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name, phone, street_address, city, postal_code')
+              const { data: userProfile } = await supabase
+                .from('users')
+                .select('first_name, last_name, phone, street_addr, township_id, subdivision, city, postal_code')
                 .eq('id', data.session.user.id)
                 .single();
 
-              if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
+              if (!userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
                 setMessage("Redirecting to complete your profile...");
-                timeoutId = setTimeout(() => router.push("/profile/complete"), 1500);
+                timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
               } else {
                 setMessage("Redirecting to dashboard...");
                 timeoutId = setTimeout(() => router.push("/"), 1500);
@@ -99,7 +99,7 @@ const AuthCallback = () => {
             } catch (profileError) {
               console.log('Profile check error, redirecting to profile completion:', profileError);
               setMessage("Redirecting to complete your profile...");
-              timeoutId = setTimeout(() => router.push("/profile/complete"), 1500);
+              timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
             }
             return;
           }
@@ -123,17 +123,17 @@ const AuthCallback = () => {
             description: "You have successfully signed in.",
           });
           
-          // Check profile and redirect
+          // Check user profile in unified schema
           try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('full_name, phone, street_address, city, postal_code')
+            const { data: userProfile } = await supabase
+              .from('users')
+              .select('first_name, last_name, phone, street_addr, township_id, subdivision, city, postal_code')
               .eq('id', session.user.id)
               .single();
 
-            if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
+            if (!userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
               setMessage("Redirecting to complete your profile...");
-              timeoutId = setTimeout(() => router.push("/profile/complete"), 1500);
+              timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
             } else {
               setMessage("Redirecting to dashboard...");
               timeoutId = setTimeout(() => router.push("/"), 1500);
@@ -141,7 +141,7 @@ const AuthCallback = () => {
           } catch (error) {
             console.log('Profile check error, redirecting to profile completion:', error);
             setMessage("Redirecting to complete your profile...");
-            timeoutId = setTimeout(() => router.push("/profile/complete"), 1500);
+            timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
           }
         } else {
           // No session found

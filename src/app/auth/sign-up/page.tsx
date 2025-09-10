@@ -4,23 +4,29 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Mail, Lock, User, Phone, MapPin, Building, Hash } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Phone, MapPin, Building, Hash, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import { AddressService, useTownships, useSubdivisions } from "@/lib/addressService";
+import { getResidentRoleId } from "@/lib/roles";
+import { UserInsert } from "@/lib/supabase";
 
 const SignUp = () => {
   const navigate = useRouter();
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
     email: "",
     password: "",
     confirmPassword: "",
     phone: "",
     streetAddress: "",
-    township: "",
-    city: "",
+    townshipId: "",
+    subdivision: "",
+    city: "Soweto", // Auto-filled
     postalCode: ""
   });
   
@@ -33,6 +39,10 @@ const SignUp = () => {
     supabaseUrl: null,
     supabaseKey: null
   });
+
+  // Address hooks
+  const { townships, loading: townshipsLoading, error: townshipsError } = useTownships();
+  const { subdivisions, loading: subdivisionsLoading, error: subdivisionsError } = useSubdivisions(formData.townshipId);
 
   // Check environment variables on component mount
   useEffect(() => {
@@ -57,42 +67,20 @@ const SignUp = () => {
     checkEnv();
   }, []);
 
-  // Static location data as fallback
-  const townships = [
-    { id: '1', name: 'Baragwanath', postal_code: '1862' },
-    { id: '2', name: 'Chiawelo', postal_code: '1818' },
-    { id: '3', name: 'Dlamini', postal_code: '1804' },
-    { id: '4', name: 'Dobsonville', postal_code: '1804' },
-    { id: '5', name: 'Emdeni', postal_code: '1804' },
-    { id: '6', name: 'Jabavu', postal_code: '1804' },
-    { id: '7', name: 'Kliptown', postal_code: '1804' },
-    { id: '8', name: 'Klipspruit', postal_code: '1804' },
-    { id: '9', name: 'Meadowlands', postal_code: '1804' },
-    { id: '10', name: 'Mofolo', postal_code: '1804' },
-    { id: '11', name: 'Moroka', postal_code: '1804' },
-    { id: '12', name: 'Naledi', postal_code: '1804' },
-    { id: '13', name: 'Orlando', postal_code: '1804' },
-    { id: '14', name: 'Pimville', postal_code: '1804' },
-    { id: '15', name: 'Protea Glen', postal_code: '1804' },
-    { id: '16', name: 'Protea North', postal_code: '1804' },
-    { id: '17', name: 'Protea South', postal_code: '1804' },
-    { id: '18', name: 'Senaoane', postal_code: '1804' },
-    { id: '19', name: 'Zola', postal_code: '1804' },
-    { id: '20', name: 'Zondi', postal_code: '1866' }
-  ];
+  // Get resident role ID for new users
+  const [residentRoleId, setResidentRoleId] = useState<string | null>(null);
 
-  const cities = [
-    { id: '1', name: 'Soweto', province: 'Gauteng' },
-    { id: '2', name: 'Johannesburg', province: 'Gauteng' },
-    { id: '3', name: 'Pretoria', province: 'Gauteng' },
-    { id: '4', name: 'Centurion', province: 'Gauteng' },
-    { id: '5', name: 'Sandton', province: 'Gauteng' },
-    { id: '6', name: 'Randburg', province: 'Gauteng' },
-    { id: '7', name: 'Roodepoort', province: 'Gauteng' },
-    { id: '8', name: 'Krugersdorp', province: 'Gauteng' },
-    { id: '9', name: 'Boksburg', province: 'Gauteng' },
-    { id: '10', name: 'Benoni', province: 'Gauteng' }
-  ];
+  // Get resident role ID on component mount
+  useEffect(() => {
+    const loadRole = async () => {
+      const id = await getResidentRoleId();
+      if (!id) {
+        console.error('Resident role not found. Ensure a role named "resident" or "member" exists, or set NEXT_PUBLIC_RESIDENT_ROLE_ID.');
+      }
+      setResidentRoleId(id);
+    };
+    loadRole();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -101,13 +89,23 @@ const SignUp = () => {
     }));
   };
 
-  // Handle township selection and auto-fill postal code
-  const handleTownshipChange = (townshipName: string) => {
-    const selectedTownship = townships.find(t => t.name === townshipName);
+  // Handle township selection and auto-fill postal code and city
+  const handleTownshipChange = async (townshipId: string) => {
+    handleInputChange('townshipId', townshipId);
+    handleInputChange('subdivision', ''); // Reset subdivision when township changes
     
-    handleInputChange('township', townshipName);
-    if (selectedTownship) {
-      handleInputChange('postalCode', selectedTownship.postal_code);
+    if (townshipId) {
+      try {
+        const { data, error } = await AddressService.getTownshipInfo(townshipId);
+        if (error) {
+          console.error('Error fetching township info:', error);
+        } else if (data) {
+          handleInputChange('postalCode', data.postal_code);
+          handleInputChange('city', data.city);
+        }
+      } catch (error) {
+        console.error('Error in handleTownshipChange:', error);
+      }
     }
   };
 
@@ -184,16 +182,29 @@ const SignUp = () => {
     setLoading(true);
 
     try {
+      // Validate required fields
+      if (!residentRoleId) {
+        toast({
+          title: "Configuration Error",
+          description: "Unable to determine user role. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // First, create the user account
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
-            full_name: formData.fullName,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            full_name: `${formData.firstName} ${formData.lastName}`,
             phone: formData.phone,
             street_address: formData.streetAddress,
-            township: formData.township,
+            township_id: formData.townshipId,
+            subdivision: formData.subdivision,
             city: formData.city,
             postal_code: formData.postalCode
           }
@@ -212,28 +223,64 @@ const SignUp = () => {
       }
 
       if (authData.user) {
-        // Try to update the profiles table with additional data
+        // Create user record in unified schema
         try {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({
-              full_name: formData.fullName,
-              phone: formData.phone,
-              street_address: formData.streetAddress,
-              township: formData.township,
-              city: formData.city,
-              postal_code: formData.postalCode,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', authData.user.id);
+          const baseData: any = {
+            id: authData.user.id,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            date_of_birth: formData.dateOfBirth || null,
+            phone: formData.phone || null,
+            email: formData.email,
+            street_addr: formData.streetAddress || null,
+            township_id: formData.townshipId || null,
+            subdivision: formData.subdivision || null,
+            city: formData.city,
+            postal_code: formData.postalCode || null,
+            status: 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
 
-          if (profileError) {
-            console.warn('Profile update warning:', profileError.message);
-            // Don't fail the signup if profile update fails - the trigger should handle it
+          // Prefer text-based role assignments first to satisfy schemas where role_id FKs roles.name
+          const roleAssignments: any[] = [
+            { role: 'resident' },
+            { role_id: 'resident' },
+          ];
+          if (residentRoleId) {
+            roleAssignments.push({ role_id: residentRoleId });
           }
-        } catch (profileUpdateError) {
-          console.warn('Profile update error:', profileUpdateError);
-          // Don't fail the signup if profile update fails
+          // Legacy alias fallback
+          roleAssignments.push({ role: 'member' }, { role_id: 'member' });
+
+          let created = false;
+          let lastError: any = null;
+          for (const assignment of roleAssignments) {
+            const { error } = await supabase
+              .from('users')
+              .insert({ ...baseData, ...assignment });
+            if (!error) { created = true; break; }
+            lastError = error;
+          }
+
+          if (!created) {
+            console.error('User creation error:', lastError);
+            toast({
+              title: "Profile creation failed",
+              description: "Account created but profile setup failed. Please contact support.",
+              variant: "destructive",
+            });
+            return;
+          }
+        } catch (userCreationError) {
+          console.error('User creation error:', userCreationError);
+          toast({
+            title: "Profile creation failed",
+            description: "Account created but profile setup failed. Please contact support.",
+            variant: "destructive",
+          });
+          return;
         }
 
         toast({
@@ -285,7 +332,7 @@ const SignUp = () => {
       {/* Orange Horizontal Bar at Top - 50% Bigger */}
       <div className="h-48 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center relative">
         <div className="text-center text-white">
-          <div className="inline-flex items-center justify-center w-32 h-32 mb-4">
+          <div className="inline-flex items-center justify-center w-32 h-32 mb-0">
             <Image
               src="/WozaMali-uploads/w white.png"
               alt="Woza Mali Logo"
@@ -294,14 +341,15 @@ const SignUp = () => {
               className="drop-shadow-lg"
             />
           </div>
-          <h1 className="text-3xl font-bold text-white drop-shadow-lg mb-2">
+          <div className="text-center mt-0">
+            <p className="text-white/90 text-xs mb-0.5">Powered by</p>
+            <p className="text-white/95 text-lg font-bold">Sebenza Nathi Waste</p>
+          </div>
+          <h1 className="text-3xl font-bold text-white drop-shadow-lg mb-2 mt-1">
             Create Account
           </h1>
-          <p className="text-white/90 text-sm mb-3">
+          <p className="text-white/90 text-sm mb-2">
             Join Woza Mali today
-          </p>
-          <p className="text-white/80 text-xs">
-            Powered by Sebenza Nathi Waste
           </p>
         </div>
       </div>
@@ -310,19 +358,52 @@ const SignUp = () => {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-white placeholder:text-gray-300"
+                  placeholder="Enter your first name"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-white placeholder:text-gray-300"
+                  placeholder="Enter your last name"
+                  required
+                />
+              </div>
+            </div>
+
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
+              <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
+                Date of Birth
               </label>
-              <input
-                type="text"
-                id="fullName"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-white placeholder:text-gray-300"
-                placeholder="Enter your full name"
-                required
-              />
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <input
+                  type="date"
+                  id="dateOfBirth"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-white placeholder:text-gray-300"
+                  required
+                />
+              </div>
             </div>
 
             <div>
@@ -388,59 +469,81 @@ const SignUp = () => {
               </div>
             </div>
 
-            {/* Township Dropdown - Using static data */}
+            {/* Township Dropdown - Using live data */}
             <div className="space-y-2">
               <div className="relative">
                 <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
                 <select 
-                  value={formData.township} 
+                  value={formData.townshipId} 
                   onChange={(e) => handleTownshipChange(e.target.value)}
                   className="w-full pl-10 h-10 text-center text-sm font-medium bg-gray-700 border-2 border-gray-600 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 transition-all duration-200 text-white rounded-md"
                   required
+                  disabled={townshipsLoading}
                 >
-                  <option value="">Select Township</option>
+                  <option value="">
+                    {townshipsLoading ? 'Loading townships...' : 'Select Township'}
+                  </option>
                   {townships.map((township) => (
-                    <option key={township.id} value={township.name}>
-                      {township.name}
+                    <option key={township.id} value={township.id}>
+                      {township.township_name}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* City Dropdown - Using static data */}
+            {/* Subdivision Dropdown - Dynamic based on township */}
             <div className="space-y-2">
               <div className="relative">
                 <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
                 <select 
-                  value={formData.city} 
-                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  value={formData.subdivision} 
+                  onChange={(e) => handleInputChange('subdivision', e.target.value)}
                   className="w-full pl-10 h-10 text-center text-sm font-medium bg-gray-700 border-2 border-gray-600 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 transition-all duration-200 text-white rounded-md"
                   required
+                  disabled={!formData.townshipId || subdivisionsLoading}
                 >
-                  <option value="">Select City</option>
-                  {cities.map((city) => (
-                    <option key={city.id} value={city.name}>
-                      {city.name}
+                  <option value="">
+                    {!formData.townshipId 
+                      ? 'Select Township first' 
+                      : subdivisionsLoading 
+                        ? 'Loading subdivisions...' 
+                        : 'Select Subdivision'
+                    }
+                  </option>
+                  {subdivisions.map((subdivision) => (
+                    <option key={subdivision.subdivision} value={subdivision.subdivision}>
+                      {subdivision.subdivision}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
 
+            {/* City - Auto-filled */}
+            <div className="space-y-2">
+              <div className="relative">
+                <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
+                <input
+                  type="text"
+                  value={formData.city}
+                  readOnly
+                  className="w-full pl-10 h-10 text-center text-sm font-medium bg-gray-600 border-2 border-gray-500 text-gray-300 rounded-md cursor-not-allowed"
+                  placeholder="Soweto (Auto-filled)"
+                />
+              </div>
+            </div>
+
+            {/* Postal Code - Auto-filled */}
             <div className="space-y-2">
               <div className="relative">
                 <Hash className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
+                <input
                   type="text"
-                  placeholder="Postal Code"
                   value={formData.postalCode}
-                  onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                  className="pl-10 h-10 text-center text-sm font-medium bg-gray-700 border-2 border-gray-600 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 transition-all duration-200 placeholder:text-gray-300 text-white"
-                  style={{
-                    WebkitTextFillColor: 'white',
-                    color: 'white'
-                  }}
+                  readOnly
+                  className="w-full pl-10 h-10 text-center text-sm font-medium bg-gray-600 border-2 border-gray-500 text-gray-300 rounded-md cursor-not-allowed"
+                  placeholder="Postal Code (Auto-filled)"
                 />
               </div>
             </div>

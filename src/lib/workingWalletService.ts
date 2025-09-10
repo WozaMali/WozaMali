@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { calculateTotalCollectionValue, getTierFromWeight } from './material-pricing';
 
 export interface WorkingWalletData {
   id: string;
@@ -82,112 +83,120 @@ export class WorkingWalletService {
 
       console.log('WorkingWalletService: Found user profile from auth');
 
-      // Calculate wallet data from pickups tables (same as Office App)
+      // Try to get data from unified schema first
       let walletData: WorkingWalletData | null = null;
       let collectionSummary: CollectionSummary;
       
       try {
-        console.log('WorkingWalletService: Calculating wallet from pickups data...');
+        console.log('WorkingWalletService: Fetching from unified schema...');
         
-        // Read calculated wallet balance from Admin/Office App view (no calculations)
+        // Try to get wallet data from unified user_wallets table
         const { data: walletTableData, error: walletError } = await supabase
-          .from('main_app_user_wallet')
-          .select('current_balance, total_earned, total_points, current_tier')
+          .from('user_wallets')
+          .select('current_points, total_points_earned, total_points_spent')
           .eq('user_id', userId)
           .single();
           
-        console.log('WorkingWalletService: Wallet data from Admin/Office App view:', {
+        console.log('WorkingWalletService: Wallet data from unified user_wallets table:', {
           walletTableData,
           walletError,
           hasWalletData: !!walletTableData,
-          walletBalance: walletTableData?.current_balance,
-          walletTier: walletTableData?.current_tier,
+          currentPoints: walletTableData?.current_points,
+          totalPointsEarned: walletTableData?.total_points_earned,
           errorMessage: walletError?.message
         });
         
-        // Read calculated collection data from Admin/Office App view (no calculations)
-        const { data: collectionsSummary, error: collectionsError } = await supabase
-          .from('user_collections_summary')
-          .select('total_collections, total_weight, approved_collections, pending_collections, total_money_value, primary_material_type, average_rate_per_kg')
-          .eq('user_id', userId)
-          .single();
+        // Try to get collection data from existing collections table
+        const { data: pickupsData, error: pickupsError } = await supabase
+          .from('collections')
+          .select('weight_kg, status, created_at, collection_date')
+          .eq('user_id', userId);
           
-        console.log('WorkingWalletService: Collections summary from Admin/Office App view:', {
-          collectionsSummary,
-          collectionsError,
-          hasCollections: !!collectionsSummary,
-          totalCollections: collectionsSummary?.total_collections || 0,
-          totalWeight: collectionsSummary?.total_weight || 0,
-          totalMoneyValue: collectionsSummary?.total_money_value || 0,
-          primaryMaterialType: collectionsSummary?.primary_material_type || 'Unknown',
-          averageRatePerKg: collectionsSummary?.average_rate_per_kg || 0,
-          approvedCollections: collectionsSummary?.approved_collections || 0,
-          pendingCollections: collectionsSummary?.pending_collections || 0,
-          errorMessage: collectionsError?.message
+        console.log('WorkingWalletService: Collections data from unified schema:', {
+          pickupsData,
+          pickupsError,
+          hasPickups: !!pickupsData && pickupsData.length > 0,
+          totalPickups: pickupsData?.length || 0,
+          errorMessage: pickupsError?.message
         });
         
-        // Read calculated values from Admin/Office App views (no calculations)
-        const moneyBalance = walletTableData?.current_balance || collectionsSummary?.total_money_value || 0;
-        const totalWeight = collectionsSummary?.total_weight || 0;
-        const totalPickups = collectionsSummary?.total_collections || 0;
+        // Calculate totals from collections data
+        const totalWeight = pickupsData?.reduce((sum, pickup) => sum + (pickup.weight_kg || 0), 0) || 0;
+        const totalPickups = pickupsData?.length || 0;
+        const completedPickups = pickupsData?.filter(p => p.status === 'approved' || p.status === 'completed').length || 0;
+        const pendingPickups = pickupsData?.filter(p => p.status === 'pending' || p.status === 'submitted').length || 0;
         
-        // Points = Total Weight (as per user requirement)
-        const pointsBalance = totalWeight;
+        // Use data from unified schema
+        const pointsBalance = walletTableData?.current_points || 0;
+        const totalPointsEarned = walletTableData?.total_points_earned || 0;
+
+        // Prefer Main App wallets.balance if available; fallback to points-based conversion
+        let moneyBalance = pointsBalance * 0.01; // Convert points to money (1 point = R0.01)
+        try {
+          const { data: mainWallet, error: mainWalletError } = await supabase
+            .from('wallets')
+            .select('balance')
+            .eq('user_id', userId)
+            .single();
+          if (!mainWalletError && mainWallet && typeof mainWallet.balance === 'number') {
+            moneyBalance = mainWallet.balance;
+          }
+        } catch (e) {
+          // Ignore and keep fallback
+        }
+        const tier = getTierFromWeight(totalWeight);
         
-        // Create wallet data from Office App structure
+        // Create wallet data from unified schema
         const walletDataObj = {
           id: user.id,
           user_id: userId,
-          current_points: pointsBalance, // Points = Total Weight
-          total_points_earned: pointsBalance, // Same as current points
-          total_points_spent: 0, // No points spent
+          current_points: pointsBalance,
+          total_points_earned: totalPointsEarned,
+          total_points_spent: walletTableData?.total_points_spent || 0,
           last_updated: new Date().toISOString(),
-          tier: walletTableData?.current_tier || 'bronze'
+          tier: tier
         };
         
-        // Create collection summary from actual data
+        // Create collection summary from unified schema
         collectionSummary = {
           total_pickups: totalPickups,
           total_materials_kg: totalWeight,
           total_value: moneyBalance,
-          total_points_earned: pointsBalance // Points = Total Weight
+          total_points_earned: pointsBalance
         };
         
         // Assign wallet data
         walletData = walletDataObj;
         
-        console.log('WorkingWalletService: Read calculated data from Admin/Office App views:', {
+        console.log('WorkingWalletService: Successfully read from unified schema:', {
           moneyBalance,
           totalWeight,
           totalPickups,
           pointsBalance,
-          tier: walletTableData?.current_tier,
+          totalPointsEarned,
+          tier,
           walletData: walletData,
-          collectionsSummary: {
-            totalCollections: collectionsSummary?.total_collections,
-            totalWeight: collectionsSummary?.total_weight,
-            totalMoneyValue: collectionsSummary?.total_money_value,
-            primaryMaterialType: collectionsSummary?.primary_material_type,
-            averageRatePerKg: collectionsSummary?.average_rate_per_kg,
-            approvedCollections: collectionsSummary?.approved_collections,
-            pendingCollections: collectionsSummary?.pending_collections
-          },
-          DEBUGGING: {
-            walletTableDataExists: !!walletTableData,
-            collectionsSummaryExists: !!collectionsSummary,
-            moneyBalanceSource: walletTableData?.current_balance,
-            totalWeightSource: collectionsSummary?.total_weight
+          pickupsSummary: {
+            totalPickups: totalPickups,
+            totalWeight: totalWeight,
+            totalMoneyValue: moneyBalance,
+            completedPickups: completedPickups,
+            pendingPickups: pendingPickups
           }
         });
+        
       } catch (err) {
-        console.log('WorkingWalletService: Wallet query failed, using fallback:', err);
+        console.log('WorkingWalletService: Unified schema query failed, using fallback:', err);
+        
+        // Fallback to empty data if unified schema is not available
         walletData = {
           id: user.id,
           user_id: user.id,
           current_points: 0,
           total_points_earned: 0,
           total_points_spent: 0,
-          last_updated: new Date().toISOString()
+          last_updated: new Date().toISOString(),
+          tier: 'bronze'
         };
         
         collectionSummary = {
@@ -198,8 +207,8 @@ export class WorkingWalletService {
         };
       }
 
-      // Use tier from wallets table (Office App structure)
-      const tier = walletData?.tier || 'bronze';
+      // Use tier from wallet data or calculate from weight
+      const finalTier = walletData?.tier || getTierFromWeight(collectionSummary.total_materials_kg);
       
       // Calculate environmental impact
       const environmentalImpact = {
@@ -208,16 +217,16 @@ export class WorkingWalletService {
         landfill_saved_kg: collectionSummary.total_materials_kg * 0.8
       };
 
-      // Calculate next tier requirements
-      const nextTierRequirements = this.calculateNextTierRequirements(walletData.current_points);
+      // Calculate next tier requirements based on weight
+      const nextTierRequirements = this.calculateNextTierRequirementsByWeight(collectionSummary.total_materials_kg);
 
       const result: WorkingWalletInfo = {
         wallet: walletData,
         profile: profile,
         collectionSummary: collectionSummary,
-        tier: tier,
-        balance: collectionSummary.total_value, // Use money balance from wallets table
-        points: walletData.current_points, // Use points from user_wallets table
+        tier: finalTier,
+        balance: collectionSummary.total_value,
+        points: walletData?.current_points || 0,
         totalWeightKg: collectionSummary.total_materials_kg,
         environmentalImpact: environmentalImpact,
         nextTierRequirements: nextTierRequirements
@@ -240,25 +249,26 @@ export class WorkingWalletService {
   }
 
   private static calculateTier(points: number): string {
+    // This method is now deprecated - use getTierFromWeight instead
     if (points >= 1000) return 'platinum';
     if (points >= 500) return 'gold';
     if (points >= 100) return 'silver';
     return 'bronze';
   }
 
-  private static calculateNextTierRequirements(currentPoints: number): {
+  private static calculateNextTierRequirementsByWeight(currentWeightKg: number): {
     nextTier: string | null;
     weightNeeded: number;
     progressPercentage: number;
   } {
     const tiers = [
-      { name: 'bronze', minPoints: 0 },
-      { name: 'silver', minPoints: 100 },
-      { name: 'gold', minPoints: 500 },
-      { name: 'platinum', minPoints: 1000 }
+      { name: 'bronze', minWeight: 0 },
+      { name: 'silver', minWeight: 20 },
+      { name: 'gold', minWeight: 50 },
+      { name: 'platinum', minWeight: 100 }
     ];
 
-    const currentTierIndex = tiers.findIndex(tier => currentPoints >= tier.minPoints);
+    const currentTierIndex = tiers.findIndex(tier => currentWeightKg >= tier.minWeight);
     const nextTier = currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
 
     if (!nextTier) {
@@ -269,9 +279,8 @@ export class WorkingWalletService {
       };
     }
 
-    const pointsNeeded = nextTier.minPoints - currentPoints;
-    const weightNeeded = Math.max(0, pointsNeeded); // Assuming 1 point per kg
-    const progressPercentage = Math.min(100, (currentPoints / nextTier.minPoints) * 100);
+    const weightNeeded = Math.max(0, nextTier.minWeight - currentWeightKg);
+    const progressPercentage = Math.min(100, (currentWeightKg / nextTier.minWeight) * 100);
 
     return {
       nextTier: nextTier.name,
@@ -301,7 +310,7 @@ export class WorkingWalletService {
       },
       nextTierRequirements: {
         nextTier: 'silver',
-        weightNeeded: 100,
+        weightNeeded: 20, // 20kg to reach silver tier
         progressPercentage: 0
       }
     };

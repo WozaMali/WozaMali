@@ -23,10 +23,8 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Experimental features
-  experimental: {
-    serverComponentsExternalPackages: [],
-  },
+  // External packages for server components
+  serverExternalPackages: [],
   
   // Webpack configuration for better build handling
   webpack: (config, { isServer, dev }) => {

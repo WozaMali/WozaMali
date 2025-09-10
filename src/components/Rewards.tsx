@@ -7,7 +7,9 @@ import { useWallet } from "@/hooks/useWallet";
 
 const Rewards = () => {
   const { user } = useAuth();
-  const { points: userPoints, loading: walletLoading } = useWallet(user?.id);
+  const { totalWeightKg, loading: walletLoading } = useWallet(user?.id);
+  // Points are 1:1 with total weight (1kg = 1 point)
+  const userPoints = Math.round(totalWeightKg || 0);
   
 
   const rewards = [
@@ -46,7 +48,7 @@ const Rewards = () => {
                   <div className="h-8 bg-white/20 rounded mb-2"></div>
                   <div className="h-3 bg-white/20 rounded w-24"></div>
                 </div>
-                             ) : (
+              ) : (
                  <>
                    <p className="text-3xl font-bold">{userPoints || 0} pts</p>
                  </>

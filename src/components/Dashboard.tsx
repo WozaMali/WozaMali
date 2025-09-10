@@ -86,7 +86,7 @@ const Dashboard = () => {
   const nextCollectionDate = "2025-08-12";
   const nextCollectionTime = "09:00 - 12:00";
   
-  // Fetch user's primary address from unified user_addresses table
+  // Fetch user's address from unified users table
   const [userAddress, setUserAddress] = useState<any>(null);
   const [addressLoading, setAddressLoading] = useState(true);
 
@@ -95,21 +95,61 @@ const Dashboard = () => {
       if (!user?.id) return;
       
       try {
-        // Fetch address from Office App schema (addresses table)
-        const { data, error } = await supabase
-          .from('addresses')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_primary', true)
+        // Query all user fields including address information
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select(`
+            id,
+            email,
+            first_name,
+            last_name,
+            full_name,
+            phone,
+            role_id,
+            status,
+            street_addr,
+            township_id,
+            subdivision,
+            city,
+            postal_code,
+            areas!township_id (
+              name
+            )
+          `)
+          .eq('id', user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-          console.error('Error fetching user address:', error);
+        if (userError) {
+          if (userError.code === 'PGRST116') {
+            // User not found in users table - this is expected for new users
+            console.log('User not found in users table - using auth user data');
+            setUserAddress({
+              id: user.id,
+              email: user.email || '',
+              first_name: user.user_metadata?.first_name || '',
+              last_name: user.user_metadata?.last_name || '',
+              full_name: user.user_metadata?.full_name || '',
+              phone: user.user_metadata?.phone || '',
+              role_id: null,
+              status: 'active',
+              street_addr: user.user_metadata?.street_address || null,
+              township_id: user.user_metadata?.township_id || null,
+              subdivision: user.user_metadata?.subdivision || null,
+              city: user.user_metadata?.city || 'Soweto',
+              postal_code: user.user_metadata?.postal_code || null
+            });
+          } else {
+            console.error('Error fetching user data:', userError);
+            setUserAddress(null);
+          }
         } else {
-          setUserAddress(data);
+          // User exists with address data
+          console.log('User found with address data:', userData);
+          setUserAddress(userData);
         }
       } catch (error) {
         console.error('Error fetching user address:', error);
+        setUserAddress(null);
       } finally {
         setAddressLoading(false);
       }
@@ -120,26 +160,24 @@ const Dashboard = () => {
 
   const getUserAddress = () => {
     if (addressLoading) return "Loading address...";
-    if (!userAddress) return "Address not provided";
+    if (!userAddress) return "Address not available in current schema";
     
-    const { line1, suburb, city, postal_code } = userAddress;
+    const { street_addr, subdivision, city, postal_code, areas } = userAddress;
     
-    if (line1 && city) {
-      return `${line1}, ${suburb}, ${city}${postal_code ? `, ${postal_code}` : ''}`;
+    if (street_addr && city) {
+      const townshipName = areas?.name || 'Unknown Township';
+      return `${street_addr}, ${subdivision || ''}, ${townshipName}, ${city} ${postal_code || ''}`.replace(/,\s*,/g, ',').trim();
     } else if (city) {
       return `${city}`;
     }
     
-    return "Address not provided";
+    return "Address not available in current schema";
   };
 
   const nextCollectionArea = getUserAddress();
   
   // Check if user has provided address information
-  const hasAddress = userAddress && (
-    userAddress.line1 || 
-    userAddress.city
-  );
+  const hasAddress = userAddress && userAddress.street_addr && userAddress.city;
 
   const handleBookCollection = (date: string) => {
     setSelectedDate(date);
@@ -414,16 +452,11 @@ const Dashboard = () => {
             {!hasAddress ? (
               <div className="mt-3 p-3 bg-warning/20 rounded-lg border border-warning/30">
                 <p className="text-xs text-warning-foreground text-center mb-2">
-                  Please update your profile with your address to enable collection booking
+                  Address information not provided
                 </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full text-xs h-8"
-                  onClick={() => navigate.push('/profile')}
-                >
-                  Update Address in Profile
-                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Please complete your profile with address information to enable collection booking
+                </p>
               </div>
             ) : (
               <div className="mt-3 p-3 bg-success/20 rounded-lg border border-success/30">

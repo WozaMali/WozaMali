@@ -8,10 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, LogIn, UserPlus } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Calendar, MapPin, Building, Hash } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { AddressService, useTownships, useSubdivisions } from "@/lib/addressService";
+import { getResidentRoleId } from "@/lib/roles";
+import { UserInsert } from "@/lib/supabase";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -23,8 +26,42 @@ export default function SignIn() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [fullName, setFullName] = useState("");
   
+  // New sign-up form fields
+  const [signUpData, setSignUpData] = useState({
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
+    phone: "",
+    streetAddress: "",
+    townshipId: "",
+    subdivision: "",
+    city: "Soweto",
+    postalCode: ""
+  });
+
+  // Address hooks for sign-up form
+  const { townships, loading: townshipsLoading, error: townshipsError } = useTownships();
+  const { subdivisions, loading: subdivisionsLoading, error: subdivisionsError } = useSubdivisions(signUpData.townshipId);
+  
+  // Get resident role ID for new users
+  const [residentRoleId, setResidentRoleId] = useState<string | null>(null);
+  
   const { signIn, signUp, user } = useAuth();
   const router = useRouter();
+
+  // Get resident role ID on component mount
+  useEffect(() => {
+    const loadRole = async () => {
+      const id = await getResidentRoleId();
+      if (!id) {
+        console.error('Resident role not found. Ensure a role named "resident" or "member" exists, or set NEXT_PUBLIC_RESIDENT_ROLE_ID.');
+      }
+      setResidentRoleId(id);
+    };
+    if (isSignUp) {
+      loadRole();
+    }
+  }, [isSignUp]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -95,14 +132,64 @@ export default function SignIn() {
 
     try {
       if (isSignUp) {
-        const { error: signUpError } = await signUp(email, password, fullName);
-        if (signUpError) {
-          setError(signUpError.message || "Failed to sign up");
+        // Create user with Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (authError) {
+          setError(authError.message || "Failed to create account");
+          return;
+        }
+
+        if (authData.user && residentRoleId) {
+          // Create user profile in our unified users table
+          const userData: UserInsert = {
+            id: authData.user.id,
+            first_name: signUpData.firstName,
+            last_name: signUpData.lastName,
+            full_name: `${signUpData.firstName} ${signUpData.lastName}`,
+            email: email,
+            phone: signUpData.phone,
+            date_of_birth: signUpData.dateOfBirth,
+            street_addr: signUpData.streetAddress,
+            township_id: signUpData.townshipId,
+            subdivision: signUpData.subdivision,
+            city: signUpData.city,
+            postal_code: signUpData.postalCode,
+            role_id: residentRoleId,
+            status: 'active'
+          };
+
+          const { error: profileError } = await supabase
+            .from('users')
+            .insert(userData);
+
+          if (profileError) {
+            console.error('Error creating user profile:', profileError);
+            setError("Account created but profile setup failed. Please contact support.");
+          } else {
+            toast({
+              title: "Account Created Successfully!",
+              description: "Please check your email to verify your account.",
+            });
+            // Reset form
+            setSignUpData({
+              firstName: "",
+              lastName: "",
+              dateOfBirth: "",
+              phone: "",
+              streetAddress: "",
+              townshipId: "",
+              subdivision: "",
+              city: "Soweto",
+              postalCode: ""
+            });
+            setIsSignUp(false);
+          }
         } else {
-          toast({
-            title: "Check your email",
-            description: "We've sent you a confirmation link to verify your account.",
-          });
+          setError("Account created but role assignment failed. Please contact support.");
         }
       } else {
         const { error: signInError } = await signIn(email, password);
@@ -145,13 +232,13 @@ export default function SignIn() {
       }
 
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, phone, street_address, city, postal_code')
+        .from('users')
+        .select('first_name, last_name, phone, street_addr, township_id, subdivision, city, postal_code')
         .eq('id', currentUser.id)
         .single();
 
       // Check if profile has the minimum required information
-      if (!profile || !profile.full_name || !profile.phone || !profile.street_address || !profile.city || !profile.postal_code) {
+      if (!profile || !profile.first_name || !profile.last_name || !profile.phone || !profile.street_addr || !profile.township_id || !profile.subdivision) {
         console.log('Profile incomplete, redirecting to profile completion');
         router.push("/profile/complete");
       } else {
@@ -170,20 +257,16 @@ export default function SignIn() {
       {/* Orange Horizontal Bar at Top - 50% Bigger */}
       <div className="h-64 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
         <div className="text-center text-white">
-          <div className="inline-flex items-center justify-center w-48 h-48 mb-4">
+          <div className="inline-flex items-center justify-center w-48 h-48 mb-0">
             <img
               src="/WozaMali-uploads/w white.png"
               alt="Woza Mali Logo"
               className="w-32 h-32 drop-shadow-lg"
             />
           </div>
-          <div className="text-center">
-            <p className="text-white/90 text-sm mb-1">
-              Powered by
-            </p>
-            <p className="text-white/90 text-lg font-bold">
-              Sebenza Nathi Waste
-            </p>
+          <div className="text-center mt-0">
+            <p className="text-white/90 text-xs mb-0.5">Powered by</p>
+            <p className="text-white/95 text-xl font-bold">Sebenza Nathi Waste</p>
           </div>
         </div>
       </div>
@@ -273,20 +356,175 @@ export default function SignIn() {
             </div>
 
             {isSignUp && (
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-900 mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder:text-gray-300"
-                  placeholder="Enter your full name"
-                  required
-                />
-              </div>
+              <>
+                {/* First Name */}
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-900 mb-2">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    id="firstName"
+                    value={signUpData.firstName}
+                    onChange={(e) => setSignUpData(prev => ({ ...prev, firstName: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder:text-gray-300"
+                    placeholder="Enter your first name"
+                    required
+                  />
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-900 mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    value={signUpData.lastName}
+                    onChange={(e) => setSignUpData(prev => ({ ...prev, lastName: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder:text-gray-300"
+                    placeholder="Enter your last name"
+                    required
+                  />
+                </div>
+
+                {/* Date of Birth */}
+                <div>
+                  <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-900 mb-2">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    id="dateOfBirth"
+                    value={signUpData.dateOfBirth}
+                    onChange={(e) => setSignUpData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder:text-gray-300"
+                    required
+                  />
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-900 mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    value={signUpData.phone}
+                    onChange={(e) => setSignUpData(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder:text-gray-300"
+                    placeholder="Enter your phone number"
+                    required
+                  />
+                </div>
+
+                {/* Street Address */}
+                <div>
+                  <label htmlFor="streetAddress" className="block text-sm font-medium text-gray-900 mb-2">
+                    Street Address
+                  </label>
+                  <input
+                    type="text"
+                    id="streetAddress"
+                    value={signUpData.streetAddress}
+                    onChange={(e) => setSignUpData(prev => ({ ...prev, streetAddress: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white placeholder:text-gray-300"
+                    placeholder="Enter your street address"
+                    required
+                  />
+                </div>
+
+                {/* Township Dropdown */}
+                <div>
+                  <label htmlFor="townshipId" className="block text-sm font-medium text-gray-900 mb-2">
+                    Township
+                  </label>
+                  <select
+                    id="townshipId"
+                    value={signUpData.townshipId}
+                    onChange={(e) => {
+                      const selectedTownship = townships?.find(t => t.id === e.target.value);
+                      setSignUpData(prev => ({ 
+                        ...prev, 
+                        townshipId: e.target.value,
+                        subdivision: "", // Reset subdivision when township changes
+                        postalCode: selectedTownship?.postal_code || ""
+                      }));
+                    }}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white"
+                    required
+                    disabled={townshipsLoading}
+                  >
+                    <option value="">Select Township</option>
+                    {townships?.map((township) => (
+                      <option key={township.id} value={township.id}>
+                        {township.township_name}
+                      </option>
+                    ))}
+                  </select>
+                  {townshipsLoading && (
+                    <p className="text-xs text-gray-500 mt-1">Loading townships...</p>
+                  )}
+                </div>
+
+                {/* Subdivision Dropdown */}
+                <div>
+                  <label htmlFor="subdivision" className="block text-sm font-medium text-gray-900 mb-2">
+                    Subdivision
+                  </label>
+                  <select
+                    id="subdivision"
+                    value={signUpData.subdivision}
+                    onChange={(e) => setSignUpData(prev => ({ ...prev, subdivision: e.target.value }))}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors duration-200 text-sm text-white"
+                    required
+                    disabled={!signUpData.townshipId || subdivisionsLoading}
+                  >
+                    <option value="">Select Subdivision</option>
+                    {subdivisions?.map((subdivision, index) => (
+                      <option key={index} value={subdivision.subdivision}>
+                        {subdivision.subdivision}
+                      </option>
+                    ))}
+                  </select>
+                  {!signUpData.townshipId && (
+                    <p className="text-xs text-gray-500 mt-1">Please select a township first</p>
+                  )}
+                  {subdivisionsLoading && (
+                    <p className="text-xs text-gray-500 mt-1">Loading subdivisions...</p>
+                  )}
+                </div>
+
+                {/* City (Auto-filled) */}
+                <div>
+                  <label htmlFor="city" className="block text-sm font-medium text-gray-900 mb-2">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    id="city"
+                    value={signUpData.city}
+                    readOnly
+                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-sm text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Postal Code (Auto-filled) */}
+                <div>
+                  <label htmlFor="postalCode" className="block text-sm font-medium text-gray-900 mb-2">
+                    Postal Code
+                  </label>
+                  <input
+                    type="text"
+                    id="postalCode"
+                    value={signUpData.postalCode}
+                    readOnly
+                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-sm text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+              </>
             )}
 
             {error && (
