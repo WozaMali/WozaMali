@@ -57,6 +57,9 @@ const History = () => {
     .filter(t => mapType(t) !== 'earning')
     .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
 
+  // Calculate net balance (earnings minus spending)
+  const netBalance = totalEarnings - totalSpent;
+
   const getTransactionIcon = (t: any) => {
     const type = mapType(t);
     const Wrapper = ({ children }: any) => (
@@ -90,14 +93,14 @@ const History = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="shadow-card">
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
               <ArrowUpRight className="h-6 w-6 text-success" />
               <div>
-                <p className="text-sm text-muted-foreground">Total Earned</p>
-                <p className="text-lg font-bold text-success">R {totalEarnings.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Available Balance</p>
+                <p className="text-lg font-bold text-success">R {netBalance.toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
@@ -110,6 +113,18 @@ const History = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Total Used</p>
                 <p className="text-lg font-bold text-primary">R {totalSpent.toFixed(2)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <Recycle className="h-6 w-6 text-blue-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Earned</p>
+                <p className="text-lg font-bold text-blue-600">R {totalEarnings.toFixed(2)}</p>
               </div>
             </div>
           </CardContent>

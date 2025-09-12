@@ -8,12 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Heart, GraduationCap, Users, Target, TrendingUp, BookOpen, Shirt, Apple, AlertCircle, CheckCircle, XCircle, Info, FileText, UserCheck, Shield, Clock, Wallet, CreditCard, Smartphone } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import Logo from "./Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGreenScholarFund } from "@/hooks/useGreenScholarFund";
 import { BottleCollection } from "@/lib/greenScholarFundService";
+import { PetBottlesGreenScholarIntegration } from "@/lib/petBottlesGreenScholarIntegration";
 
 interface ApplicationData {
   // Personal Information
@@ -64,6 +65,30 @@ const GreenScholarFund = () => {
     submitDonation,
     submitApplication
   } = useGreenScholarFund();
+
+  // State for PET Bottles contribution summary
+  const [petBottlesSummary, setPetBottlesSummary] = useState({
+    totalBottles: 0,
+    totalWeight: 0,
+    totalValue: 0,
+    totalContributions: 0
+  });
+
+  // Fetch PET Bottles summary on component mount
+  useEffect(() => {
+    const fetchPetBottlesSummary = async () => {
+      if (user?.id) {
+        try {
+          const summary = await PetBottlesGreenScholarIntegration.getUserPetBottlesSummary(user.id);
+          setPetBottlesSummary(summary);
+        } catch (error) {
+          console.error('Error fetching PET Bottles summary:', error);
+        }
+      }
+    };
+
+    fetchPetBottlesSummary();
+  }, [user?.id]);
   
   const [donationAmount, setDonationAmount] = useState<number>(0);
   const [showApplication, setShowApplication] = useState(false);
@@ -687,7 +712,7 @@ const GreenScholarFund = () => {
                {fundLoading ? (
                  <div className="animate-pulse h-8 bg-muted rounded"></div>
                ) : (
-                 `R${fundStats?.total_fund.toLocaleString() || '0'}`
+                 `R${Number((fundStats as any)?.total_fund || 0).toLocaleString()}`
                )}
              </div>
              <div className="text-sm text-muted-foreground">Total Fund</div>
@@ -700,7 +725,7 @@ const GreenScholarFund = () => {
                {fundLoading ? (
                  <div className="animate-pulse h-8 bg-muted rounded"></div>
                ) : (
-                 `R${fundStats?.monthly_goal.toLocaleString() || '50,000'}`
+                 `R${Number((fundStats as any)?.monthly_goal || 50000).toLocaleString()}`
                )}
              </div>
              <div className="text-sm text-muted-foreground">Monthly Goal</div>
@@ -713,7 +738,7 @@ const GreenScholarFund = () => {
                {fundLoading ? (
                  <div className="animate-pulse h-8 bg-muted rounded"></div>
                ) : (
-                 `${fundStats?.progress_percentage || 0}%`
+                 `${Number((fundStats as any)?.progress_percentage || 0)}%`
                )}
              </div>
              <div className="text-sm text-muted-foreground">Progress</div>
@@ -726,13 +751,61 @@ const GreenScholarFund = () => {
                {fundLoading ? (
                  <div className="animate-pulse h-8 bg-muted rounded"></div>
                ) : (
-                 `R${fundStats?.remaining_amount.toLocaleString() || '50,000'}`
+                 `R${Number((fundStats as any)?.remaining_amount || 50000).toLocaleString()}`
                )}
              </div>
              <div className="text-sm text-muted-foreground">Remaining</div>
            </CardContent>
          </Card>
       </div>
+
+      {/* PET Bottles Contribution Section */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center space-x-2">
+            <Heart className="h-5 w-5 text-green-600" />
+            <span>Your PET Bottles Contribution</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {petBottlesSummary.totalBottles}
+              </div>
+              <div className="text-sm text-muted-foreground">Bottles Collected</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {petBottlesSummary.totalWeight.toFixed(1)}kg
+              </div>
+              <div className="text-sm text-muted-foreground">Total Weight</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                R{petBottlesSummary.totalValue.toFixed(2)}
+              </div>
+              <div className="text-sm text-muted-foreground">Total Value</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                R{petBottlesSummary.totalContributions.toFixed(2)}
+              </div>
+              <div className="text-sm text-muted-foreground">Fund Contribution</div>
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-green-50 rounded-lg">
+            <div className="flex items-center space-x-2 text-green-800">
+              <Info className="h-4 w-4" />
+              <span className="text-sm font-medium">100% of PET Bottles revenue goes to the Green Scholar Fund</span>
+            </div>
+            <p className="text-sm text-green-700 mt-1">
+              Every PET bottle you recycle contributes directly to supporting students in need. 
+              Your environmental action creates educational opportunities!
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Donation */}
       <Card className="shadow-card">

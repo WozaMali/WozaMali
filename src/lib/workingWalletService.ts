@@ -185,13 +185,32 @@ export class WorkingWalletService {
           totalWithdrawals = 0;
         }
 
+        // Calculate total used (all spending including withdrawals, rewards, donations, etc.)
+        let totalUsed = totalWithdrawals; // Start with withdrawals
+        
+        // Add other types of spending from wallet_transactions
+        try {
+          const { data: spendingTransactions, error: spendingErr } = await supabase
+            .from('wallet_transactions')
+            .select('amount, transaction_type')
+            .eq('user_id', userId)
+            .lt('amount', 0); // Negative amounts are spending
+          
+          if (!spendingErr && Array.isArray(spendingTransactions)) {
+            const otherSpending = spendingTransactions.reduce((sum, t: any) => sum + Math.abs(Number(t.amount) || 0), 0);
+            totalUsed += otherSpending;
+          }
+        } catch (_e) {
+          // If wallet_transactions table doesn't exist or has issues, just use withdrawals
+        }
+
         // Use queue/unified-by-email totals for points (1kg = 1 point)
         const pointsBalance = Math.floor(totalWeight);
         const totalPointsEarned = pointsBalance;
         
-        // Display money balance: approved collection value minus withdrawals
+        // Display money balance: total earned minus total used (withdrawals + other spending)
         totalApprovedRevenue = Number(totalApprovedRevenue.toFixed(2));
-        moneyBalance = Math.max(0, totalApprovedRevenue - totalWithdrawals);
+        moneyBalance = Math.max(0, totalApprovedRevenue - totalUsed);
         moneyBalance = Number(moneyBalance.toFixed(2));
 
         // No legacy wallet or points-to-cash fallbacks
@@ -219,10 +238,11 @@ export class WorkingWalletService {
         // Assign wallet data
         walletData = walletDataObj;
 
-        console.log('WorkingWalletService: Wallet computed from queue + withdrawals:', {
+        console.log('WorkingWalletService: Wallet computed from queue + total used:', {
           moneyBalance,
           totalApprovedRevenue,
           totalWithdrawals,
+          totalUsed,
           totalWeight,
           totalPickups,
           pointsBalance,
@@ -233,7 +253,8 @@ export class WorkingWalletService {
             totalPickups: totalPickups,
             totalWeight: totalWeight,
             totalApprovedRevenue: totalApprovedRevenue,
-            totalMoneyValue: moneyBalance
+            totalUsed: totalUsed,
+            netBalance: moneyBalance
           }
         });
         
@@ -414,48 +435,49 @@ export class WorkingWalletService {
       // 1) Preferred: unified_collections with canonical totals
       let unifiedTransactions: any[] = [];
       try {
-        // Try with resolved profileId first
-        let rows: any[] = [];
-        if (profileId) {
-          const { data: uc1 } = await supabase
-            .from('unified_collections')
-            .select('id, collection_code, customer_id, total_value, computed_value, total_weight_kg, status, created_at, updated_at')
-            .eq('customer_id', profileId)
-            .in('status', ['approved','completed'])
-            .order('updated_at', { ascending: false });
-          rows = Array.isArray(uc1) ? uc1 : [];
-        }
+        // Build a single OR condition that matches typical RLS policies
+        const orParts: string[] = [];
+        if (userId) orParts.push(`customer_id.eq.${userId}`);
+        if (authEmail) orParts.push(`customer_email.eq.${authEmail}`);
+        if (userId) orParts.push(`created_by.eq.${userId}`);
 
-        // Fallback: some older rows may have stored auth user id as customer_id
-        if (!rows || rows.length === 0) {
-          const { data: uc2 } = await supabase
-            .from('unified_collections')
-            .select('id, collection_code, customer_id, total_value, computed_value, total_weight_kg, status, created_at, updated_at')
-            .eq('customer_id', userId)
-            .in('status', ['approved','completed'])
-            .order('updated_at', { ascending: false });
-          rows = Array.isArray(uc2) ? uc2 : [];
-        }
+        const { data: rowsRaw } = await supabase
+          .from('unified_collections')
+          .select('id, collection_code, total_value, computed_value, total_weight_kg, status, created_at, updated_at, customer_id, customer_email, created_by')
+          .in('status', ['approved','completed'])
+          .or(orParts.join(','))
+          .order('updated_at', { ascending: false });
 
-        // Fallback: match by customer_email when allowed by RLS
-        if ((!rows || rows.length === 0) && authEmail) {
-          try {
-            const { data: uc3 } = await supabase
-              .from('unified_collections')
-              .select('id, collection_code, customer_email, total_value, computed_value, total_weight_kg, status, created_at, updated_at')
-              .eq('customer_email', authEmail)
-              .in('status', ['approved','completed'])
-              .order('updated_at', { ascending: false });
-            const emailRows = Array.isArray(uc3) ? uc3 : [];
-            rows = emailRows.length > 0 ? emailRows : rows;
-          } catch (_e3) {}
+        const rows = Array.isArray(rowsRaw) ? rowsRaw : [];
+
+        // Look up top material per collection (by quantity) for display
+        let topMaterialByCollection: Record<string, string> = {};
+        try {
+          const ids = rows.map((r: any) => r.id).filter(Boolean);
+          if (ids.length > 0) {
+            const { data: mats } = await supabase
+              .from('collection_materials')
+              .select('collection_id, quantity, materials(name)')
+              .in('collection_id', ids);
+            const byCol: Record<string, { name: string; qty: number }> = {};
+            (Array.isArray(mats) ? mats : []).forEach((m: any) => {
+              const cid = String(m.collection_id);
+              const name = m.materials?.name || 'Mixed Materials';
+              const qty = Number(m.quantity) || 0;
+              const cur = byCol[cid];
+              if (!cur || qty > cur.qty) byCol[cid] = { name, qty };
+            });
+            Object.keys(byCol).forEach(cid => { topMaterialByCollection[cid] = byCol[cid].name; });
+          }
+        } catch (_eMat) {
+          topMaterialByCollection = {};
         }
 
         unifiedTransactions = rows.map((r: any) => ({
           id: r.id,
           type: 'credit',
           amount: Number((r.computed_value ?? r.total_value) || 0) || 0,
-          material_type: undefined,
+          material_type: topMaterialByCollection[String(r.id)] || 'Mixed Materials',
           kgs: Number(r.total_weight_kg || 0) || 0,
           status: r.status,
           created_at: r.created_at,
@@ -464,7 +486,7 @@ export class WorkingWalletService {
           reference: r.id,
           reference_code: r.collection_code || null,
           source_type: 'unified_collection',
-          description: `Collection ${(r.collection_code || r.id)} approved`
+          description: `${topMaterialByCollection[String(r.id)] || 'Mixed Materials'} approved`
         }));
       } catch (_e) {
         unifiedTransactions = [];
@@ -483,31 +505,35 @@ export class WorkingWalletService {
         );
       }
 
-      // 3) Add approved withdrawals as negative transactions
+      // 3) Add withdrawals (pending/approved/etc.) as negative transactions
       let withdrawalTransactions: any[] = [];
       try {
         const { data: wr } = await supabase
           .from('withdrawal_requests')
           .select('id, amount, status, created_at, updated_at')
           .eq('user_id', userId)
-          .in('status', ['approved','processing','completed'])
+          .in('status', ['pending','approved','processing','completed'])
           .order('updated_at', { ascending: false });
         const rows = Array.isArray(wr) ? wr : [];
-        withdrawalTransactions = rows.map((w: any) => ({
-          id: w.id,
-          type: 'debit',
-          amount: -Math.abs(Number(w.amount) || 0),
-          material_type: undefined,
-          kgs: 0,
-          status: w.status,
-          created_at: w.created_at,
-          approved_at: w.updated_at || w.created_at,
-          updated_at: w.updated_at || w.created_at,
-          reference: w.id,
-          reference_code: null,
-          source_type: 'withdrawal',
-          description: 'Withdrawal approved'
-        }));
+        withdrawalTransactions = rows.map((w: any) => {
+          const status = String(w.status || '').toLowerCase();
+          const statusLabel = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Pending';
+          return {
+            id: w.id,
+            type: 'debit',
+            amount: -Math.abs(Number(w.amount) || 0),
+            material_type: undefined,
+            kgs: 0,
+            status: status,
+            created_at: w.created_at,
+            approved_at: w.updated_at || w.created_at,
+            updated_at: w.updated_at || w.created_at,
+            reference: w.id,
+            reference_code: null,
+            source_type: 'withdrawal',
+            description: `Withdrawal ${statusLabel}`
+          };
+        });
       } catch (_e) {
         withdrawalTransactions = [];
       }

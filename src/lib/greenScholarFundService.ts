@@ -92,16 +92,21 @@ export class GreenScholarFundService {
         throw balanceError;
       }
 
-      // Get recent transactions
-      const { data: transactions, error: transactionsError } = await supabase
-        .from('green_scholar_transactions')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (transactionsError) {
-        console.error('Error fetching transactions:', transactionsError);
-        throw transactionsError;
+      // Get recent transactions (best-effort; don't block UI on RLS errors)
+      let transactions: any[] = [];
+      try {
+        const { data: tx, error: transactionsError } = await supabase
+          .from('green_scholar_transactions')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        if (!transactionsError && Array.isArray(tx)) {
+          transactions = tx;
+        } else if (transactionsError) {
+          console.warn('Warning fetching transactions (continuing without):', transactionsError);
+        }
+      } catch (e) {
+        console.warn('Transactions fetch threw (continuing without):', e);
       }
 
       // Get beneficiary statistics
@@ -152,17 +157,110 @@ export class GreenScholarFundService {
     totalDonationAmount: number;
     totalContribution: number;
   }> {
-    const { data, error } = await supabase
-      .from('green_scholar_user_contributions')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (error) throw error;
-    return {
-      totalPetAmount: Number(data?.total_pet_amount || 0),
-      totalDonationAmount: Number(data?.total_donation_amount || 0),
-      totalContribution: Number(data?.total_contribution || 0)
-    };
+    try {
+      const { data, error } = await supabase
+        .from('green_scholar_user_contributions')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (error) {
+        console.warn('getUserContributionTotals warning (continuing with zeros):', error);
+        return { totalPetAmount: 0, totalDonationAmount: 0, totalContribution: 0 };
+      }
+      return {
+        totalPetAmount: Number(data?.total_pet_amount || 0),
+        totalDonationAmount: Number(data?.total_donation_amount || 0),
+        totalContribution: Number(data?.total_contribution || 0)
+      };
+    } catch (e) {
+      console.warn('getUserContributionTotals exception (continuing with zeros):', e);
+      return { totalPetAmount: 0, totalDonationAmount: 0, totalContribution: 0 };
+    }
+  }
+
+  /**
+   * Process PET Bottles contribution to Green Scholar Fund
+   * This should be called when a PET Bottles collection is approved
+   */
+  static async processPetBottlesContribution(collectionId: string, userId: string, weightKg: number, materialType: string): Promise<boolean> {
+    try {
+      console.log('Processing PET Bottles contribution:', { collectionId, userId, weightKg, materialType });
+
+      // Only process PET Bottles
+      if (materialType.toLowerCase() !== 'pet bottles') {
+        console.log('Not PET Bottles, skipping Green Scholar Fund contribution');
+        return false;
+      }
+
+      // Calculate contribution amount (100% of PET revenue)
+      const petRate = 15; // R15 per kg for PET Bottles
+      const contributionAmount = weightKg * petRate;
+
+      console.log('PET Bottles contribution amount:', contributionAmount);
+
+      // Create Green Scholar Fund transaction
+      const { data: transaction, error: transactionError } = await supabase
+        .from('green_scholar_transactions')
+        .insert({
+          transaction_type: 'contribution',
+          amount: contributionAmount,
+          source_type: 'pet_bottles_collection',
+          source_id: collectionId,
+          description: `PET Bottles collection contribution (${weightKg}kg @ R${petRate}/kg)`,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (transactionError) {
+        console.error('Error creating Green Scholar Fund transaction:', transactionError);
+        throw transactionError;
+      }
+
+      // Update fund balance
+      const { error: balanceError } = await supabase
+        .from('green_scholar_fund_balance')
+        .upsert({
+          total_balance: supabase.raw('total_balance + ?', [contributionAmount]),
+          total_contributions: supabase.raw('total_contributions + ?', [contributionAmount]),
+          updated_at: new Date().toISOString()
+        });
+
+      if (balanceError) {
+        console.error('Error updating fund balance:', balanceError);
+        // Don't throw here, transaction was created successfully
+      }
+
+      console.log('PET Bottles contribution processed successfully:', transaction);
+      return true;
+
+    } catch (error) {
+      console.error('Error processing PET Bottles contribution:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get total PET Bottles contributions to the fund
+   */
+  static async getTotalPetBottlesContributions(): Promise<number> {
+    try {
+      const { data: transactions, error } = await supabase
+        .from('green_scholar_transactions')
+        .select('amount')
+        .eq('source_type', 'pet_bottles_collection')
+        .eq('transaction_type', 'contribution');
+
+      if (error) {
+        console.error('Error fetching PET Bottles contributions:', error);
+        return 0;
+      }
+
+      return (transactions || []).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    } catch (error) {
+      console.error('Error calculating total PET Bottles contributions:', error);
+      return 0;
+    }
   }
 
   /**
