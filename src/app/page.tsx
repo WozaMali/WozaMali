@@ -26,25 +26,25 @@ export default function Home() {
     );
   }
 
-  const { user, loading } = authContext;
+  const { user, loading, isLoading, bootGrace } = authContext as any;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'user:', user);
+    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'isLoading:', isLoading, 'bootGrace:', bootGrace, 'user:', user);
     
     // Only redirect if we're mounted, not loading, and definitely no user
-    // This prevents unnecessary redirects on page refresh
-    if (mounted && !loading && user === null) {
+    // Use bootGrace to prevent redirect flicker during refresh
+    if (mounted && !loading && !isLoading && !bootGrace && user === null) {
       console.log('Redirecting to sign-in...');
       router.push('/auth/sign-in');
     }
-  }, [user, loading, router, mounted]);
+  }, [user, loading, isLoading, bootGrace, router, mounted]);
 
   // Show loading while authentication is being determined
-  if (!mounted || loading) {
+  if (!mounted || loading || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
         <div className="text-center space-y-4">

@@ -1,34 +1,24 @@
--- WozaMoney Withdrawal Schema
--- Add this to your existing Supabase database
+-- WozaMali Withdrawal Schema (Unified)
+-- Idempotent schema for handling withdrawal requests and RLS
 
 -- Create withdrawal_requests table
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE IF NOT EXISTS public.withdrawal_requests (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  
-  -- Banking Information
+  user_id UUID NOT NULL,
   owner_name TEXT NOT NULL,
   bank_name TEXT NOT NULL,
   account_number TEXT NOT NULL,
   account_type TEXT NOT NULL,
-  branch_code TEXT NOT NULL CHECK (branch_code ~ '^[0-9]{6}$'),
-  
-  -- Withdrawal Details
-  amount DECIMAL(10,2) NOT NULL CHECK (amount >= 100.00),
+  branch_code TEXT NOT NULL CHECK (branch_code ~ '^[0-9]{3,10}$'),
+  amount DECIMAL(10,2) NOT NULL CHECK (amount >= 50.00),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'processing', 'completed', 'rejected', 'cancelled')),
-  
-  -- Processing Information
   processed_at TIMESTAMP WITH TIME ZONE,
-  processed_by UUID REFERENCES public.profiles(id),
-  rejection_reason TEXT,
-  
-  -- Audit Fields
+  processed_by UUID,
+  notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
-  -- Constraints
-  CONSTRAINT withdrawal_amount_min CHECK (amount >= 100.00),
-  CONSTRAINT valid_branch_code CHECK (branch_code ~ '^[0-9]{6}$')
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create withdrawal_status_history table for tracking status changes
@@ -37,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public.withdrawal_status_history (
   withdrawal_id UUID REFERENCES public.withdrawal_requests(id) ON DELETE CASCADE NOT NULL,
   previous_status TEXT,
   new_status TEXT NOT NULL,
-  changed_by UUID REFERENCES public.profiles(id),
+  changed_by UUID,
   reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -51,6 +41,46 @@ CREATE TABLE IF NOT EXISTS public.bank_reference (
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- RLS
+ALTER TABLE public.withdrawal_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS withdrawal_requests_read_own
+  ON public.withdrawal_requests
+  FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY IF NOT EXISTS withdrawal_requests_insert_own
+  ON public.withdrawal_requests
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY IF NOT EXISTS withdrawal_requests_admin_all
+  ON public.withdrawal_requests
+  FOR ALL
+  TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.user_profiles up
+    WHERE up.id = auth.uid() AND lower(up.role) IN ('admin','super_admin')
+  ))
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM public.user_profiles up
+    WHERE up.id = auth.uid() AND lower(up.role) IN ('admin','super_admin')
+  ));
+
+CREATE OR REPLACE FUNCTION public.withdrawal_updated_at_trigger()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS set_withdrawal_updated_at ON public.withdrawal_requests;
+CREATE TRIGGER set_withdrawal_updated_at
+BEFORE UPDATE ON public.withdrawal_requests
+FOR EACH ROW EXECUTE FUNCTION public.withdrawal_updated_at_trigger();
 
 -- Insert South African banks
 INSERT INTO public.bank_reference (bank_name, bank_code, swift_code) VALUES

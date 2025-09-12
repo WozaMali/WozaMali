@@ -91,9 +91,10 @@ export const defaultMaterialPricing: MaterialPricing[] = [
 
 // Tier system based on weight (kg) recycled
 export function getTierFromWeight(weightKg: number): string {
-  if (weightKg >= 100) return 'platinum';
-  if (weightKg >= 50) return 'gold';
-  if (weightKg >= 20) return 'silver';
+  if (weightKg >= 500) return 'diamond';
+  if (weightKg >= 300) return 'platinum';
+  if (weightKg >= 150) return 'gold';
+  if (weightKg >= 50) return 'silver';
   return 'bronze';
 }
 

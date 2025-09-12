@@ -114,6 +114,8 @@ if (process.env.NODE_ENV === 'development') {
   // Development overrides
   appConfig.features.notifications = false; // Disable notifications in dev
   appConfig.limits.maxFileSize = 50 * 1024 * 1024; // 50MB in dev
+  // Ensure Office service points to local dev server (Next.js on 8081)
+  appConfig.services.office.baseUrl = process.env.NEXT_PUBLIC_OFFICE_SERVICE_URL || 'http://localhost:8081';
 }
 
 if (process.env.NODE_ENV === 'production') {

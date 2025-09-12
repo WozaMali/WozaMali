@@ -100,6 +100,30 @@ const SettingsPage = () => {
           description: "Manage your privacy settings",
           type: "button",
           action: () => router.push("/profile/security")
+        },
+        {
+          icon: User,
+          title: "Address",
+          description: (() => {
+            try {
+              const auth = authContext;
+              const md = auth?.user?.user_metadata || {} as any;
+              const line = [
+                md.street_address,
+                md.subdivision,
+                md.township_name,
+                md.city,
+                md.postal_code
+              ]
+                .filter(Boolean)
+                .join(", ");
+              return line || "No address set";
+            } catch {
+              return "No address set";
+            }
+          })(),
+          type: "button",
+          action: () => router.push("/profile/edit")
         }
       ]
     },

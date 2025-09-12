@@ -204,11 +204,11 @@ export const useWallet = (userId?: string) => {
 // Helper functions
 function getTierFromWeight(weightKg: number): string {
   console.log('getTierFromWeight called with:', weightKg);
-  
-  if (weightKg >= 100) return 'platinum';
-  if (weightKg >= 50) return 'gold';
-  if (weightKg >= 20) return 'silver';
-  
+  if (weightKg >= 500) return 'diamond';
+  if (weightKg >= 300) return 'platinum';
+  if (weightKg >= 150) return 'gold';
+  if (weightKg >= 50) return 'silver';
+
   // Ensure 0 kg returns 'bronze'
   const tier = 'bronze';
   console.log('Tier calculated:', tier, 'for weight:', weightKg);
@@ -246,23 +246,26 @@ function getTierBenefits(tier: string): string[] {
 }
 
 function getNextTierRequirements(currentWeightKg: number) {
-  if (currentWeightKg >= 100) {
+  if (currentWeightKg >= 500) {
     return { nextTier: null, weightNeeded: 0, progressPercentage: 100 };
   }
-  
-  if (currentWeightKg >= 50) {
-    const weightNeeded = 100 - currentWeightKg;
-    const progressPercentage = (currentWeightKg / 100) * 100;
+  if (currentWeightKg >= 300) {
+    const weightNeeded = 500 - currentWeightKg;
+    const progressPercentage = (currentWeightKg / 500) * 100;
+    return { nextTier: 'diamond', weightNeeded, progressPercentage };
+  }
+  if (currentWeightKg >= 150) {
+    const weightNeeded = 300 - currentWeightKg;
+    const progressPercentage = (currentWeightKg / 300) * 100;
     return { nextTier: 'platinum', weightNeeded, progressPercentage };
   }
-  
-  if (currentWeightKg >= 20) {
-    const weightNeeded = 50 - currentWeightKg;
-    const progressPercentage = (currentWeightKg / 50) * 100;
+  if (currentWeightKg >= 50) {
+    const weightNeeded = 150 - currentWeightKg;
+    const progressPercentage = (currentWeightKg / 150) * 100;
     return { nextTier: 'gold', weightNeeded, progressPercentage };
   }
-  
-  const weightNeeded = 20 - currentWeightKg;
-  const progressPercentage = (currentWeightKg / 20) * 100;
+  const weightNeeded = 50 - currentWeightKg;
+  const progressPercentage = (currentWeightKg / 50) * 100;
   return { nextTier: 'silver', weightNeeded, progressPercentage };
 }
+

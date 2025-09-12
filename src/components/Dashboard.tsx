@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, Gift, Heart, Star, Calendar, Clock, MapPin } from "lucide-react";
+import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, ArrowDownRight, Gift, Heart, Star, Calendar, Clock, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -10,6 +10,8 @@ import Logo from "./Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWallet } from "@/hooks/useWallet";
 import { supabase } from "@/lib/supabase";
+import { AddressService } from "@/lib/addressService";
+import { WorkingWalletService } from "@/lib/workingWalletService";
 
 const Dashboard = () => {
   const navigate = useRouter();
@@ -79,6 +81,49 @@ const Dashboard = () => {
   const totalKgRecycled = safeTotalWeightKg || safeTotalPoints; // Use actual weight if available
   const co2Saved = safeEnvironmentalImpact?.co2_saved_kg || (totalKgRecycled * 0.5); // Use calculated impact if available
 
+  // Recent activity (last 3 transactions)
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [recentLoading, setRecentLoading] = useState(true);
+  const [recentError, setRecentError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadRecent = async () => {
+      if (!user?.id) return;
+      setRecentLoading(true);
+      setRecentError(null);
+      try {
+        const tx = await WorkingWalletService.getTransactionHistory(user.id);
+        setRecentTransactions((tx || []).slice(0, 3));
+      } catch (e: any) {
+        console.error('Error loading recent transactions:', e);
+        setRecentError(e?.message || 'Failed to load recent activity');
+        setRecentTransactions([]);
+      } finally {
+        setRecentLoading(false);
+      }
+    };
+    loadRecent();
+  }, [user?.id]);
+
+  const formatDate = (iso?: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString();
+  };
+  const formatAmount = (amount: number) => {
+    const val = Number(amount) || 0;
+    return `${val >= 0 ? '+' : '-'}R ${Math.abs(val).toFixed(2)}`;
+  };
+  const getTxIcon = (amount: number) => {
+    const val = Number(amount) || 0;
+    return val >= 0 ? (
+      <div className="p-2 bg-success/20 rounded-lg"><Recycle className="h-4 w-4 text-success" /></div>
+    ) : (
+      <div className="p-2 bg-primary/20 rounded-lg"><ArrowDownRight className="h-4 w-4 text-primary" /></div>
+    );
+  };
+
   // Collection scheduling
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -93,60 +138,103 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchUserAddress = async () => {
       if (!user?.id) return;
-      
-      try {
-        // Query all user fields including address information
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select(`
-            id,
-            email,
-            first_name,
-            last_name,
-            full_name,
-            phone,
-            role_id,
-            status,
-            street_addr,
-            township_id,
-            subdivision,
-            city,
-            postal_code,
-            areas!township_id (
-              name
-            )
-          `)
-          .eq('id', user.id)
-          .single();
 
-        if (userError) {
-          if (userError.code === 'PGRST116') {
-            // User not found in users table - this is expected for new users
-            console.log('User not found in users table - using auth user data');
-            setUserAddress({
-              id: user.id,
-              email: user.email || '',
-              first_name: user.user_metadata?.first_name || '',
-              last_name: user.user_metadata?.last_name || '',
-              full_name: user.user_metadata?.full_name || '',
-              phone: user.user_metadata?.phone || '',
-              role_id: null,
-              status: 'active',
-              street_addr: user.user_metadata?.street_address || null,
-              township_id: user.user_metadata?.township_id || null,
-              subdivision: user.user_metadata?.subdivision || null,
-              city: user.user_metadata?.city || 'Soweto',
-              postal_code: user.user_metadata?.postal_code || null
-            });
-          } else {
-            console.error('Error fetching user data:', userError);
-            setUserAddress(null);
-          }
-        } else {
-          // User exists with address data
-          console.log('User found with address data:', userData);
-          setUserAddress(userData);
+      try {
+        // 1) Try unified users table first
+        let userData: any = null;
+        let userError: any = null;
+        try {
+          const resp = await supabase
+            .from('users')
+            .select(`
+              id,
+              email,
+              first_name,
+              last_name,
+              full_name,
+              phone,
+              role_id,
+              status,
+              street_addr,
+              township_id,
+              subdivision,
+              city,
+              postal_code
+            `)
+            .eq('id', user.id)
+            .maybeSingle();
+          userData = resp.data;
+          userError = resp.error;
+        } catch (e) {
+          userError = e;
         }
+
+        // 2) If users table missing/empty, try default address from user_addresses
+        if (userError || !userData) {
+          // Try direct table first
+          const { data: defaultAddr, error: addrErr } = await supabase
+            .from('user_addresses')
+            .select('address_line1, address_line2, city, province, postal_code')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .eq('is_default', true)
+            .maybeSingle();
+
+          if (!addrErr && defaultAddr) {
+            setUserAddress({
+              address_line1: defaultAddr.address_line1,
+              address_line2: defaultAddr.address_line2,
+              city: defaultAddr.city,
+              postal_code: defaultAddr.postal_code,
+              province: defaultAddr.province
+            });
+            setAddressLoading(false);
+            return;
+          }
+
+          // Try RPC helper if available
+          try {
+            const rpc = await supabase.rpc('get_default_address', {
+              target_user_uuid: user.id,
+              address_type_filter: null
+            });
+            if (!rpc.error && rpc.data && rpc.data.found && rpc.data.address) {
+              const a = rpc.data.address;
+              setUserAddress({
+                address_line1: a.address_line1,
+                address_line2: a.address_line2,
+                city: a.city,
+                postal_code: a.postal_code,
+                province: a.province
+              });
+              setAddressLoading(false);
+              return;
+            }
+          } catch (_) {
+            // ignore
+          }
+        }
+
+        // 3) If we have users row, use it
+        if (userData) {
+          setUserAddress(userData);
+          setAddressLoading(false);
+          return;
+        }
+
+        // 4) Fallback to auth metadata
+        setUserAddress({
+          id: user.id,
+          email: user.email || '',
+          first_name: user.user_metadata?.first_name || '',
+          last_name: user.user_metadata?.last_name || '',
+          full_name: user.user_metadata?.full_name || '',
+          phone: user.user_metadata?.phone || '',
+          street_addr: user.user_metadata?.street_address || null,
+          subdivision: user.user_metadata?.subdivision || null,
+          city: user.user_metadata?.city || 'Soweto',
+          postal_code: user.user_metadata?.postal_code || null
+        });
       } catch (error) {
         console.error('Error fetching user address:', error);
         setUserAddress(null);
@@ -162,22 +250,57 @@ const Dashboard = () => {
     if (addressLoading) return "Loading address...";
     if (!userAddress) return "Address not available in current schema";
     
-    const { street_addr, subdivision, city, postal_code, areas } = userAddress;
-    
-    if (street_addr && city) {
-      const townshipName = areas?.name || 'Unknown Township';
-      return `${street_addr}, ${subdivision || ''}, ${townshipName}, ${city} ${postal_code || ''}`.replace(/,\s*,/g, ',').trim();
-    } else if (city) {
-      return `${city}`;
+    // If using user_addresses structure
+    if (userAddress.address_line1) {
+      return AddressService.formatAddress({
+        street_addr: userAddress.address_line1,
+        subdivision: userAddress.address_line2 || '',
+        township_name: '',
+        city: userAddress.city,
+        postal_code: userAddress.postal_code
+      });
     }
-    
+
+    const { street_addr, subdivision, city, postal_code, township_name } = userAddress as any;
+
+    if ((street_addr || subdivision || city || postal_code) && city) {
+      const townshipName = township_name || '';
+      return `${street_addr || ''}${subdivision ? ', ' + subdivision : ''}${townshipName ? ', ' + townshipName : ''}${city ? ', ' + city : ''}${postal_code ? ' ' + postal_code : ''}`
+        .replace(/^,\s*|,\s*,/g, ', ')
+        .trim()
+        .replace(/^,\s*/, '');
+    }
+
+    if (city) return `${city}`;
     return "Address not available in current schema";
   };
 
   const nextCollectionArea = getUserAddress();
+  const getUserAddressFields = () => {
+    if (addressLoading || !userAddress) {
+      return { street_addr: '', township_name: '', subdivision: '', city: '', postal_code: '' } as {
+        street_addr: string;
+        township_name: string;
+        subdivision: string;
+        city: string;
+        postal_code: string;
+      };
+    }
+    const ua = userAddress as any;
+    const street = ua.address_line1 || ua.street_addr || '';
+    const subdivision = ua.address_line2 || ua.subdivision || '';
+    const townshipName = ua.township_name || '';
+    const city = ua.city || '';
+    const postal = ua.postal_code || '';
+    return { street_addr: street, township_name: townshipName, subdivision, city, postal_code: postal };
+  };
+  const addressFields = getUserAddressFields();
   
   // Check if user has provided address information
-  const hasAddress = userAddress && userAddress.street_addr && userAddress.city;
+  const hasAddress = !!(
+    (userAddress && (userAddress as any).address_line1 && (userAddress as any).city) ||
+    (userAddress && (userAddress as any).street_addr && (userAddress as any).city)
+  );
 
   const handleBookCollection = (date: string) => {
     setSelectedDate(date);
@@ -385,37 +508,36 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Recent Activity Preview */}
+      {/* Recent Activity */}
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="text-base">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-success/20 rounded-lg">
-                <Recycle className="h-4 w-4 text-success" />
+          {recentLoading ? (
+            <div className="text-xs text-muted-foreground">Loading recent activity...</div>
+          ) : recentError ? (
+            <div className="text-xs text-red-500">{recentError}</div>
+          ) : recentTransactions.length === 0 ? (
+            <div className="text-xs text-muted-foreground">No recent activity yet.</div>
+          ) : (
+            recentTransactions.map((t) => (
+              <div key={t.id} className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  {getTxIcon(t.amount)}
+                  <div>
+                    <p className="text-sm font-medium">{t.description || (Number(t.amount) >= 0 ? 'Collection approved' : 'Withdrawal')}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t.material_type ? `${t.material_type}` : ''}
+                      {t.kgs ? `${t.material_type ? ' • ' : ''}${Number(t.kgs).toFixed(1)} kg` : ''}
+                      {` ${formatDate(t.approved_at || t.updated_at || t.created_at)}`}
+                    </p>
+                  </div>
+                </div>
+                <p className={`text-sm font-bold ${Number(t.amount) >= 0 ? 'text-success' : 'text-foreground'}`}>{formatAmount(Number(t.amount) || 0)}</p>
               </div>
-              <div>
-                <p className="text-sm font-medium">Recycling Credit</p>
-                <p className="text-xs text-muted-foreground">{safeTotalWeightKg.toFixed(1)} kg processed</p>
-              </div>
-            </div>
-            <p className="text-sm font-bold text-success">+R {displayBalance.toFixed(2)}</p>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/20 rounded-lg">
-                <Gift className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Reward Redeemed</p>
-                <p className="text-xs text-muted-foreground">No rewards yet</p>
-              </div>
-            </div>
-            <p className="text-sm font-bold text-muted-foreground">-R 0.00</p>
-          </div>
+            ))
+          )}
         </CardContent>
       </Card>
 

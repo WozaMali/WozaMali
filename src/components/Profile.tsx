@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, ChevronRight, Bell, BookOpen, TrendingUp, MapPin } from "lucide-react";
+import { useWallet } from "@/hooks/useWallet";
 
 const Profile = () => {
   const navigate = useRouter();
@@ -34,6 +35,23 @@ const Profile = () => {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Use the same wallet hook as Dashboard for tier and progress
+  const {
+    tier: userTier,
+    totalWeightKg,
+    nextTierRequirements,
+    loading: walletLoading,
+    error: walletError
+  } = useWallet(user?.id);
+
+  const safeUserTier = userTier || 'bronze';
+  const safeTotalWeightKg = totalWeightKg || 0;
+  const safeNextTierRequirements = nextTierRequirements || {
+    nextTier: 'silver',
+    weightNeeded: 0,
+    progressPercentage: 0
+  };
+
   // Fetch user data from unified database
   useEffect(() => {
     const fetchUserData = async () => {
@@ -57,10 +75,7 @@ const Profile = () => {
             subdivision,
             city,
             postal_code,
-            created_at,
-            areas!township_id (
-              name
-            )
+            created_at
           `)
           .eq('id', user.id)
           .single();
@@ -153,15 +168,12 @@ const Profile = () => {
     email: userData?.email || user?.email || "No email",
     streetAddress: userData?.street_addr || user?.user_metadata?.street_address || "No address provided",
     subdivision: userData?.subdivision || user?.user_metadata?.subdivision || "",
-    township: userData?.areas?.name || "",
+    township: userData?.township_name || user?.user_metadata?.township_name || "",
     city: userData?.city || user?.user_metadata?.city || "Soweto",
     postalCode: userData?.postal_code || user?.user_metadata?.postal_code || "No postal code",
     kycStatus: "verified",
     memberSince: formatMemberSince(userData?.created_at || user?.created_at),
-    totalRecycled: 0,
-    level: "Gold Recycler",
-    nextLevel: "Platinum",
-    pointsToNext: 0,
+    totalRecycled: safeTotalWeightKg,
   };
 
 
@@ -301,21 +313,21 @@ const Profile = () => {
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-semibold text-foreground">{userProfile.level}</h3>
-              <p className="text-sm text-muted-foreground">{userProfile.totalRecycled} kg recycled</p>
+              <h3 className="font-semibold text-foreground">{safeUserTier.charAt(0).toUpperCase() + safeUserTier.slice(1)} Recycler</h3>
+              <p className="text-sm text-muted-foreground">{safeTotalWeightKg.toFixed(1)} kg recycled</p>
             </div>
             <Star className="h-8 w-8 text-secondary" />
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Progress to {userProfile.nextLevel}</span>
-              <span className="font-medium">{userProfile.pointsToNext} kg to go</span>
+              <span className="text-muted-foreground">Progress to {safeNextTierRequirements.nextTier ? `${safeNextTierRequirements.nextTier.charAt(0).toUpperCase() + safeNextTierRequirements.nextTier.slice(1)} Recycler` : 'Next Tier'}</span>
+              <span className="font-medium">{safeNextTierRequirements.weightNeeded} kg to go</span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
-              <div 
+              <div
                 className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
-                style={{ width: '0%' }}
+                style={{ width: `${safeNextTierRequirements.progressPercentage}%` }}
               />
             </div>
           </div>

@@ -1,9 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { saveSessionData, clearSessionData, updateLastActivity } from '@/lib/session-utils';
+import { saveSessionData, clearSessionData, updateLastActivity, getSessionData } from '@/lib/session-utils';
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +12,7 @@ interface AuthContextType {
   userRole: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  bootGrace: boolean;
   signUp: (email: string, password: string, fullName: string, phone?: string, streetAddress?: string, suburb?: string, city?: string, postalCode?: string, role?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -30,95 +31,115 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [bootGrace, setBootGrace] = useState(true);
+  const [roleLoading, setRoleLoading] = useState(false);
+  const initRef = useRef(false);
 
   // Define fetchUserRole function before using it
   const fetchUserRole = async (userId: string) => {
+    console.log('AuthContext: Starting role fetch for user:', userId);
+    setRoleLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
+      // Prefer unified user_profiles (user_id links to auth.users.id)
+      const unified = await supabase
+        .from('user_profiles')
         .select('role')
-        .eq('id', userId)
-        .single();
-      
-      if (!error && data) {
-        setUserRole(data.role || 'member');
-      }
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const role = (!unified.error && unified.data) ? (unified.data as any).role : null;
+      console.log('AuthContext: Role fetch result:', role || 'member');
+      setUserRole(role || 'member');
     } catch (error) {
       console.error('Error fetching user role:', error);
       setUserRole('member'); // Default role
+    } finally {
+      setRoleLoading(false);
+      console.log('AuthContext: Role loading complete');
     }
   };
 
   useEffect(() => {
+    if (initRef.current) return; // Prevent double init (React Strict Mode)
+    initRef.current = true;
+
     setMounted(true);
+    // Small grace window to prevent redirect flicker during hard refreshes
+    const graceTimer = setTimeout(() => {
+      console.log('AuthContext: Boot grace period ended');
+      setBootGrace(false);
+    }, 500);
     
     // Only run auth logic in the browser
-    if (typeof window !== 'undefined') {
-        // Get initial session
-      console.log('Getting initial session...');
-      
-      // Check if supabase is properly initialized
-      if (!supabase.auth) {
-        console.error('Supabase auth not available');
-        setLoading(false);
-        return;
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
+    // Check if supabase is properly initialized
+    if (!supabase.auth) {
+      console.error('Supabase auth not available');
+      setLoading(false);
+      return;
+    }
+
+    // Hydrate cached role immediately to stabilize role-gated UIs during refresh
+    try {
+      const cached = getSessionData();
+      if (cached?.userRole) {
+        setUserRole(cached.userRole);
       }
-      
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        console.log('Initial session:', session);
+    } catch {}
+
+    // Get initial session (one-time)
+    supabase.auth.getSession()
+      .then(async ({ data: { session } }) => {
+        console.log('AuthContext: Got initial session:', !!session, 'user:', !!session?.user);
         setSession(session);
         setUser(session?.user ?? null);
-        
         if (session?.user) {
-          console.log('User found, fetching role...');
           await fetchUserRole(session.user.id);
-        } else {
-          console.log('No user in session');
+          // Persist basic session info for faster hydration on next load
+          saveSessionData(session.user.id, userRole || 'member');
         }
-        
         setLoading(false);
-      }).catch((error) => {
+        console.log('AuthContext: Initial session loading complete');
+      })
+      .catch((error) => {
         console.error('Error getting session:', error);
         setLoading(false);
       });
 
-      // Listen for auth changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          console.log('Auth state change:', event, session?.user?.email);
-          
-          if (event === 'SIGNED_IN' && session) {
-            setSession(session);
-            setUser(session.user);
-            await fetchUserRole(session.user.id);
-            
-            // Save session data for persistence
-            if (session.user.id) {
-              saveSessionData(session.user.id, session.user.user_metadata?.role || 'member');
-            }
-          } else if (event === 'SIGNED_OUT') {
-            setSession(null);
-            setUser(null);
-            setUserRole(null);
-            
-            // Clear session data
-            clearSessionData();
-          } else if (event === 'TOKEN_REFRESHED' && session) {
-            setSession(session);
-            setUser(session.user);
-            
-            // Update last activity
-            updateLastActivity();
+    // Listen for auth changes (one subscription)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          setSession(session);
+          setUser(session.user);
+          await fetchUserRole(session.user.id);
+          if (session.user.id) {
+            saveSessionData(session.user.id, session.user.user_metadata?.role || 'member');
           }
-          
-          setLoading(false);
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          setUserRole(null);
+          setRoleLoading(false);
+          clearSessionData();
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          setSession(session);
+          setUser(session.user);
+          updateLastActivity();
         }
-      );
 
-      return () => subscription.unsubscribe();
-    } else {
-      setLoading(false);
-    }
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      try { subscription.unsubscribe(); } catch {}
+      clearTimeout(graceTimer);
+    };
   }, []);
 
   // Don't render children until mounted to prevent SSR issues
@@ -260,16 +281,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return { error: new Error('No user logged in') };
 
     try {
-      const { error } = await supabase
-        .from('profiles')
+      // Try unified table first
+      let errorOut: any = null;
+      const unified = await supabase
+        .from('user_profiles')
         .update({ role })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
+      if (unified.error) {
+        errorOut = unified.error;
+        // Fallback to legacy profiles
+        const legacy = await supabase
+          .from('profiles')
+          .update({ role })
+          .eq('id', user.id);
+        if (legacy.error) {
+          errorOut = legacy.error;
+        } else {
+          errorOut = null;
+        }
+      }
 
-      if (!error) {
+      if (!errorOut) {
         setUserRole(role);
       }
 
-      return { error };
+      return { error: errorOut };
     } catch (error) {
       console.error('Update user role error:', error);
       return { error };
@@ -332,7 +368,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     userRole,
     isAuthenticated: !!user,
-    isLoading: loading,
+    isLoading: loading || roleLoading,
     signUp,
     signIn,
     signOut,
@@ -341,6 +377,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateProfile,
     updateUserRole,
     forceLogout, // Add this to the context
+    bootGrace, // Expose bootGrace for components that need it
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

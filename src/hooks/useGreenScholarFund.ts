@@ -83,9 +83,17 @@ export const useGreenScholarFund = () => {
         remaining_amount: 0 // Calculate based on your business logic
       });
 
-      // Fetch user donations
-      const userDonations = await GreenScholarFundService.getUserDonations(user.id);
+      // Fetch user donations and PET contributions
+      const [userDonations, userTotals] = await Promise.all([
+        GreenScholarFundService.getUserDonations(user.id),
+        GreenScholarFundService.getUserContributionTotals(user.id)
+      ]);
       setUserDonations(userDonations);
+      setUserBottleContributions({
+        total_bottles: 0,
+        total_weight: 0,
+        total_value: userTotals.totalPetAmount
+      });
 
     } catch (err) {
       console.error('Error fetching initial data:', err);

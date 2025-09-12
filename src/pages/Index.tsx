@@ -35,19 +35,26 @@ const Index = () => {
 
   // Handle tab change and navigation
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    
-    // Use Next.js router for client-side navigation instead of full page reload
-    if (tab === 'rewards') {
-      router.push('/rewards');
-    } else if (tab === 'scholar') {
-      router.push('/fund');
-    } else if (tab === 'history') {
-      router.push('/history');
-    } else if (tab === 'profile') {
-      router.push('/profile');
-    } else {
-      router.push('/');
+    // Only push when the tab actually changes to avoid double-renders
+    const current = getActiveTabFromPath(pathname);
+    if (current === tab) return;
+
+    // Use Next.js router for client-side navigation
+    switch (tab) {
+      case 'rewards':
+        router.push('/rewards');
+        break;
+      case 'scholar':
+        router.push('/fund');
+        break;
+      case 'history':
+        router.push('/history');
+        break;
+      case 'profile':
+        router.push('/profile');
+        break;
+      default:
+        router.push('/');
     }
   };
 

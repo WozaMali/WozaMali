@@ -145,6 +145,27 @@ export class GreenScholarFundService {
   }
 
   /**
+   * Get user's combined contribution totals (PET + donations)
+   */
+  static async getUserContributionTotals(userId: string): Promise<{
+    totalPetAmount: number;
+    totalDonationAmount: number;
+    totalContribution: number;
+  }> {
+    const { data, error } = await supabase
+      .from('green_scholar_user_contributions')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) throw error;
+    return {
+      totalPetAmount: Number(data?.total_pet_amount || 0),
+      totalDonationAmount: Number(data?.total_donation_amount || 0),
+      totalContribution: Number(data?.total_contribution || 0)
+    };
+  }
+
+  /**
    * Get all active schools
    */
   static async getSchools(): Promise<School[]> {
@@ -231,74 +252,89 @@ export class GreenScholarFundService {
     try {
       console.log('GreenScholarFundService: Making donation:', donation);
 
-      // Create user donation record
-      const { data: userDonation, error: donationError } = await supabase
+      // Prefer server-side RPC for atomicity and balance updates
+      const { data: newId, error: rpcErr } = await supabase.rpc('add_green_scholar_donation', {
+        p_user_id: donation.userId,
+        p_amount: donation.amount,
+        p_beneficiary_type: donation.beneficiaryType,
+        p_beneficiary_id: donation.beneficiaryId || null,
+        p_is_anonymous: donation.isAnonymous,
+        p_message: donation.message || null
+      });
+
+      if (rpcErr) {
+        console.warn('RPC add_green_scholar_donation failed, falling back to direct inserts', rpcErr);
+        // Fallback path (legacy)
+        const { data: userDonation, error: donationError } = await supabase
+          .from('user_donations')
+          .insert({
+            user_id: donation.userId,
+            amount: donation.amount,
+            beneficiary_type: donation.beneficiaryType,
+            beneficiary_id: donation.beneficiaryId,
+            is_anonymous: donation.isAnonymous,
+            message: donation.message,
+            status: 'completed'
+          })
+          .select()
+          .single();
+        if (donationError) throw donationError;
+
+        const { error: transactionError } = await supabase
+          .from('green_scholar_transactions')
+          .insert({
+            transaction_type: 'donation',
+            amount: donation.amount,
+            source_type: 'user_donation',
+            source_id: userDonation.id,
+            beneficiary_type: donation.beneficiaryType,
+            beneficiary_id: donation.beneficiaryId,
+            description: `Donation from ${donation.isAnonymous ? 'Anonymous' : 'User'}: ${donation.message || 'Supporting education'}`,
+            created_by: donation.userId
+          });
+        if (transactionError) throw transactionError;
+
+        await supabase
+          .from('green_scholar_fund_balance')
+          .update({
+            total_balance: (funds: any) => funds.total_balance + donation.amount,
+            total_contributions: (funds: any) => funds.total_contributions + donation.amount,
+            direct_donations_total: (funds: any) => funds.direct_donations_total + donation.amount,
+            last_updated: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        return {
+          id: userDonation.id,
+          userId: userDonation.user_id,
+          amount: userDonation.amount,
+          beneficiaryType: userDonation.beneficiary_type,
+          beneficiaryId: userDonation.beneficiary_id,
+          isAnonymous: userDonation.is_anonymous,
+          message: userDonation.message,
+          status: userDonation.status,
+          createdAt: userDonation.created_at
+        };
+      }
+
+      // Fetch created donation row
+      const { data: createdDonation } = await supabase
         .from('user_donations')
-        .insert({
-          user_id: donation.userId,
-          amount: donation.amount,
-          beneficiary_type: donation.beneficiaryType,
-          beneficiary_id: donation.beneficiaryId,
-          is_anonymous: donation.isAnonymous,
-          message: donation.message,
-          status: 'completed'
-        })
-        .select()
-        .single();
+        .select('*')
+        .eq('id', newId)
+        .maybeSingle();
 
-      if (donationError) {
-        console.error('Error creating user donation:', donationError);
-        throw donationError;
-      }
-
-      // Create Green Scholar Fund transaction
-      const { error: transactionError } = await supabase
-        .from('green_scholar_transactions')
-        .insert({
-          transaction_type: 'donation',
-          amount: donation.amount,
-          source_type: 'user_donation',
-          source_id: userDonation.id,
-          beneficiary_type: donation.beneficiaryType,
-          beneficiary_id: donation.beneficiaryId,
-          description: `Donation from ${donation.isAnonymous ? 'Anonymous' : 'User'}: ${donation.message || 'Supporting education'}`,
-          created_by: donation.userId
-        });
-
-      if (transactionError) {
-        console.error('Error creating fund transaction:', transactionError);
-        throw transactionError;
-      }
-
-      // Update fund balance
-      const { error: balanceError } = await supabase
-        .from('green_scholar_fund_balance')
-        .update({
-          total_balance: supabase.sql`total_balance + ${donation.amount}`,
-          total_contributions: supabase.sql`total_contributions + ${donation.amount}`,
-          last_updated: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      if (balanceError) {
-        console.error('Error updating fund balance:', balanceError);
-        throw balanceError;
-      }
-
-      const result: UserDonation = {
-        id: userDonation.id,
-        userId: userDonation.user_id,
-        amount: userDonation.amount,
-        beneficiaryType: userDonation.beneficiary_type,
-        beneficiaryId: userDonation.beneficiary_id,
-        isAnonymous: userDonation.is_anonymous,
-        message: userDonation.message,
-        status: userDonation.status,
-        createdAt: userDonation.created_at
+      return {
+        id: createdDonation?.id || String(newId),
+        userId: createdDonation?.user_id || donation.userId,
+        amount: createdDonation?.amount || donation.amount,
+        beneficiaryType: (createdDonation?.beneficiary_type || donation.beneficiaryType) as any,
+        beneficiaryId: createdDonation?.beneficiary_id || donation.beneficiaryId,
+        isAnonymous: createdDonation?.is_anonymous ?? donation.isAnonymous,
+        message: createdDonation?.message || donation.message,
+        status: (createdDonation?.status || 'completed') as any,
+        createdAt: createdDonation?.created_at || new Date().toISOString()
       };
-
-      console.log('GreenScholarFundService: Donation completed successfully:', result);
-      return result;
 
     } catch (error) {
       console.error('GreenScholarFundService: Error making donation:', error);

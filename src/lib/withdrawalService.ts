@@ -36,7 +36,9 @@ export class WithdrawalService {
     bankName: string;
     accountNumber: string;
     accountHolderName: string;
+    accountType: string;
     branchCode: string;
+    payoutMethod?: 'wallet' | 'cash' | 'bank_transfer' | 'mobile_money';
   }): Promise<WithdrawalRequest> {
     try {
       console.log('WithdrawalService: Creating withdrawal request:', request);
@@ -71,9 +73,11 @@ export class WithdrawalService {
           amount: request.amount,
           bank_name: request.bankName,
           account_number: request.accountNumber,
-          account_holder_name: request.accountHolderName,
+          owner_name: request.accountHolderName,
+          account_type: request.accountType,
           branch_code: request.branchCode,
-          status: 'pending'
+          status: 'pending',
+          payout_method: request.payoutMethod || 'wallet'
         })
         .select()
         .single();
@@ -89,7 +93,7 @@ export class WithdrawalService {
         amount: withdrawal.amount,
         bankName: withdrawal.bank_name,
         accountNumber: withdrawal.account_number,
-        accountHolderName: withdrawal.account_holder_name,
+        accountHolderName: withdrawal.owner_name,
         branchCode: withdrawal.branch_code,
         status: withdrawal.status,
         processedBy: withdrawal.processed_by,
@@ -100,6 +104,23 @@ export class WithdrawalService {
       };
 
       console.log('WithdrawalService: Withdrawal request created successfully:', result);
+
+      // Record a pending transaction so History shows it immediately
+      try {
+        await supabase
+          .from('wallet_transactions')
+          .insert({
+            user_id: request.userId,
+            source_type: 'withdrawal',
+            source_id: result.id,
+            amount: 0,
+            points: 0,
+            description: `Withdrawal requested (${request.payoutMethod || 'wallet'})`
+          });
+      } catch (e) {
+        console.warn('Warning: could not insert pending withdrawal transaction', e);
+      }
+
       return result;
 
     } catch (error) {
@@ -130,7 +151,7 @@ export class WithdrawalService {
         amount: withdrawal.amount,
         bankName: withdrawal.bank_name,
         accountNumber: withdrawal.account_number,
-        accountHolderName: withdrawal.account_holder_name,
+        accountHolderName: withdrawal.owner_name,
         branchCode: withdrawal.branch_code,
         status: withdrawal.status,
         processedBy: withdrawal.processed_by,
@@ -173,7 +194,7 @@ export class WithdrawalService {
         amount: withdrawal.amount,
         bankName: withdrawal.bank_name,
         accountNumber: withdrawal.account_number,
-        accountHolderName: withdrawal.account_holder_name,
+        accountHolderName: withdrawal.owner_name,
         branchCode: withdrawal.branch_code,
         status: withdrawal.status,
         processedBy: withdrawal.processed_by,

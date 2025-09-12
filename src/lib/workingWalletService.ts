@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { calculateTotalCollectionValue, getTierFromWeight } from './material-pricing';
+// serviceConfig removed: no external Office API calls; Supabase is the backend
 
 export interface WorkingWalletData {
   id: string;
@@ -83,20 +84,54 @@ export class WorkingWalletService {
 
       console.log('WorkingWalletService: Found user profile from auth');
 
-      // Try to get data from unified schema first
+      // Use Supabase-only path for wallet computation to avoid CORS issues in dev
+
+      // Fallback: Get data from Supabase unified/legacy
       let walletData: WorkingWalletData | null = null;
       let collectionSummary: CollectionSummary;
+      // Track the displayable wallet money balance across data sources
+      let moneyBalance = 0;
+      // Aggregates from wallet_update_queue when accessible
+      let queueTotalValue = 0;
+      let queueTotalKg = 0;
+      let queueCount = 0;
       
       try {
-        console.log('WorkingWalletService: Fetching from unified schema...');
-        
+        console.log('WorkingWalletService: Aggregating from wallet_update_queue (if allowed)...');
+
+        // Resolve auth email to match queue
+        const authEmail = (user.email || '').toLowerCase();
+        try {
+          const { data: q, error: queueError } = await supabase
+            .from('wallet_update_queue')
+            .select('resident_email, value, weight_kg, status')
+            .eq('resident_email', authEmail);
+          
+          // Handle case where table doesn't exist or RLS blocks access
+          if (queueError && (queueError.code === '42P01' || queueError.code === '42501')) {
+            console.log('WorkingWalletService: wallet_update_queue table not accessible, skipping...');
+          } else if (!queueError && Array.isArray(q)) {
+            const rows = q;
+            const approved = rows.filter((r: any) => ['approved','completed'].includes(String(r.status || '').toLowerCase()));
+            if (approved.length > 0) {
+              queueTotalValue = approved.reduce((s: number, r: any) => s + (Number(r.value) || 0), 0);
+              queueTotalKg = approved.reduce((s: number, r: any) => s + (Number(r.weight_kg) || 0), 0);
+              queueCount = approved.length;
+            }
+          }
+        } catch (_e) {
+          console.log('WorkingWalletService: Error accessing wallet_update_queue, skipping...');
+        }
+
+        console.log('WorkingWalletService: Computing wallet from queue + withdrawals...');
+
         // Try to get wallet data from unified user_wallets table
         const { data: walletTableData, error: walletError } = await supabase
           .from('user_wallets')
           .select('current_points, total_points_earned, total_points_spent')
           .eq('user_id', userId)
           .single();
-          
+
         console.log('WorkingWalletService: Wallet data from unified user_wallets table:', {
           walletTableData,
           walletError,
@@ -105,48 +140,64 @@ export class WorkingWalletService {
           totalPointsEarned: walletTableData?.total_points_earned,
           errorMessage: walletError?.message
         });
-        
-        // Try to get collection data from existing collections table
-        const { data: pickupsData, error: pickupsError } = await supabase
-          .from('collections')
-          .select('weight_kg, status, created_at, collection_date')
-          .eq('user_id', userId);
-          
-        console.log('WorkingWalletService: Collections data from unified schema:', {
-          pickupsData,
-          pickupsError,
-          hasPickups: !!pickupsData && pickupsData.length > 0,
-          totalPickups: pickupsData?.length || 0,
-          errorMessage: pickupsError?.message
-        });
-        
-        // Calculate totals from collections data
-        const totalWeight = pickupsData?.reduce((sum, pickup) => sum + (pickup.weight_kg || 0), 0) || 0;
-        const totalPickups = pickupsData?.length || 0;
-        const completedPickups = pickupsData?.filter(p => p.status === 'approved' || p.status === 'completed').length || 0;
-        const pendingPickups = pickupsData?.filter(p => p.status === 'pending' || p.status === 'submitted').length || 0;
-        
-        // Use data from unified schema
-        const pointsBalance = walletTableData?.current_points || 0;
-        const totalPointsEarned = walletTableData?.total_points_earned || 0;
 
-        // Prefer Main App wallets.balance if available; fallback to points-based conversion
-        let moneyBalance = pointsBalance * 0.01; // Convert points to money (1 point = R0.01)
-        try {
-          const { data: mainWallet, error: mainWalletError } = await supabase
-            .from('wallets')
-            .select('balance')
-            .eq('user_id', userId)
-            .single();
-          if (!mainWalletError && mainWallet && typeof mainWallet.balance === 'number') {
-            moneyBalance = mainWallet.balance;
-          }
-        } catch (e) {
-          // Ignore and keep fallback
+        // Totals from queue; fallback to unified_collections by email if queue empty/forbidden
+        let totalApprovedRevenue = queueTotalValue;
+        let totalWeight = queueTotalKg;
+        let totalPickups = queueCount;
+        if (totalPickups === 0) {
+          try {
+            const { data: ucEmailRows } = await supabase
+              .from('unified_collections')
+              .select('id, customer_email, total_value, total_weight_kg, status, created_at, updated_at')
+              .eq('customer_email', (user.email || '').toLowerCase())
+              .in('status', ['approved','completed'])
+              .order('updated_at', { ascending: false });
+            const rows = Array.isArray(ucEmailRows) ? ucEmailRows : [];
+            if (rows.length > 0) {
+              totalApprovedRevenue = rows.reduce((s: number, r: any) => s + (Number(r.total_value) || 0), 0);
+              totalWeight = rows.reduce((s: number, r: any) => s + (Number(r.total_weight_kg) || 0), 0);
+              totalPickups = rows.length;
+            }
+          } catch (_e) {}
         }
+
+        // Calculate total approved/processed withdrawals (prefer withdrawal_requests to avoid missing legacy table)
+        let totalWithdrawals = 0;
+        try {
+          const { data: wrRows, error: wrErr } = await supabase
+            .from('withdrawal_requests')
+            .select('amount, status')
+            .eq('user_id', userId)
+            .in('status', ['approved', 'processing', 'completed']);
+          if (!wrErr && Array.isArray(wrRows)) {
+            totalWithdrawals = wrRows.reduce((sum, w: any) => sum + (Number(w.amount) || 0), 0);
+          } else {
+            // Fallback to legacy withdrawals table
+            const { data: withdrawalsV1 } = await supabase
+              .from('withdrawals')
+              .select('amount, status')
+              .eq('user_id', userId)
+              .in('status', ['approved', 'processed', 'completed']);
+            totalWithdrawals = (withdrawalsV1 || []).reduce((sum, w: any) => sum + (Number(w.amount) || 0), 0);
+          }
+        } catch (_e) {
+          totalWithdrawals = 0;
+        }
+
+        // Use queue/unified-by-email totals for points (1kg = 1 point)
+        const pointsBalance = Math.floor(totalWeight);
+        const totalPointsEarned = pointsBalance;
+        
+        // Display money balance: approved collection value minus withdrawals
+        totalApprovedRevenue = Number(totalApprovedRevenue.toFixed(2));
+        moneyBalance = Math.max(0, totalApprovedRevenue - totalWithdrawals);
+        moneyBalance = Number(moneyBalance.toFixed(2));
+
+        // No legacy wallet or points-to-cash fallbacks
         const tier = getTierFromWeight(totalWeight);
         
-        // Create wallet data from unified schema
+        // Create wallet data from queue/unified aggregates
         const walletDataObj = {
           id: user.id,
           user_id: userId,
@@ -157,19 +208,21 @@ export class WorkingWalletService {
           tier: tier
         };
         
-        // Create collection summary from unified schema
+        // Create collection summary from queue/unified aggregates
         collectionSummary = {
           total_pickups: totalPickups,
-          total_materials_kg: totalWeight,
-          total_value: moneyBalance,
+          total_materials_kg: Number(totalWeight.toFixed(2)),
+          total_value: Number(totalApprovedRevenue.toFixed(2)),
           total_points_earned: pointsBalance
         };
-        
+
         // Assign wallet data
         walletData = walletDataObj;
-        
-        console.log('WorkingWalletService: Successfully read from unified schema:', {
+
+        console.log('WorkingWalletService: Wallet computed from queue + withdrawals:', {
           moneyBalance,
+          totalApprovedRevenue,
+          totalWithdrawals,
           totalWeight,
           totalPickups,
           pointsBalance,
@@ -179,9 +232,8 @@ export class WorkingWalletService {
           pickupsSummary: {
             totalPickups: totalPickups,
             totalWeight: totalWeight,
-            totalMoneyValue: moneyBalance,
-            completedPickups: completedPickups,
-            pendingPickups: pendingPickups
+            totalApprovedRevenue: totalApprovedRevenue,
+            totalMoneyValue: moneyBalance
           }
         });
         
@@ -225,7 +277,8 @@ export class WorkingWalletService {
         profile: profile,
         collectionSummary: collectionSummary,
         tier: finalTier,
-        balance: collectionSummary.total_value,
+        // Show the best-available money balance (approved collections → wallets table → points conversion)
+        balance: moneyBalance,
         points: walletData?.current_points || 0,
         totalWeightKg: collectionSummary.total_materials_kg,
         environmentalImpact: environmentalImpact,
@@ -257,36 +310,35 @@ export class WorkingWalletService {
   }
 
   private static calculateNextTierRequirementsByWeight(currentWeightKg: number): {
-    nextTier: string | null;
-    weightNeeded: number;
-    progressPercentage: number;
-  } {
+     nextTier: string | null;
+     weightNeeded: number;
+     progressPercentage: number;
+   } {
     const tiers = [
       { name: 'bronze', minWeight: 0 },
-      { name: 'silver', minWeight: 20 },
-      { name: 'gold', minWeight: 50 },
-      { name: 'platinum', minWeight: 100 }
+      { name: 'silver', minWeight: 50 },
+      { name: 'gold', minWeight: 150 },
+      { name: 'platinum', minWeight: 300 },
+      { name: 'diamond', minWeight: 500 }
     ];
 
-    const currentTierIndex = tiers.findIndex(tier => currentWeightKg >= tier.minWeight);
-    const nextTier = currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
-
-    if (!nextTier) {
-      return {
-        nextTier: null,
-        weightNeeded: 0,
-        progressPercentage: 100
-      };
+    // Find current tier index as the last tier whose minWeight <= current
+    let currentIdx = 0;
+    for (let i = tiers.length - 1; i >= 0; i--) {
+      if (currentWeightKg >= tiers[i].minWeight) { currentIdx = i; break; }
+    }
+    const next = currentIdx < tiers.length - 1 ? tiers[currentIdx + 1] : null;
+    if (!next) {
+      return { nextTier: null, weightNeeded: 0, progressPercentage: 100 };
     }
 
-    const weightNeeded = Math.max(0, nextTier.minWeight - currentWeightKg);
-    const progressPercentage = Math.min(100, (currentWeightKg / nextTier.minWeight) * 100);
+    const currentMin = tiers[currentIdx].minWeight;
+    const nextMin = next.minWeight;
+    const weightNeeded = Math.max(0, nextMin - currentWeightKg);
+    const denom = Math.max(1, nextMin - currentMin);
+    const progressPercentage = Math.min(100, Math.max(0, ((currentWeightKg - currentMin) / denom) * 100));
 
-    return {
-      nextTier: nextTier.name,
-      weightNeeded: weightNeeded,
-      progressPercentage: progressPercentage
-    };
+    return { nextTier: next.name, weightNeeded, progressPercentage };
   }
 
   private static getEmptyWalletInfo(): WorkingWalletInfo {
@@ -319,4 +371,177 @@ export class WorkingWalletService {
   static async refreshWalletData(userId: string): Promise<WorkingWalletInfo> {
     return this.getWalletData(userId);
   }
+
+  /**
+   * Get transaction history for a user (for History page)
+   * Returns all approved collections as transactions, sorted by date (latest first)
+   */
+  static async getTransactionHistory(userId: string): Promise<any[]> {
+    try {
+      console.log('WorkingWalletService: Fetching transaction history for user:', userId);
+      
+      if (!userId) {
+        console.error('WorkingWalletService: No userId provided for transaction history');
+        return [];
+      }
+
+      // Resolve auth user for email-based sources (wallet_update_queue)
+      let authEmail: string | null = null;
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const rawEmail = authData?.user?.email || authData?.user?.user_metadata?.email || null;
+        authEmail = rawEmail ? String(rawEmail).toLowerCase().trim() : null;
+      } catch (_e) {
+        authEmail = null;
+      }
+
+      // Resolve unified customer_id (user_profiles.id) from auth user id
+      let profileId: string | null = null;
+      try {
+        const { data: prof } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+        profileId = (prof as any)?.id || null;
+      } catch (_e) {
+        profileId = null;
+      }
+
+      // 0) Skip wallet_update_queue completely to avoid REST errors; rely on unified_collections + withdrawals
+      let queuedTransactions: any[] = [];
+
+      // 1) Preferred: unified_collections with canonical totals
+      let unifiedTransactions: any[] = [];
+      try {
+        // Try with resolved profileId first
+        let rows: any[] = [];
+        if (profileId) {
+          const { data: uc1 } = await supabase
+            .from('unified_collections')
+            .select('id, collection_code, customer_id, total_value, computed_value, total_weight_kg, status, created_at, updated_at')
+            .eq('customer_id', profileId)
+            .in('status', ['approved','completed'])
+            .order('updated_at', { ascending: false });
+          rows = Array.isArray(uc1) ? uc1 : [];
+        }
+
+        // Fallback: some older rows may have stored auth user id as customer_id
+        if (!rows || rows.length === 0) {
+          const { data: uc2 } = await supabase
+            .from('unified_collections')
+            .select('id, collection_code, customer_id, total_value, computed_value, total_weight_kg, status, created_at, updated_at')
+            .eq('customer_id', userId)
+            .in('status', ['approved','completed'])
+            .order('updated_at', { ascending: false });
+          rows = Array.isArray(uc2) ? uc2 : [];
+        }
+
+        // Fallback: match by customer_email when allowed by RLS
+        if ((!rows || rows.length === 0) && authEmail) {
+          try {
+            const { data: uc3 } = await supabase
+              .from('unified_collections')
+              .select('id, collection_code, customer_email, total_value, computed_value, total_weight_kg, status, created_at, updated_at')
+              .eq('customer_email', authEmail)
+              .in('status', ['approved','completed'])
+              .order('updated_at', { ascending: false });
+            const emailRows = Array.isArray(uc3) ? uc3 : [];
+            rows = emailRows.length > 0 ? emailRows : rows;
+          } catch (_e3) {}
+        }
+
+        unifiedTransactions = rows.map((r: any) => ({
+          id: r.id,
+          type: 'credit',
+          amount: Number((r.computed_value ?? r.total_value) || 0) || 0,
+          material_type: undefined,
+          kgs: Number(r.total_weight_kg || 0) || 0,
+          status: r.status,
+          created_at: r.created_at,
+          approved_at: r.updated_at,
+          updated_at: r.updated_at,
+          reference: r.id,
+          reference_code: r.collection_code || null,
+          source_type: 'unified_collection',
+          description: `Collection ${(r.collection_code || r.id)} approved`
+        }));
+      } catch (_e) {
+        unifiedTransactions = [];
+      }
+
+      // 2) Remove legacy synthetic fallback from collections to avoid showing mock data
+      const legacyTransactions: any[] = [];
+
+      // Align with canonical source: if a unified collection was deleted, drop any queue-only entries for it
+      if (unifiedTransactions.length > 0 && queuedTransactions.length > 0) {
+        const validUnifiedIds = new Set<string>(
+          unifiedTransactions.map((t: any) => String(t.reference || t.id))
+        );
+        queuedTransactions = queuedTransactions.filter((q: any) =>
+          validUnifiedIds.has(String(q.reference || q.id))
+        );
+      }
+
+      // 3) Add approved withdrawals as negative transactions
+      let withdrawalTransactions: any[] = [];
+      try {
+        const { data: wr } = await supabase
+          .from('withdrawal_requests')
+          .select('id, amount, status, created_at, updated_at')
+          .eq('user_id', userId)
+          .in('status', ['approved','processing','completed'])
+          .order('updated_at', { ascending: false });
+        const rows = Array.isArray(wr) ? wr : [];
+        withdrawalTransactions = rows.map((w: any) => ({
+          id: w.id,
+          type: 'debit',
+          amount: -Math.abs(Number(w.amount) || 0),
+          material_type: undefined,
+          kgs: 0,
+          status: w.status,
+          created_at: w.created_at,
+          approved_at: w.updated_at || w.created_at,
+          updated_at: w.updated_at || w.created_at,
+          reference: w.id,
+          reference_code: null,
+          source_type: 'withdrawal',
+          description: 'Withdrawal approved'
+        }));
+      } catch (_e) {
+        withdrawalTransactions = [];
+      }
+
+      // Merge & dedupe (prefer unified by reference_code)
+      const mergedMap = new Map<string, any>();
+      [...queuedTransactions, ...unifiedTransactions, ...withdrawalTransactions, ...legacyTransactions].forEach((tx: any) => {
+        const key = String(tx.reference || tx.reference_code || tx.id);
+        if (!mergedMap.has(key)) mergedMap.set(key, tx);
+      });
+      const merged = Array.from(mergedMap.values()).sort((a, b) => {
+        const ad = new Date(a.approved_at || a.updated_at || a.created_at).getTime();
+        const bd = new Date(b.approved_at || b.updated_at || b.created_at).getTime();
+        return bd - ad;
+      });
+
+      console.log('WorkingWalletService: Transaction history retrieved:', {
+        userId,
+        profileId,
+        totalTransactions: merged.length,
+        totalValue: merged.reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
+        unifiedCount: unifiedTransactions.length,
+        queueCount: queuedTransactions.length
+      });
+
+      return merged;
+
+    } catch (error) {
+      const msg = (error as any)?.message || (typeof error === 'string' ? error : '');
+      if (msg) {
+        console.warn('WorkingWalletService: Error fetching transaction history (returning empty):', msg);
+      }
+      return [];
+    }
+  }
 }
+

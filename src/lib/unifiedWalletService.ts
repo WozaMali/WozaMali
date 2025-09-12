@@ -4,7 +4,7 @@
 import { supabase } from './supabase';
 const DISABLE_WALLET_FEATURES =
   (typeof process !== 'undefined' && process?.env?.NEXT_PUBLIC_DISABLE_WALLET_FEATURES === 'true');
-import { calculateTotalCollectionValue, getTierFromWeight } from './material-pricing';
+import { calculateTotalCollectionValue, getTierFromWeight, calculateCollectionValue } from './material-pricing';
 
 export interface UnifiedWalletData {
   wallet_id: string;
@@ -14,7 +14,7 @@ export interface UnifiedWalletData {
   phone: string;
   balance: number;
   total_points: number;
-  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
   total_earnings: number;
   total_weight_kg: number;
   environmental_impact: {
@@ -95,6 +95,9 @@ export class UnifiedWalletService {
 
       // Calculate tier based on weight (not points)
       const tier = getTierFromWeight(collectionSummary?.total_weight_kg || 0);
+      
+      // Use total_value from collection summary as the primary balance source
+      const balanceFromCollections = collectionSummary?.total_value || 0;
 
       // Calculate environmental impact
       const environmentalImpact = {
@@ -113,9 +116,9 @@ export class UnifiedWalletService {
         full_name: profileData?.full_name || 'User',
         email: profileData?.email || '',
         phone: profileData?.phone || '',
-        balance: walletData.balance, // Use balance from wallets table
+        balance: balanceFromCollections || walletData.balance, // Use collections balance first, fallback to wallets table
         total_points: walletData.total_points, // Use total_points from wallets table
-        tier: tier as 'bronze' | 'silver' | 'gold' | 'platinum',
+        tier: tier as 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond',
         total_earnings: walletData.total_points, // Use total_points as earnings
         total_weight_kg: collectionSummary?.total_weight_kg || 0,
         environmental_impact: environmentalImpact,
@@ -188,7 +191,7 @@ export class UnifiedWalletService {
         last_updated: wallet.last_updated,
         recent_transactions: 0,
         next_tier: 'silver',
-        points_to_next_tier: 20 // 20kg to reach silver tier
+        points_to_next_tier: 50 // 50kg to reach silver tier
       };
     } catch (error) {
       console.error('UnifiedWalletService: Error ensuring wallet:', error);
@@ -281,42 +284,47 @@ export class UnifiedWalletService {
    */
   static async getCollectionSummary(userId: string): Promise<CollectionSummary | null> {
     try {
-      const { data: pickups, error } = await supabase
-        .from('pickups')
-        .select('weight_kg, status, created_at, user_id')
+      // Use collections table instead of pickups table for consistency with Office App
+      const { data: collections, error } = await supabase
+        .from('collections')
+        .select('weight_kg, total_value, status, created_at, user_id')
         .eq('user_id', userId);
 
       if (error) {
-        console.error('UnifiedWalletService: Error fetching pickup summary:', error);
+        console.error('UnifiedWalletService: Error fetching collection summary:', error);
         return null;
       }
 
-      if (!pickups || pickups.length === 0) {
+      if (!collections || collections.length === 0) {
         return {
           total_collections: 0,
           completed_collections: 0,
           pending_collections: 0,
           total_weight_kg: 0,
-          total_value: 0, // Will be read from user_wallets table
-          total_points: 0 // Will be read from user_wallets table
+          total_value: 0,
+          total_points: 0
         };
       }
 
-      // Calculate summary from pickups data (Main App schema)
-      const totalWeight = pickups.reduce((sum, pickup) => sum + (pickup.weight_kg || 0), 0);
-      const completedCollections = pickups.filter(p => p.status === 'approved').length;
-      const pendingCollections = pickups.filter(p => p.status === 'submitted').length;
+      // Calculate summary from collections data
+      const totalWeight = collections.reduce((sum, collection) => sum + (collection.weight_kg || 0), 0);
+      const completedCollections = collections.filter(c => c.status === 'approved').length;
+      const pendingCollections = collections.filter(c => c.status === 'pending').length;
+      
+      // Calculate total value from approved collections
+      const approvedCollections = collections.filter(c => c.status === 'approved');
+      const totalValue = approvedCollections.reduce((sum, collection) => sum + (collection.total_value || 0), 0);
 
       return {
-        total_collections: pickups.length,
+        total_collections: collections.length,
         completed_collections: completedCollections,
         pending_collections: pendingCollections,
         total_weight_kg: totalWeight,
-        total_value: 0, // Will be read from user_wallets table
+        total_value: totalValue,
         total_points: 0 // Will be read from user_wallets table
       };
     } catch (error) {
-      console.error('UnifiedWalletService: Unexpected error fetching pickup summary:', error);
+      console.error('UnifiedWalletService: Unexpected error fetching collection summary:', error);
       return null;
     }
   }
@@ -324,28 +332,119 @@ export class UnifiedWalletService {
   /**
    * Get wallet transactions for a user
    */
-  static async getWalletTransactions(userId: string, limit: number = 50): Promise<any[]> {
+  static async getWalletTransactions(userId: string, limit?: number): Promise<any[]> {
     try {
-      const { data, error } = await supabase
+      // Use user_id filter to be compatible with both schemas
+      let txQuery = supabase
         .from('wallet_transactions')
-        .select(`
-          *,
-          wallet:wallet_id (
-            user_id
-          )
-        `)
+        .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('UnifiedWalletService: Error fetching transactions:', error);
+      if (typeof limit === 'number' && isFinite(limit) && limit > 0) {
+        txQuery = txQuery.limit(limit);
+      }
+
+      const { data: txns, error: txErr } = await txQuery;
+
+      if (txErr) {
+        console.error('UnifiedWalletService: Error fetching transactions by wallet_id:', txErr);
         return [];
       }
 
-      return data || [];
+      return txns || [];
     } catch (error) {
       console.error('UnifiedWalletService: Unexpected error fetching transactions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Build resident transactions from collections/pickups data
+   * Matches the Office App source of truth for earnings
+   */
+  static async getResidentTransactionsFromCollections(userId: string): Promise<any[]> {
+    try {
+      // Try collections (Office App path)
+      const { data: collections } = await supabase
+        .from('collections')
+        .select('id, user_id, material_type, weight_kg, status, created_at, updated_at, collection_date')
+        .eq('user_id', userId)
+        .eq('status', 'approved');
+
+      // Collect distinct material names to fetch rates
+      const materialNames = Array.from(new Set((collections || [])
+        .map(c => String(c.material_type || '').trim().toLowerCase())
+        .filter(Boolean)));
+
+      // Ensure Aluminum Cans is included for default pickup rate
+      if (!materialNames.includes('aluminum cans')) materialNames.push('aluminum cans');
+
+      const { data: materials } = await supabase
+        .from('materials')
+        .select('name, unit_price')
+        .in('name', materialNames);
+
+      const nameToRate = new Map<string, number>(
+        (materials || []).map((m: any) => [String(m.name).toLowerCase(), Number(m.unit_price) || 0])
+      );
+
+      const collectionTx = (collections || []).map((c: any) => {
+        const weight = Number(c.weight_kg) || 0;
+        const materialName = String(c.material_type || '').trim();
+        const rate = nameToRate.get(materialName.toLowerCase()) ?? 0;
+        const value = Number((weight * rate).toFixed(2));
+        return {
+          id: `col-${c.id}`,
+          user_id: c.user_id,
+          transaction_type: 'collection',
+          source_type: 'collection_approval',
+          amount: value,
+          material: materialName || 'Unknown',
+          weight_kg: weight,
+          rate_per_kg: rate,
+          description: materialName ? `${materialName} collection` : 'Collection approved',
+          created_at: c.updated_at || c.collection_date || c.created_at,
+          status: c.status || 'approved'
+        };
+      });
+
+      // Try pickups (alternate path in main app)
+      const { data: pickups } = await supabase
+        .from('pickups')
+        .select('id, user_id, weight_kg, status, created_at, updated_at, pickup_date')
+        .eq('user_id', userId)
+        .eq('status', 'approved');
+
+      // Default to Aluminum Cans rate if material unknown on pickups
+      const defaultAluRate = nameToRate.get('aluminum cans') ?? 18.55;
+
+      const pickupTx = (pickups || []).map((p: any) => {
+        const weight = Number(p.weight_kg) || 0;
+        const rate = defaultAluRate;
+        const value = Number((weight * rate).toFixed(2));
+        return {
+          id: `pk-${p.id}`,
+          user_id: p.user_id,
+          transaction_type: 'collection',
+          source_type: 'collection_approval',
+          amount: value,
+          material: 'Aluminum Cans',
+          weight_kg: weight,
+          rate_per_kg: rate,
+          description: 'Collection approved',
+          created_at: p.updated_at || p.pickup_date || p.created_at,
+          status: p.status || 'approved'
+        };
+      });
+
+      const combined = [...collectionTx, ...pickupTx]
+        .filter(t => t.created_at)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      return combined;
+    } catch (error) {
+      console.error('UnifiedWalletService: Error building transactions from collections:', error);
       return [];
     }
   }
@@ -479,24 +578,27 @@ export class UnifiedWalletService {
    * Calculate next tier requirements based on weight
    */
   static getNextTierRequirementsByWeight(currentWeightKg: number) {
-    if (currentWeightKg >= 100) {
+    if (currentWeightKg >= 500) {
       return { nextTier: null, pointsNeeded: 0, progressPercentage: 100 };
     }
-    
-    if (currentWeightKg >= 50) {
-      const weightNeeded = 100 - currentWeightKg;
-      const progressPercentage = (currentWeightKg / 100) * 100;
+    if (currentWeightKg >= 300) {
+      const weightNeeded = 500 - currentWeightKg;
+      const progressPercentage = (currentWeightKg / 500) * 100;
+      return { nextTier: 'diamond', pointsNeeded: weightNeeded, progressPercentage };
+    }
+    if (currentWeightKg >= 150) {
+      const weightNeeded = 300 - currentWeightKg;
+      const progressPercentage = (currentWeightKg / 300) * 100;
       return { nextTier: 'platinum', pointsNeeded: weightNeeded, progressPercentage };
     }
-    
-    if (currentWeightKg >= 20) {
-      const weightNeeded = 50 - currentWeightKg;
-      const progressPercentage = (currentWeightKg / 50) * 100;
+    if (currentWeightKg >= 50) {
+      const weightNeeded = 150 - currentWeightKg;
+      const progressPercentage = (currentWeightKg / 150) * 100;
       return { nextTier: 'gold', pointsNeeded: weightNeeded, progressPercentage };
     }
-    
-    const weightNeeded = 20 - currentWeightKg;
-    const progressPercentage = (currentWeightKg / 20) * 100;
+    const weightNeeded = 50 - currentWeightKg;
+    const progressPercentage = (currentWeightKg / 50) * 100;
     return { nextTier: 'silver', pointsNeeded: weightNeeded, progressPercentage };
   }
 }
+

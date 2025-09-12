@@ -16,16 +16,16 @@ export default function ProtectedCollectorRoute({
   children, 
   fallback 
 }: ProtectedCollectorRouteProps) {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, loading, isLoading } = useAuth() as any;
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!(loading || isLoading) && !user) {
       router.push('/auth/sign-in');
     }
-  }, [user, loading, router]);
+  }, [user, loading, isLoading, router]);
 
-  if (loading) {
+  if (loading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
@@ -35,6 +35,15 @@ export default function ProtectedCollectorRoute({
 
   if (!user) {
     return null;
+  }
+
+  // Wait for role hydration before deciding access
+  if (userRole === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
+      </div>
+    );
   }
 
   // Check if user has collector role

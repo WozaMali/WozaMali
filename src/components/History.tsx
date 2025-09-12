@@ -5,6 +5,7 @@ import { ArrowUpRight, ArrowDownRight, Recycle, Gift, Heart, Calendar, Filter } 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { UnifiedWalletService } from "@/lib/unifiedWalletService";
+import { WorkingWalletService } from "@/lib/workingWalletService";
 
 const History = () => {
   const [filter, setFilter] = useState<'all' | 'earnings' | 'rewards' | 'donations' | 'withdrawals'>('all');
@@ -17,8 +18,12 @@ const History = () => {
       if (!user?.id) return;
       setLoading(true);
       try {
-        const tx = await UnifiedWalletService.getWalletTransactions(user.id, 100);
+        // Use the new WorkingWalletService to get transaction history from approved collections
+        const tx = await WorkingWalletService.getTransactionHistory(user.id);
         setTransactions(tx || []);
+      } catch (error) {
+        console.error('Error loading transaction history:', error);
+        setTransactions([]);
       } finally {
         setLoading(false);
       }
@@ -27,12 +32,12 @@ const History = () => {
   }, [user?.id]);
 
   const mapType = (t: any) => {
-    const tt = (t.transaction_type || '').toLowerCase();
-    if (tt.includes('withdraw')) return 'withdrawal';
+    const tt = (t.transaction_type || t.source_type || '').toLowerCase();
+    if (tt.includes('withdraw') || tt.includes('payout')) return 'withdrawal';
     if (tt.includes('reward')) return 'reward';
     if (tt.includes('donation')) return 'donation';
     if (tt.includes('collection')) return 'earning';
-    return (t.amount || 0) >= 0 ? 'earning' : 'withdrawal';
+    return (Number(t.amount) || 0) >= 0 ? 'earning' : 'withdrawal';
   };
 
   const filteredTransactions = transactions.filter(t => {
@@ -44,11 +49,11 @@ const History = () => {
       (filter === 'withdrawals' && type === 'withdrawal');
   });
 
-  const totalEarnings = transactions
+  const totalEarnings = filteredTransactions
     .filter(t => mapType(t) === 'earning')
     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-  const totalSpent = transactions
+  const totalSpent = filteredTransactions
     .filter(t => mapType(t) !== 'earning')
     .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
 
@@ -165,15 +170,30 @@ const History = () => {
 
       {/* Transaction List */}
       <div className="space-y-3">
-        {(loading ? [] : filteredTransactions).map((transaction) => (
+        {!loading && filteredTransactions.length === 0 && (
+          <Card className="shadow-card">
+            <CardContent className="p-6 text-center text-sm text-muted-foreground">
+              No transactions to show yet.
+            </CardContent>
+          </Card>
+        )}
+        {(loading ? [] : filteredTransactions).map((transaction) => {
+          const collectionId = transaction.reference || transaction.id;
+          return (
           <Card key={transaction.id} className="shadow-card">
-            <CardContent className="p-4">
+            <CardContent className="p-4" onClick={() => {
+              if (collectionId) {
+                try {
+                  window.location.href = `/collections/${collectionId}`;
+                } catch {}
+              }
+            }}>
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3">
                   {getTransactionIcon(transaction)}
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
-                      <h4 className="font-medium text-foreground">{(transaction.description || transaction.transaction_type || 'Transaction')}</h4>
+                      <h4 className="font-medium text-foreground">{(transaction.description || transaction.transaction_type || transaction.source_type || 'Transaction')}</h4>
                       <Badge 
                         variant="outline" 
                         className={`text-xs ${
@@ -187,11 +207,16 @@ const History = () => {
                          mapType(transaction) === 'donation' ? 'Donation' : 'Withdrawal'}
                       </Badge>
                     </div>
-                    {transaction.description && (
-                      <p className="text-sm text-muted-foreground mb-2">{transaction.description}</p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {transaction.material_type ? `${transaction.material_type}` : ''}
+                      {transaction.kgs ? `${transaction.material_type ? ' • ' : ''}${Number(transaction.kgs).toFixed(1)} kg` : ''}
+                      {transaction.amount && transaction.kgs ? ` • R${(Number(transaction.amount) / Number(transaction.kgs)).toFixed(2)}/kg` : ''}
+                    </p>
+                    {(transaction.reference_code || transaction.reference) && (
+                      <p className="text-xs text-muted-foreground break-all">
+                        {transaction.reference_code ? `Collection ${transaction.reference_code}` : `Collection ID ${transaction.reference}`}
+                      </p>
                     )}
-                    
-                    {/* Additional metadata can be displayed here if available */}
                   </div>
                 </div>
                 
@@ -203,14 +228,14 @@ const History = () => {
                   </p>
                   <div className="flex items-center space-x-1 text-xs text-muted-foreground mt-1">
                     <Calendar className="h-3 w-3" />
-                    <span>{formatDate(transaction.created_at)}</span>
-                    <span>{formatTime(transaction.created_at)}</span>
+                    <span>{formatDate(transaction.approved_at || transaction.created_at)}</span>
+                    <span>{formatTime(transaction.approved_at || transaction.created_at)}</span>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-        ))}
+        );})}
       </div>
 
       {/* Load More */}

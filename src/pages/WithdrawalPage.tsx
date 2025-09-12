@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Building2, User, CreditCard, Banknote } from "lucide-react";
+import { WithdrawalService } from "@/lib/withdrawalService";
+import { useAuth } from "@/contexts/AuthContext";
 
-// South African Banks with their branch codes
+// South African Banks with their branch codes (note: some share branch codes)
 const SOUTH_AFRICAN_BANKS = [
   { name: "ABSA Bank", code: "632005", branchCode: "632005" },
   { name: "First National Bank (FNB)", code: "250655", branchCode: "250655" },
@@ -39,48 +41,94 @@ const ACCOUNT_TYPES = [
 const WithdrawalPage = () => {
   const [ownerName, setOwnerName] = useState("");
   const [accountType, setAccountType] = useState("");
-  const [selectedBank, setSelectedBank] = useState("");
+  const [selectedBank, setSelectedBank] = useState(""); // format: `${code}:${name}` to ensure uniqueness
   const [branchCode, setBranchCode] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useRouter();
+  const { user } = useAuth();
 
   // Handle bank selection and auto-fill branch code
-  const handleBankChange = (bankCode: string) => {
-    setSelectedBank(bankCode);
-    const bank = SOUTH_AFRICAN_BANKS.find(b => b.code === bankCode);
-    if (bank) {
-      setBranchCode(bank.branchCode);
-    }
+  const handleBankChange = (value: string) => {
+    setSelectedBank(value);
+    const [code, name] = value.split(":");
+    const bank = SOUTH_AFRICAN_BANKS.find(b => b.code === code && b.name === name) ||
+                 SOUTH_AFRICAN_BANKS.find(b => b.code === code) || null;
+    if (bank) setBranchCode(bank.branchCode);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    
+    // Check if user is authenticated
+    if (!user) {
+      setError("You must be logged in to request a withdrawal");
+      return;
+    }
     
     // Validation
     if (!ownerName || !accountType || !selectedBank || !branchCode || !accountNumber || !amount) {
-      alert("Please fill in all required fields");
+      setError("Please fill in all required fields");
       return;
     }
 
-    if (parseFloat(amount) <= 0) {
-      alert("Please enter a valid amount");
+    // Additional validation for bank selection
+    if (!selectedBank.includes(":")) {
+      setError("Please select a valid bank");
       return;
     }
 
-    // API call would go here
-    const withdrawalData = {
-      ownerName,
-      accountType,
-      bank: SOUTH_AFRICAN_BANKS.find(b => b.code === selectedBank)?.name,
-      branchCode,
-      accountNumber,
-      amount: parseFloat(amount)
-    };
+    const withdrawalAmount = parseFloat(amount);
+    if (withdrawalAmount <= 0) {
+      setError("Please enter a valid amount");
+      return;
+    }
 
-    console.log("Withdrawal request:", withdrawalData);
-    alert(`Withdrawal of R${amount} requested for ${ownerName}`);
-    navigate.push("/");
+    if (withdrawalAmount < 50) {
+      setError("Minimum withdrawal amount is R50");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Extract bank name from selectedBank format: "code:name"
+      console.log("Selected bank:", selectedBank);
+      const [code, name] = selectedBank.split(":");
+      console.log("Extracted code:", code, "name:", name);
+      const bankName = name || SOUTH_AFRICAN_BANKS.find(b => b.code === code)?.name;
+      console.log("Final bank name:", bankName);
+      if (!bankName) {
+        throw new Error("Invalid bank selection");
+      }
+
+      // Create withdrawal request using the service
+      const withdrawalRequest = await WithdrawalService.createWithdrawalRequest({
+        userId: user.id,
+        amount: withdrawalAmount,
+        bankName: bankName,
+        accountNumber: accountNumber,
+        accountHolderName: ownerName,
+        accountType: accountType,
+        branchCode: branchCode,
+        payoutMethod: 'bank_transfer'
+      });
+
+      console.log("Withdrawal request created successfully:", withdrawalRequest);
+      
+      // Show success message and redirect
+      alert(`Withdrawal request submitted successfully! Reference: ${withdrawalRequest.id}`);
+      navigate.push("/");
+      
+    } catch (error: any) {
+      console.error("Error creating withdrawal request:", error);
+      setError(error.message || "Failed to submit withdrawal request. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -101,6 +149,11 @@ const WithdrawalPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Account Owner Name */}
               <div>
@@ -149,7 +202,7 @@ const WithdrawalPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {SOUTH_AFRICAN_BANKS.map((bank) => (
-                      <SelectItem key={bank.code} value={bank.code}>
+                      <SelectItem key={`${bank.code}-${bank.name}`} value={`${bank.code}:${bank.name}`}>
                         {bank.name}
                       </SelectItem>
                     ))}
@@ -171,7 +224,7 @@ const WithdrawalPage = () => {
                 />
                 {selectedBank && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Branch code automatically filled for {SOUTH_AFRICAN_BANKS.find(b => b.code === selectedBank)?.name}
+                    Branch code automatically filled for {(() => { const [c,n] = selectedBank.split(":"); return SOUTH_AFRICAN_BANKS.find(b => b.code === c && b.name === n)?.name || SOUTH_AFRICAN_BANKS.find(b => b.code === c)?.name || "selected bank"; })()}
                   </p>
                 )}
               </div>
@@ -203,8 +256,8 @@ const WithdrawalPage = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                Request Withdrawal
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Request Withdrawal"}
               </Button>
             </form>
           </CardContent>

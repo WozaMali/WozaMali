@@ -42,7 +42,6 @@ const Rewards = () => {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
                          <div>
-               <p className="text-sm opacity-90 mb-1">1kg = 1 point</p>
               {walletLoading ? (
                 <div className="animate-pulse">
                   <div className="h-8 bg-white/20 rounded mb-2"></div>
@@ -65,7 +64,7 @@ const Rewards = () => {
           <div className="flex items-center space-x-3">
             <Gift className="h-6 w-6 text-secondary" />
             <div>
-                             <p className="text-sm font-medium text-foreground">1kg = 1 point</p>
+                             <p className="text-sm font-medium text-foreground">Your points are based on recycling</p>
                              <p className="text-xs text-muted-foreground">Points never expire</p>
             </div>
           </div>
