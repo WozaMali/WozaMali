@@ -10,6 +10,18 @@ import { useState, useEffect } from "react";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: Infinity,
+        cacheTime: 1000 * 60 * 60, // 1 hour
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        refetchOnMount: false,
+        retry: 0,
+      },
+    },
+  }));
 
   useEffect(() => {
     setMounted(true);
@@ -67,7 +79,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={queryClient}>
       {/* Theme provider automatically follows browser's theme preference */}
       <ThemeProvider 
         attribute="class" 
