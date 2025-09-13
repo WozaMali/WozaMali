@@ -141,25 +141,59 @@ export class WorkingWalletService {
           errorMessage: walletError?.message
         });
 
-        // Totals from queue; fallback to unified_collections by email if queue empty/forbidden
+        // Prefer authoritative totals from unified_collections (approved/completed)
+        // Build a permissive OR condition to satisfy typical RLS setups
         let totalApprovedRevenue = queueTotalValue;
         let totalWeight = queueTotalKg;
         let totalPickups = queueCount;
-        if (totalPickups === 0) {
-          try {
-            const { data: ucEmailRows } = await supabase
-              .from('unified_collections')
-              .select('id, customer_email, total_value, total_weight_kg, status, created_at, updated_at')
-              .eq('customer_email', (user.email || '').toLowerCase())
-              .in('status', ['approved','completed'])
-              .order('updated_at', { ascending: false });
-            const rows = Array.isArray(ucEmailRows) ? ucEmailRows : [];
+        try {
+          const orParts: string[] = [];
+          if (userId) orParts.push(`customer_id.eq.${userId}`);
+          if ((user.email || '').toLowerCase()) orParts.push(`customer_email.eq.${(user.email || '').toLowerCase()}`);
+          if (userId) orParts.push(`created_by.eq.${userId}`);
+
+          const { data: ucRowsRaw, error: ucErr } = await supabase
+            .from('unified_collections')
+            .select('id, collection_code, total_value, computed_value, total_weight_kg, status, created_at, updated_at, customer_id, customer_email, created_by')
+            .in('status', ['approved','completed'])
+            .or(orParts.join(','))
+            .order('updated_at', { ascending: false });
+
+          if (!ucErr) {
+            const rows = Array.isArray(ucRowsRaw) ? ucRowsRaw : [];
             if (rows.length > 0) {
-              totalApprovedRevenue = rows.reduce((s: number, r: any) => s + (Number(r.total_value) || 0), 0);
-              totalWeight = rows.reduce((s: number, r: any) => s + (Number(r.total_weight_kg) || 0), 0);
+              // Derive wallet-approved revenue from collection_materials EXCLUDING PET items
+              const ids = rows.map((r: any) => r.id).filter(Boolean);
+              let approvedRevenue = 0;
+              try {
+                if (ids.length > 0) {
+                  const { data: mats } = await supabase
+                    .from('collection_materials')
+                    .select('collection_id, quantity, unit_price, materials(name)')
+                    .in('collection_id', ids);
+                  if (Array.isArray(mats)) {
+                    approvedRevenue = mats.reduce((sum: number, m: any) => {
+                      const name = String(m?.materials?.name || '').toLowerCase();
+                      const isPet = name.includes('pet');
+                      const qty = Number(m.quantity) || 0;
+                      const price = Number(m.unit_price) || 0;
+                      return isPet ? sum : sum + (qty * price);
+                    }, 0);
+                  }
+                }
+              } catch (_em) {
+                // Fallback: if materials query fails, use stored totals (may include PET)
+                approvedRevenue = rows.reduce((s: number, r: any) => s + (Number((r.computed_value ?? r.total_value) || 0) || 0), 0);
+              }
+
+              const weightKg = rows.reduce((s: number, r: any) => s + (Number(r.total_weight_kg) || 0), 0);
+              totalApprovedRevenue = approvedRevenue;
+              totalWeight = weightKg;
               totalPickups = rows.length;
             }
-          } catch (_e) {}
+          }
+        } catch (_e) {
+          // If unified query fails due to RLS or missing table, retain any queue-derived totals
         }
 
         // Calculate total approved/processed withdrawals (prefer withdrawal_requests to avoid missing legacy table)
@@ -192,7 +226,7 @@ export class WorkingWalletService {
         try {
           const { data: spendingTransactions, error: spendingErr } = await supabase
             .from('wallet_transactions')
-            .select('amount, transaction_type')
+            .select('amount, source_type')
             .eq('user_id', userId)
             .lt('amount', 0); // Negative amounts are spending
           
@@ -476,7 +510,7 @@ export class WorkingWalletService {
         unifiedTransactions = rows.map((r: any) => ({
           id: r.id,
           type: 'credit',
-          amount: Number((r.computed_value ?? r.total_value) || 0) || 0,
+          amount: Number((r.computed_value ?? r.total_value) || 0) || 0, // full total (may include PET)
           material_type: topMaterialByCollection[String(r.id)] || 'Mixed Materials',
           kgs: Number(r.total_weight_kg || 0) || 0,
           status: r.status,
@@ -567,6 +601,36 @@ export class WorkingWalletService {
         console.warn('WorkingWalletService: Error fetching transaction history (returning empty):', msg);
       }
       return [];
+    }
+  }
+
+  static async getNonPetApprovedTotal(userId: string): Promise<number> {
+    try {
+      if (!userId) return 0;
+      // Fetch approved/completed collections for the user
+      const { data: ucRows } = await supabase
+        .from('unified_collections')
+        .select('id')
+        .in('status', ['approved','completed'])
+        .eq('customer_id', userId);
+      const ids = (Array.isArray(ucRows) ? ucRows : []).map((r: any) => r.id).filter(Boolean);
+      if (ids.length === 0) return 0;
+
+      // Sum non-PET amounts from collection_materials
+      const { data: mats } = await supabase
+        .from('collection_materials')
+        .select('collection_id, quantity, unit_price, materials(name)')
+        .in('collection_id', ids);
+      const total = (Array.isArray(mats) ? mats : []).reduce((sum: number, m: any) => {
+        const name = String(m?.materials?.name || '').toLowerCase();
+        const isPet = name.includes('pet');
+        const qty = Number(m.quantity) || 0;
+        const price = Number(m.unit_price) || 0;
+        return isPet ? sum : sum + (qty * price);
+      }, 0);
+      return Number((total || 0).toFixed(2));
+    } catch (_e) {
+      return 0;
     }
   }
 }

@@ -111,7 +111,7 @@ export class WithdrawalService {
           .from('wallet_transactions')
           .insert({
             user_id: request.userId,
-            source_type: 'withdrawal',
+            source_type: 'payout',
             source_id: result.id,
             amount: 0,
             points: 0,

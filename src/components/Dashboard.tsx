@@ -81,10 +81,11 @@ const Dashboard = () => {
   const totalKgRecycled = safeTotalWeightKg || safeTotalPoints; // Use actual weight if available
   const co2Saved = safeEnvironmentalImpact?.co2_saved_kg || (totalKgRecycled * 0.5); // Use calculated impact if available
 
-  // Recent activity (last 3 transactions)
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  // Transactions and balance computed from transactions
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
   const [recentError, setRecentError] = useState<string | null>(null);
+  const [computedBalance, setComputedBalance] = useState<number | null>(null);
 
   useEffect(() => {
     const loadRecent = async () => {
@@ -93,17 +94,40 @@ const Dashboard = () => {
       setRecentError(null);
       try {
         const tx = await WorkingWalletService.getTransactionHistory(user.id);
-        setRecentTransactions((tx || []).slice(0, 3));
+        const safeTx = Array.isArray(tx) ? tx : [];
+        setAllTransactions(safeTx);
+        // Keep computed history sum for other UI, but not for wallet balance
+        const sum = safeTx.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+        setComputedBalance(Number(sum.toFixed(2)));
       } catch (e: any) {
         console.error('Error loading recent transactions:', e);
         setRecentError(e?.message || 'Failed to load recent activity');
-        setRecentTransactions([]);
+        setAllTransactions([]);
+        setComputedBalance(null);
       } finally {
         setRecentLoading(false);
       }
     };
     loadRecent();
   }, [user?.id]);
+
+  // Compute wallet display balance from unified collections (exclude PET)
+  const [nonPetBalance, setNonPetBalance] = useState<number | null>(null);
+  useEffect(() => {
+    const loadNonPet = async () => {
+      if (!user?.id) return;
+      try {
+        const val = await WorkingWalletService.getNonPetApprovedTotal(user.id);
+        setNonPetBalance(val);
+      } catch {
+        setNonPetBalance(null);
+      }
+    };
+    loadNonPet();
+  }, [user?.id]);
+
+  // Prefer non-PET unified total; fallback to walletBalance
+  const displayBalance = (typeof nonPetBalance === 'number') ? nonPetBalance : safeWalletBalance;
 
   const formatDate = (iso?: string) => {
     if (!iso) return '';
@@ -313,9 +337,6 @@ const Dashboard = () => {
     alert(`Collection booked for ${selectedDate}`);
   };
 
-  // Simple balance display - use the working wallet balance
-  const displayBalance = safeWalletBalance;
-
   // Debug logging to see what's happening
   console.log('Dashboard Debug - Wallet Values:', {
     walletBalance: safeWalletBalance,
@@ -518,10 +539,10 @@ const Dashboard = () => {
             <div className="text-xs text-muted-foreground">Loading recent activity...</div>
           ) : recentError ? (
             <div className="text-xs text-red-500">{recentError}</div>
-          ) : recentTransactions.length === 0 ? (
+          ) : allTransactions.length === 0 ? (
             <div className="text-xs text-muted-foreground">No recent activity yet.</div>
           ) : (
-            recentTransactions.map((t) => (
+            allTransactions.slice(0, 3).map((t) => (
               <div key={t.id} className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   {getTxIcon(t.amount)}

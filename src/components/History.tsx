@@ -8,7 +8,7 @@ import { UnifiedWalletService } from "@/lib/unifiedWalletService";
 import { WorkingWalletService } from "@/lib/workingWalletService";
 
 const History = () => {
-  const [filter, setFilter] = useState<'all' | 'earnings' | 'rewards' | 'donations' | 'withdrawals'>('all');
+  const [filter, setFilter] = useState<'all' | 'earnings' | 'rewards' | 'withdrawals'>('all');
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -45,7 +45,6 @@ const History = () => {
     return filter === 'all' ||
       (filter === 'earnings' && type === 'earning') ||
       (filter === 'rewards' && type === 'reward') ||
-      (filter === 'donations' && type === 'donation') ||
       (filter === 'withdrawals' && type === 'withdrawal');
   });
 
@@ -162,14 +161,6 @@ const History = () => {
               className="text-xs"
             >
               Rewards
-            </Button>
-            <Button
-              variant={filter === 'donations' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter('donations')}
-              className="text-xs"
-            >
-              Donations
             </Button>
             <Button
               variant={filter === 'withdrawals' ? 'default' : 'outline'}

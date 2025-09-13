@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GreenScholarFundService } from '@/lib/greenScholarFundService';
+import { supabase } from '@/lib/supabase';
 
 // Type definitions for Green Scholar Fund
 interface FundStats {
@@ -9,6 +10,7 @@ interface FundStats {
   total_distributions: number;
   progress_percentage: number;
   remaining_amount: number;
+  monthly_goal: number;
 }
 
 interface UserBottleContributions {
@@ -75,12 +77,18 @@ export const useGreenScholarFund = () => {
 
       // Fetch fund data
       const fundData = await GreenScholarFundService.getFundData();
+      const monthlyGoal = 50000; // Default monthly goal
+      const totalFund = Number(fundData.totalBalance || 0);
+      const remainingAmount = Math.max(0, monthlyGoal - totalFund);
+      const progressPercentage = Math.min(100, Math.round((totalFund / monthlyGoal) * 100));
+
       setFundStats({
-        total_balance: fundData.totalBalance,
-        total_contributions: fundData.totalContributions,
-        total_distributions: fundData.totalDistributions,
-        progress_percentage: 0, // Calculate based on your business logic
-        remaining_amount: 0 // Calculate based on your business logic
+        total_balance: totalFund,
+        total_contributions: Number(fundData.totalContributions || 0),
+        total_distributions: Number(fundData.totalDistributions || 0),
+        progress_percentage: progressPercentage,
+        remaining_amount: remainingAmount,
+        monthly_goal: monthlyGoal
       });
 
       // Fetch user donations and PET contributions
@@ -132,6 +140,50 @@ export const useGreenScholarFund = () => {
     }
   }, [user?.id]);
 
+  // Submit application (Save to green_scholar_applications)
+  const submitApplication = useCallback(async (app: any) => {
+    if (!user?.id) return { success: false, error: 'User not authenticated' };
+    try {
+      const payload = {
+        created_by: user.id,
+        full_name: app.full_name || app.full_name || app.fullName,
+        date_of_birth: app.date_of_birth || app.dateOfBirth || null,
+        phone_number: app.phone_number || app.phoneNumber || null,
+        email: app.email || null,
+        id_number: app.id_number || app.idNumber || null,
+        school_name: app.school_name || app.schoolName || null,
+        grade: app.grade || null,
+        student_number: app.student_number || app.studentNumber || null,
+        academic_performance: app.academic_performance || app.academicPerformance || null,
+        household_income: app.household_income || app.householdIncome || null,
+        household_size: app.household_size || app.householdSize || null,
+        employment_status: app.employment_status || app.employmentStatus || null,
+        other_income_sources: app.other_income_sources || app.otherIncomeSources || null,
+        support_type: app.support_type || app.supportType || [],
+        urgent_needs: app.urgent_needs || app.urgentNeeds || null,
+        previous_support: app.previous_support || app.previousSupport || null,
+        has_id_document: !!(app.has_id_document ?? app.hasIdDocument),
+        has_school_report: !!(app.has_school_report ?? app.hasSchoolReport),
+        has_income_proof: !!(app.has_income_proof ?? app.hasIncomeProof),
+        has_bank_statement: !!(app.has_bank_statement ?? app.hasBankStatement),
+        special_circumstances: app.special_circumstances || app.specialCircumstances || null,
+        community_involvement: app.community_involvement || app.communityInvolvement || null,
+        references_info: app.references_info || null
+      };
+
+      const { data, error } = await supabase
+        .from('green_scholar_applications')
+        .insert(payload)
+        .select('id, created_at')
+        .single();
+      if (error) throw error;
+      return { success: true, id: data?.id };
+    } catch (e: any) {
+      console.error('Submit application failed:', e);
+      return { success: false, error: e.message || 'Failed to submit application' };
+    }
+  }, [user?.id]);
+
   // Fetch initial data on mount
   useEffect(() => {
     fetchInitialData();
@@ -162,6 +214,7 @@ export const useGreenScholarFund = () => {
     
     // Actions
     submitDonation,
+    submitApplication,
     fetchInitialData,
     
     // Utility

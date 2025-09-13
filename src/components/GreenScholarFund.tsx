@@ -152,6 +152,15 @@ const GreenScholarFund = () => {
     totalPersonal: 0.00
   };
 
+  // Compute user's cash donations total (completed only)
+  const cashDonations = (userDonations || [])
+    .filter((d: any) => (d.status || 'completed') === 'completed')
+    .reduce((sum: number, d: any) => sum + (Number(d.amount) || 0), 0);
+
+  // Total Donation = PET Contribution + Cash Donations
+  const totalDonation = (Number(petBottlesSummary.totalValue) || 0) + (Number(cashDonations) || 0);
+  const monthlyGoalVal = Number((fundStats as any)?.monthly_goal || 50000);
+
   const quickAmounts = [10, 25, 50, 100];
   
   const supportCategories = [
@@ -704,59 +713,27 @@ const GreenScholarFund = () => {
         </div>
       </div>
 
-      {/* Fund Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                 <Card className="shadow-card text-center">
-           <CardContent className="p-4">
-             <div className="text-2xl font-bold text-primary">
-               {fundLoading ? (
-                 <div className="animate-pulse h-8 bg-muted rounded"></div>
-               ) : (
-                 `R${Number((fundStats as any)?.total_fund || 0).toLocaleString()}`
-               )}
-             </div>
-             <div className="text-sm text-muted-foreground">Total Fund</div>
-           </CardContent>
-         </Card>
-         
-         <Card className="shadow-card text-center">
-           <CardContent className="p-4">
-             <div className="text-2xl font-bold text-secondary">
-               {fundLoading ? (
-                 <div className="animate-pulse h-8 bg-muted rounded"></div>
-               ) : (
-                 `R${Number((fundStats as any)?.monthly_goal || 50000).toLocaleString()}`
-               )}
-             </div>
-             <div className="text-sm text-muted-foreground">Monthly Goal</div>
-           </CardContent>
-         </Card>
-         
-         <Card className="shadow-card text-center">
-           <CardContent className="p-4">
-             <div className="text-2xl font-bold text-success">
-               {fundLoading ? (
-                 <div className="animate-pulse h-8 bg-muted rounded"></div>
-               ) : (
-                 `${Number((fundStats as any)?.progress_percentage || 0)}%`
-               )}
-             </div>
-             <div className="text-sm text-muted-foreground">Progress</div>
-           </CardContent>
-         </Card>
-         
-         <Card className="shadow-card text-center">
-           <CardContent className="p-4">
-             <div className="text-2xl font-bold text-accent">
-               {fundLoading ? (
-                 <div className="animate-pulse h-8 bg-muted rounded"></div>
-               ) : (
-                 `R${Number((fundStats as any)?.remaining_amount || 50000).toLocaleString()}`
-               )}
-             </div>
-             <div className="text-sm text-muted-foreground">Remaining</div>
-           </CardContent>
-         </Card>
+      {/* Orange Banner with white text */}
+      <div className="rounded-lg p-4 md:p-5" style={{ backgroundColor: '#0B7D3B' }}>
+        <div className="text-white font-semibold">100% of PET Bottles revenue goes to the Green Scholar Fund</div>
+        <div className="text-white text-sm mt-1">Every PET bottle you recycle contributes directly to supporting students in need. Your environmental action creates educational opportunities!</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+          <div className="bg-white/10 rounded-md p-3">
+            <div className="text-xs text-white/80">Total Community Fund</div>
+            <div className="text-white text-xl font-bold">{fundLoading ? '—' : `R${Number(fundStats?.total_balance || 0).toLocaleString()}`}</div>
+          </div>
+          <div className="bg-white/10 rounded-md p-3">
+            <div className="text-xs text-white/80">Left to Reach Monthly Goal</div>
+            <div className="text-white text-xl font-bold">{fundLoading ? '—' : `R${Number(fundStats?.remaining_amount || 0).toLocaleString()}`}</div>
+          </div>
+          <div className="bg-white/10 rounded-md p-3">
+            <div className="text-xs text-white/80">Monthly Goal</div>
+            <div className="text-white text-xl font-bold">{fundLoading ? '—' : `R${monthlyGoalVal.toLocaleString()}`}</div>
+          </div>
+        </div>
+        <div className="text-white/80 text-xs mt-3">
+          Total Community Fund reflects the whole community: PET contributions (all users) + cash donations (all users) − disbursed support.
+        </div>
       </div>
 
       {/* PET Bottles Contribution Section */}
@@ -771,38 +748,52 @@ const GreenScholarFund = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {petBottlesSummary.totalBottles}
-              </div>
-              <div className="text-sm text-muted-foreground">Bottles Collected</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
                 {petBottlesSummary.totalWeight.toFixed(1)}kg
               </div>
-              <div className="text-sm text-muted-foreground">Total Weight</div>
+              <div className="text-sm text-muted-foreground">Total Weight (current + future PET)</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
                 R{petBottlesSummary.totalValue.toFixed(2)}
               </div>
-              <div className="text-sm text-muted-foreground">Total Value</div>
+              <div className="text-sm text-muted-foreground">PET Contribution</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                R{petBottlesSummary.totalContributions.toFixed(2)}
+                R{cashDonations.toFixed(2)}
               </div>
-              <div className="text-sm text-muted-foreground">Fund Contribution</div>
+              <div className="text-sm text-muted-foreground">Cash Donations</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                R{totalDonation.toFixed(2)}
+              </div>
+              <div className="text-sm text-muted-foreground">Total Donation</div>
             </div>
           </div>
-          <div className="mt-4 p-3 bg-green-50 rounded-lg">
-            <div className="flex items-center space-x-2 text-green-800">
-              <Info className="h-4 w-4" />
-              <span className="text-sm font-medium">100% of PET Bottles revenue goes to the Green Scholar Fund</span>
+        </CardContent>
+      </Card>
+
+      {/* Preferred School Selection */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="text-base">Choose a Primary School to Benefit</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+            <div>
+              <Label htmlFor="preferredSchool">Primary School</Label>
+              <Select onValueChange={() => {}}>
+                <SelectTrigger id="preferredSchool">
+                  <SelectValue placeholder="Select a school" />
+                </SelectTrigger>
+                <SelectContent>
+                </SelectContent>
+              </Select>
             </div>
-            <p className="text-sm text-green-700 mt-1">
-              Every PET bottle you recycle contributes directly to supporting students in need. 
-              Your environmental action creates educational opportunities!
-            </p>
+            <div>
+              <Button className="w-full md:w-auto">Save Preference</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -829,7 +820,6 @@ const GreenScholarFund = () => {
               </Button>
             ))}
           </div>
-          
           <div className="flex space-x-2">
             <input
               type="number"
@@ -846,221 +836,54 @@ const GreenScholarFund = () => {
               Donate R{donationAmount}
             </Button>
           </div>
-          
-          <p className="text-xs text-muted-foreground">
-            Donations can be made from your Woza Mali wallet or MTN MoMo
-          </p>
+          <p className="text-xs text-muted-foreground">Donations can be made from your Woza Mali wallet</p>
         </CardContent>
       </Card>
 
-      {/* PET/Plastic Bottle Collection */}
+      {/* Donation Transactions */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle className="text-base flex items-center space-x-2">
-            <Shirt className="h-5 w-5 text-secondary" />
-            <span>Submit PET/Plastic Bottles</span>
-          </CardTitle>
+          <CardTitle className="text-base">Donation Transactions</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-secondary">{userBottleContributions.total_bottles}</div>
-              <div className="text-sm text-muted-foreground">Total Bottles</div>
+        <CardContent>
+          {(userDonations || []).length === 0 ? (
+            <div className="text-sm text-muted-foreground">No donation transactions yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted-foreground">
+                    <th className="py-2 pr-4">Date</th>
+                    <th className="py-2 pr-4">Amount</th>
+                    <th className="py-2 pr-4">Beneficiary</th>
+                    <th className="py-2">Message</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userDonations.map((d: any) => (
+                    <tr key={d.id} className="border-t">
+                      <td className="py-2 pr-4">{new Date(d.createdAt || d.created_at).toLocaleDateString()}</td>
+                      <td className="py-2 pr-4">R {Number(d.amount || 0).toFixed(2)}</td>
+                      <td className="py-2 pr-4">
+                        {d.beneficiaryType === 'school' ? 'School' : d.beneficiaryType === 'child_headed_home' ? 'Child-Headed Home' : 'General Fund'}
+                      </td>
+                      <td className="py-2">{d.message || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-secondary">{userBottleContributions.total_weight.toFixed(2)} kg</div>
-              <div className="text-sm text-muted-foreground">Total Weight</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-secondary">R{userBottleContributions.total_value.toFixed(2)}</div>
-              <div className="text-sm text-muted-foreground">Total Value</div>
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <Button 
-              variant="secondary" 
-              onClick={() => setShowBottleCollectionDialog(true)}
-              className="w-full md:w-auto"
-            >
-              Submit New Collection
-            </Button>
-          </div>
-          
-          <p className="text-xs text-muted-foreground text-center">
-            Each kg of PET bottles contributes R2 to the Green Scholar Fund
-          </p>
+          )}
         </CardContent>
       </Card>
-
-             {/* Bottle Collection Dialog */}
-       <Dialog open={showBottleCollectionDialog} onOpenChange={setShowBottleCollectionDialog}>
-         <DialogContent className="max-w-md">
-           <DialogHeader>
-             <DialogTitle>Submit PET/Plastic Bottle Collection</DialogTitle>
-           </DialogHeader>
-           
-           <div className="space-y-4">
-             <div>
-               <Label htmlFor="bottleCount">Number of Bottles</Label>
-               <Input
-                 id="bottleCount"
-                 type="number"
-                 placeholder="Enter bottle count"
-                 min="1"
-                 onChange={(e) => setBottleCollectionData(prev => ({
-                   ...prev,
-                   bottle_count: parseInt(e.target.value) || 0
-                 }))}
-               />
-             </div>
-             
-             <div>
-               <Label htmlFor="weightKg">Weight (kg)</Label>
-               <Input
-                 id="weightKg"
-                 type="number"
-                 step="0.01"
-                 placeholder="Enter weight in kg"
-                 min="0.01"
-                 onChange={(e) => setBottleCollectionData(prev => ({
-                   ...prev,
-                   weight_kg: parseFloat(e.target.value) || 0
-                 }))}
-               />
-             </div>
-             
-             <div>
-               <Label htmlFor="bottleType">Bottle Type</Label>
-               <Select 
-                 value={bottleCollectionData.bottle_type} 
-                 onValueChange={(value: 'PET' | 'HDPE' | 'Other') => 
-                   setBottleCollectionData(prev => ({ ...prev, bottle_type: value }))
-                 }
-               >
-                 <SelectTrigger>
-                   <SelectValue placeholder="Select bottle type" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="PET">PET (Polyethylene Terephthalate)</SelectItem>
-                   <SelectItem value="HDPE">HDPE (High-Density Polyethylene)</SelectItem>
-                   <SelectItem value="Other">Other</SelectItem>
-                 </SelectContent>
-               </Select>
-             </div>
-             
-             <div>
-               <Label htmlFor="collectionDate">Collection Date</Label>
-               <Input
-                 id="collectionDate"
-                 type="date"
-                 value={bottleCollectionData.collection_date}
-                 onChange={(e) => setBottleCollectionData(prev => ({
-                   ...prev,
-                   collection_date: e.target.value
-                 }))}
-               />
-             </div>
-             
-             <div>
-               <Label htmlFor="notes">Notes (Optional)</Label>
-               <Textarea
-                 id="notes"
-                 placeholder="Any additional notes about this collection"
-                 rows={3}
-                 onChange={(e) => setBottleCollectionData(prev => ({
-                   ...prev,
-                   notes: e.target.value
-                 }))}
-               />
-             </div>
-             
-             <div className="flex space-x-2 pt-4">
-               <Button
-                 variant="outline"
-                 onClick={() => setShowBottleCollectionDialog(false)}
-                 className="flex-1"
-               >
-                 Cancel
-               </Button>
-               <Button
-                 onClick={handleBottleCollection}
-                 disabled={!bottleCollectionData.bottle_count || !bottleCollectionData.weight_kg || isProcessingBottleCollection}
-                 className="flex-1"
-               >
-                 {isProcessingBottleCollection ? 'Submitting...' : 'Submit Collection'}
-               </Button>
-             </div>
-           </div>
-         </DialogContent>
-       </Dialog>
-
-       {/* Donation Payment Dialog */}
-       <Dialog open={showDonationDialog} onOpenChange={setShowDonationDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Complete Your Donation</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary mb-2">
-                R{donationAmount}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Select your payment method
-              </p>
-            </div>
-            
-            <div className="space-y-3">
-              <Button
-                variant={paymentMethod === 'wallet' ? 'default' : 'outline'}
-                className="w-full justify-start"
-                onClick={() => setPaymentMethod('wallet')}
-              >
-                <Wallet className="h-5 w-5 mr-3" />
-                Woza Mali Wallet
-              </Button>
-              
-              <Button
-                variant={paymentMethod === 'mtn-momo' ? 'default' : 'outline'}
-                className="w-full justify-start"
-                onClick={() => setPaymentMethod('mtn-momo')}
-              >
-                <Smartphone className="h-5 w-5 mr-3" />
-                MTN MoMo
-              </Button>
-            </div>
-            
-            <div className="flex space-x-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowDonationDialog(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDonation}
-                disabled={!paymentMethod || isProcessingDonation}
-                className="flex-1"
-              >
-                {isProcessingDonation ? 'Processing...' : 'Confirm Donation'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Support Categories */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground">How Your Donation Helps</h3>
-        
         {supportCategories.map((category, index) => {
           const Icon = category.icon;
           const totalNeeded = category.funded + category.needed;
           const fundedPercentage = (category.funded / totalNeeded) * 100;
-          
           return (
             <Card key={index} className="shadow-card">
               <CardContent className="p-4">
@@ -1074,13 +897,9 @@ const GreenScholarFund = () => {
                       <span className="text-sm font-bold text-primary">R{category.cost}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">{category.description}</p>
-                    
                     <div className="space-y-2">
                       <div className="w-full bg-muted rounded-full h-2">
-                        <div 
-                          className="bg-gradient-impact h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${fundedPercentage}%` }}
-                        />
+                        <div className="bg-gradient-impact h-2 rounded-full transition-all duration-500" style={{ width: `${fundedPercentage}%` }} />
                       </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-success">{category.funded} funded</span>
@@ -1100,46 +919,23 @@ const GreenScholarFund = () => {
         <CardContent className="p-4 text-center">
           <Users className="h-8 w-8 text-secondary mx-auto mb-2" />
           <h4 className="font-medium text-foreground mb-1">Need Support?</h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            If you're a learner or support a child-headed household, apply for assistance
-          </p>
+          <p className="text-sm text-muted-foreground mb-3">If you're a learner or support a child-headed household, apply for assistance</p>
           <Dialog open={showApplication} onOpenChange={setShowApplication}>
             <DialogTrigger asChild>
-              <Button variant="secondary" size="sm">
-                Apply for Support
-              </Button>
+              <Button variant="secondary" size="sm">Apply for Support</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Green Scholar Fund Application</DialogTitle>
               </DialogHeader>
-              
               <div className="space-y-6">
                 {renderApplicationStep()}
-                
                 <div className="flex justify-between pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setApplicationStep(Math.max(1, applicationStep - 1))}
-                    disabled={applicationStep === 1}
-                  >
-                    Previous
-                  </Button>
-                  
+                  <Button variant="outline" onClick={() => setApplicationStep(Math.max(1, applicationStep - 1))} disabled={applicationStep === 1}>Previous</Button>
                   {applicationStep < 5 ? (
-                    <Button
-                      onClick={() => setApplicationStep(applicationStep + 1)}
-                      disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}
-                    >
-                      Next
-                    </Button>
+                    <Button onClick={() => setApplicationStep(applicationStep + 1)} disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}>Next</Button>
                   ) : (
-                    <Button
-                      onClick={handleApplicationSubmit}
-                      disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}
-                    >
-                      Submit Application
-                    </Button>
+                    <Button onClick={handleApplicationSubmit} disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}>Submit Application</Button>
                   )}
                 </div>
               </div>
@@ -1160,12 +956,8 @@ const GreenScholarFund = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h4 className="font-medium text-foreground mb-2">Our Mission</h4>
-              <p className="text-sm text-muted-foreground">
-                The Green Scholar Fund supports learners from disadvantaged backgrounds by providing essential educational resources, 
-                including school uniforms, stationery, and nutritional support.
-              </p>
+              <p className="text-sm text-muted-foreground">The Green Scholar Fund supports learners from disadvantaged backgrounds by providing essential educational resources, including school uniforms, stationery, and nutritional support.</p>
             </div>
-            
             <div>
               <h4 className="font-medium text-foreground mb-2">How It Works</h4>
               <ul className="text-sm text-muted-foreground space-y-1">

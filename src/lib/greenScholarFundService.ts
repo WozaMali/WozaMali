@@ -67,62 +67,33 @@ export interface UserDonation {
 
 export class GreenScholarFundService {
   /**
-   * Get Green Scholar Fund overview data
+   * Get Green Scholar Fund overview data (no fallbacks)
    */
   static async getFundData(): Promise<GreenScholarFundData> {
-    try {
-      console.log('GreenScholarFundService: Fetching fund data...');
-
-      // Get fund balance (be resilient to schema differences)
-      let fundBalance: any = null;
-      let balanceError: any = null;
-      try {
-        const resp = await supabase
+    const { data: balance, error: balErr } = await supabase
           .from('green_scholar_fund_balance')
           .select('*')
-          .single();
-        fundBalance = resp.data;
-        balanceError = resp.error;
-      } catch (e: any) {
-        balanceError = e;
-      }
+      .order('last_updated', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      if (balanceError) {
-        console.error('Error fetching fund balance:', balanceError);
-        throw balanceError;
-      }
+    if (balErr || !balance) {
+      throw new Error(`Fund balance not available. Run green_scholar_fund_balance.sql to install and seed snapshot. (${balErr?.message || 'no row'})`);
+    }
 
-      // Get recent transactions (best-effort; don't block UI on RLS errors)
       let transactions: any[] = [];
-      try {
-        const { data: tx, error: transactionsError } = await supabase
+    const { data: tx } = await supabase
           .from('green_scholar_transactions')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(10);
-        if (!transactionsError && Array.isArray(tx)) {
-          transactions = tx;
-        } else if (transactionsError) {
-          console.warn('Warning fetching transactions (continuing without):', transactionsError);
-        }
-      } catch (e) {
-        console.warn('Transactions fetch threw (continuing without):', e);
-      }
+    if (Array.isArray(tx)) transactions = tx;
 
-      // Get beneficiary statistics
-      const [schoolsResult, homesResult] = await Promise.all([
-        supabase.from('schools').select('id').eq('is_active', true),
-        supabase.from('child_headed_homes').select('id').eq('is_active', true)
-      ]);
-
-      const schoolsCount = schoolsResult.data?.length || 0;
-      const homesCount = homesResult.data?.length || 0;
-
-      const result: GreenScholarFundData = {
-        totalBalance: Number(fundBalance?.total_balance) || 0,
-        totalContributions: Number(fundBalance?.total_contributions ?? fundBalance?.contributions) || 0,
-        totalDistributions: Number(fundBalance?.total_distributions ?? fundBalance?.distributions) || 0,
-        recentTransactions: transactions?.map(t => ({
+    return {
+      totalBalance: Number(balance.total_balance || 0),
+      totalContributions: Number((balance.total_contributions ?? (Number(balance.pet_donations_total || 0) + Number(balance.direct_donations_total || 0))) || 0),
+      totalDistributions: Number(balance.expenses_total || balance.total_distributions || 0),
+      recentTransactions: transactions.map(t => ({
           id: t.id,
           transactionType: t.transaction_type,
           amount: t.amount,
@@ -132,21 +103,9 @@ export class GreenScholarFundService {
           beneficiaryId: t.beneficiary_id,
           description: t.description,
           createdAt: t.created_at
-        })) || [],
-        beneficiaryStats: {
-          schools: schoolsCount,
-          childHeadedHomes: homesCount,
-          totalBeneficiaries: schoolsCount + homesCount
-        }
-      };
-
-      console.log('GreenScholarFundService: Fund data retrieved successfully:', result);
-      return result;
-
-    } catch (error) {
-      console.error('GreenScholarFundService: Error fetching fund data:', error);
-      throw error;
-    }
+      })),
+      beneficiaryStats: { schools: 0, childHeadedHomes: 0, totalBeneficiaries: 0 }
+    };
   }
 
   /**
@@ -157,187 +116,31 @@ export class GreenScholarFundService {
     totalDonationAmount: number;
     totalContribution: number;
   }> {
+    // Compute directly from transactions (no dependency on views)
     try {
-      const { data, error } = await supabase
-        .from('green_scholar_user_contributions')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-      if (error) {
-        console.warn('getUserContributionTotals warning (continuing with zeros):', error);
-        return { totalPetAmount: 0, totalDonationAmount: 0, totalContribution: 0 };
-      }
-      return {
-        totalPetAmount: Number(data?.total_pet_amount || 0),
-        totalDonationAmount: Number(data?.total_donation_amount || 0),
-        totalContribution: Number(data?.total_contribution || 0)
-      };
-    } catch (e) {
-      console.warn('getUserContributionTotals exception (continuing with zeros):', e);
+      const { data: petTx } = await supabase
+        .from('green_scholar_transactions')
+        .select('amount')
+        .eq('transaction_type', 'pet_contribution')
+        .eq('created_by', userId);
+      const totalPetAmount = (petTx || []).reduce((s, r: any) => s + (Number(r.amount) || 0), 0);
+
+      const { data: donTx } = await supabase
+        .from('green_scholar_transactions')
+        .select('amount, transaction_type, created_by')
+        .in('transaction_type', ['donation', 'direct_donation'])
+        .eq('created_by', userId);
+      const totalDonationAmount = (donTx || []).reduce((s, r: any) => s + (Number(r.amount) || 0), 0);
+
+      const totalContribution = totalPetAmount + totalDonationAmount;
+      return { totalPetAmount, totalDonationAmount, totalContribution };
+    } catch (_e) {
       return { totalPetAmount: 0, totalDonationAmount: 0, totalContribution: 0 };
     }
   }
 
   /**
-   * Process PET Bottles contribution to Green Scholar Fund
-   * This should be called when a PET Bottles collection is approved
-   */
-  static async processPetBottlesContribution(collectionId: string, userId: string, weightKg: number, materialType: string): Promise<boolean> {
-    try {
-      console.log('Processing PET Bottles contribution:', { collectionId, userId, weightKg, materialType });
-
-      // Only process PET Bottles
-      if (materialType.toLowerCase() !== 'pet bottles') {
-        console.log('Not PET Bottles, skipping Green Scholar Fund contribution');
-        return false;
-      }
-
-      // Calculate contribution amount (100% of PET revenue)
-      const petRate = 15; // R15 per kg for PET Bottles
-      const contributionAmount = weightKg * petRate;
-
-      console.log('PET Bottles contribution amount:', contributionAmount);
-
-      // Create Green Scholar Fund transaction
-      const { data: transaction, error: transactionError } = await supabase
-        .from('green_scholar_transactions')
-        .insert({
-          transaction_type: 'contribution',
-          amount: contributionAmount,
-          source_type: 'pet_bottles_collection',
-          source_id: collectionId,
-          description: `PET Bottles collection contribution (${weightKg}kg @ R${petRate}/kg)`,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (transactionError) {
-        console.error('Error creating Green Scholar Fund transaction:', transactionError);
-        throw transactionError;
-      }
-
-      // Update fund balance
-      const { error: balanceError } = await supabase
-        .from('green_scholar_fund_balance')
-        .upsert({
-          total_balance: supabase.raw('total_balance + ?', [contributionAmount]),
-          total_contributions: supabase.raw('total_contributions + ?', [contributionAmount]),
-          updated_at: new Date().toISOString()
-        });
-
-      if (balanceError) {
-        console.error('Error updating fund balance:', balanceError);
-        // Don't throw here, transaction was created successfully
-      }
-
-      console.log('PET Bottles contribution processed successfully:', transaction);
-      return true;
-
-    } catch (error) {
-      console.error('Error processing PET Bottles contribution:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Get total PET Bottles contributions to the fund
-   */
-  static async getTotalPetBottlesContributions(): Promise<number> {
-    try {
-      const { data: transactions, error } = await supabase
-        .from('green_scholar_transactions')
-        .select('amount')
-        .eq('source_type', 'pet_bottles_collection')
-        .eq('transaction_type', 'contribution');
-
-      if (error) {
-        console.error('Error fetching PET Bottles contributions:', error);
-        return 0;
-      }
-
-      return (transactions || []).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-    } catch (error) {
-      console.error('Error calculating total PET Bottles contributions:', error);
-      return 0;
-    }
-  }
-
-  /**
-   * Get all active schools
-   */
-  static async getSchools(): Promise<School[]> {
-    try {
-      const { data, error } = await supabase
-        .from('schools')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching schools:', error);
-        throw error;
-      }
-
-      return data?.map(school => ({
-        id: school.id,
-        name: school.name,
-        schoolType: school.school_type,
-        address: school.address,
-        city: school.city,
-        province: school.province,
-        postalCode: school.postal_code,
-        contactPerson: school.contact_person,
-        contactPhone: school.contact_phone,
-        contactEmail: school.contact_email,
-        studentCount: school.student_count,
-        isActive: school.is_active
-      })) || [];
-
-    } catch (error) {
-      console.error('GreenScholarFundService: Error fetching schools:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all active child-headed homes
-   */
-  static async getChildHeadedHomes(): Promise<ChildHeadedHome[]> {
-    try {
-      const { data, error } = await supabase
-        .from('child_headed_homes')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching child-headed homes:', error);
-        throw error;
-      }
-
-      return data?.map(home => ({
-        id: home.id,
-        name: home.name,
-        address: home.address,
-        city: home.city,
-        province: home.province,
-        postalCode: home.postal_code,
-        contactPerson: home.contact_person,
-        contactPhone: home.contact_phone,
-        contactEmail: home.contact_email,
-        childCount: home.child_count,
-        isActive: home.is_active
-      })) || [];
-
-    } catch (error) {
-      console.error('GreenScholarFundService: Error fetching child-headed homes:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Make a donation to the Green Scholar Fund
+   * Make a donation: deduct from user's wallet and record a donation transaction
    */
   static async makeDonation(donation: {
     userId: string;
@@ -347,164 +150,98 @@ export class GreenScholarFundService {
     isAnonymous: boolean;
     message?: string;
   }): Promise<UserDonation> {
-    try {
-      console.log('GreenScholarFundService: Making donation:', donation);
+    const amount = Number(donation.amount || 0);
+    if (!donation.userId || amount <= 0) {
+      throw new Error('Invalid donation request');
+    }
 
-      // Prefer server-side RPC for atomicity and balance updates
-      const { data: newId, error: rpcErr } = await supabase.rpc('add_green_scholar_donation', {
+    // 1) Deduct from wallet (cash balance)
+    const { error: walletErr } = await supabase.rpc('update_wallet_simple', {
         p_user_id: donation.userId,
-        p_amount: donation.amount,
-        p_beneficiary_type: donation.beneficiaryType,
-        p_beneficiary_id: donation.beneficiaryId || null,
-        p_is_anonymous: donation.isAnonymous,
-        p_message: donation.message || null
-      });
+      p_amount: -amount, // deduct
+      p_transaction_type: 'donation',
+      p_weight_kg: 0,
+      p_description: donation.message || 'Green Scholar Fund donation',
+      p_reference_id: null
+    });
+    if (walletErr) {
+      throw walletErr;
+    }
 
-      if (rpcErr) {
-        console.warn('RPC add_green_scholar_donation failed, falling back to direct inserts', rpcErr);
-        // Fallback path (legacy)
-        const { data: userDonation, error: donationError } = await supabase
-          .from('user_donations')
-          .insert({
-            user_id: donation.userId,
-            amount: donation.amount,
-            beneficiary_type: donation.beneficiaryType,
-            beneficiary_id: donation.beneficiaryId,
-            is_anonymous: donation.isAnonymous,
-            message: donation.message,
-            status: 'completed'
-          })
-          .select()
-          .single();
-        if (donationError) throw donationError;
-
-        const { error: transactionError } = await supabase
+    // 2) Insert donation transaction (direct cash donation)
+    const { data: inserted, error: txErr } = await supabase
           .from('green_scholar_transactions')
           .insert({
-            transaction_type: 'donation',
-            amount: donation.amount,
-            source_type: 'user_donation',
-            source_id: userDonation.id,
-            beneficiary_type: donation.beneficiaryType,
-            beneficiary_id: donation.beneficiaryId,
-            description: `Donation from ${donation.isAnonymous ? 'Anonymous' : 'User'}: ${donation.message || 'Supporting education'}`,
+        transaction_type: 'direct_donation',
+        amount: amount,
+        source_type: 'user_wallet',
+        source_id: donation.userId,
+        beneficiary_type: donation.beneficiaryType || 'general',
+        beneficiary_id: donation.beneficiaryId || null,
+        description: donation.message || 'Green Scholar Fund donation',
             created_by: donation.userId
-          });
-        if (transactionError) throw transactionError;
-
-        await supabase
-          .from('green_scholar_fund_balance')
-          .update({
-            total_balance: (funds: any) => funds.total_balance + donation.amount,
-            total_contributions: (funds: any) => funds.total_contributions + donation.amount,
-            direct_donations_total: (funds: any) => funds.direct_donations_total + donation.amount,
-            last_updated: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-
-        return {
-          id: userDonation.id,
-          userId: userDonation.user_id,
-          amount: userDonation.amount,
-          beneficiaryType: userDonation.beneficiary_type,
-          beneficiaryId: userDonation.beneficiary_id,
-          isAnonymous: userDonation.is_anonymous,
-          message: userDonation.message,
-          status: userDonation.status,
-          createdAt: userDonation.created_at
-        };
-      }
-
-      // Fetch created donation row
-      const { data: createdDonation } = await supabase
-        .from('user_donations')
-        .select('*')
-        .eq('id', newId)
-        .maybeSingle();
-
-      return {
-        id: createdDonation?.id || String(newId),
-        userId: createdDonation?.user_id || donation.userId,
-        amount: createdDonation?.amount || donation.amount,
-        beneficiaryType: (createdDonation?.beneficiary_type || donation.beneficiaryType) as any,
-        beneficiaryId: createdDonation?.beneficiary_id || donation.beneficiaryId,
-        isAnonymous: createdDonation?.is_anonymous ?? donation.isAnonymous,
-        message: createdDonation?.message || donation.message,
-        status: (createdDonation?.status || 'completed') as any,
-        createdAt: createdDonation?.created_at || new Date().toISOString()
-      };
-
-    } catch (error) {
-      console.error('GreenScholarFundService: Error making donation:', error);
-      throw error;
+      })
+      .select('*')
+      .single();
+    if (txErr) {
+      throw txErr;
     }
+
+    // 3) Return normalized donation object
+      return {
+      id: inserted.id,
+      userId: donation.userId,
+      amount: amount,
+      beneficiaryType: (inserted.beneficiary_type || 'general') as any,
+      beneficiaryId: inserted.beneficiary_id || undefined,
+      isAnonymous: donation.isAnonymous,
+      message: donation.message,
+      status: 'completed',
+      createdAt: inserted.created_at
+    };
   }
 
   /**
-   * Get user's donation history
+   * Get user's donation history from transactions
    */
   static async getUserDonations(userId: string): Promise<UserDonation[]> {
-    try {
-      const { data, error } = await supabase
-        .from('user_donations')
-        .select('*')
-        .eq('user_id', userId)
+    const { data: tx, error } = await supabase
+      .from('green_scholar_transactions')
+      .select('id, amount, transaction_type, beneficiary_type, beneficiary_id, description, created_at, created_by')
+      .eq('created_by', userId)
+      .in('transaction_type', ['donation', 'direct_donation'])
         .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching user donations:', error);
-        throw error;
-      }
-
-      return data?.map(donation => ({
-        id: donation.id,
-        userId: donation.user_id,
-        amount: donation.amount,
-        beneficiaryType: donation.beneficiary_type,
-        beneficiaryId: donation.beneficiary_id,
-        isAnonymous: donation.is_anonymous,
-        message: donation.message,
-        status: donation.status,
-        createdAt: donation.created_at
-      })) || [];
-
-    } catch (error) {
-      console.error('GreenScholarFundService: Error fetching user donations:', error);
-      throw error;
-    }
+    if (error) return [];
+    return (tx || []).map(t => ({
+      id: t.id,
+      userId: userId,
+      amount: t.amount,
+      beneficiaryType: (t.beneficiary_type || 'general') as any,
+      beneficiaryId: t.beneficiary_id || undefined,
+      isAnonymous: false,
+      message: t.description || undefined,
+      status: 'completed',
+      createdAt: t.created_at
+    }));
   }
 
-  /**
-   * Get fund transaction history
-   */
   static async getTransactionHistory(limit: number = 50): Promise<GreenScholarTransaction[]> {
-    try {
       const { data, error } = await supabase
         .from('green_scholar_transactions')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(limit);
-
-      if (error) {
-        console.error('Error fetching transaction history:', error);
-        throw error;
-      }
-
-      return data?.map(transaction => ({
-        id: transaction.id,
-        transactionType: transaction.transaction_type,
-        amount: transaction.amount,
-        sourceType: transaction.source_type,
-        sourceId: transaction.source_id,
-        beneficiaryType: transaction.beneficiary_type,
-        beneficiaryId: transaction.beneficiary_id,
-        description: transaction.description,
-        createdAt: transaction.created_at
-      })) || [];
-
-    } catch (error) {
-      console.error('GreenScholarFundService: Error fetching transaction history:', error);
-      throw error;
-    }
+    if (error) return [];
+    return (data || []).map(t => ({
+      id: t.id,
+      transactionType: t.transaction_type,
+      amount: t.amount,
+      sourceType: t.source_type,
+      sourceId: t.source_id,
+      beneficiaryType: t.beneficiary_type,
+      beneficiaryId: t.beneficiary_id,
+      description: t.description,
+      createdAt: t.created_at
+    }));
   }
 }
