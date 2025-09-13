@@ -136,6 +136,19 @@ export default function SignIn() {
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              first_name: signUpData.firstName,
+              last_name: signUpData.lastName,
+              full_name: `${signUpData.firstName} ${signUpData.lastName}`,
+              phone: signUpData.phone,
+              street_address: signUpData.streetAddress,
+              township_id: signUpData.townshipId,
+              subdivision: signUpData.subdivision,
+              city: signUpData.city,
+              postal_code: signUpData.postalCode,
+            },
+          },
         });
 
         if (authError) {
