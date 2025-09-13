@@ -71,8 +71,8 @@ export class GreenScholarFundService {
    */
   static async getFundData(): Promise<GreenScholarFundData> {
     const { data: balance, error: balErr } = await supabase
-          .from('green_scholar_fund_balance')
-          .select('*')
+      .from('green_scholar_fund_balance')
+      .select('total_balance, total_contributions, total_distributions, expenses_total, pet_donations_total, direct_donations_total, last_updated')
       .order('last_updated', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -83,10 +83,10 @@ export class GreenScholarFundService {
 
       let transactions: any[] = [];
     const { data: tx } = await supabase
-          .from('green_scholar_transactions')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
+      .from('green_scholar_transactions')
+      .select('id, transaction_type, amount, source_type, source_id, beneficiary_type, beneficiary_id, description, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
     if (Array.isArray(tx)) transactions = tx;
 
     return {
@@ -170,8 +170,8 @@ export class GreenScholarFundService {
 
     // 2) Insert donation transaction (direct cash donation)
     const { data: inserted, error: txErr } = await supabase
-          .from('green_scholar_transactions')
-          .insert({
+      .from('green_scholar_transactions')
+      .insert({
         transaction_type: 'direct_donation',
         amount: amount,
         source_type: 'user_wallet',
@@ -181,7 +181,7 @@ export class GreenScholarFundService {
         description: donation.message || 'Green Scholar Fund donation',
             created_by: donation.userId
       })
-      .select('*')
+      .select('id, beneficiary_type, beneficiary_id, created_at')
       .single();
     if (txErr) {
       throw txErr;
@@ -228,7 +228,7 @@ export class GreenScholarFundService {
   static async getTransactionHistory(limit: number = 50): Promise<GreenScholarTransaction[]> {
       const { data, error } = await supabase
         .from('green_scholar_transactions')
-        .select('*')
+        .select('id, transaction_type, amount, source_type, source_id, beneficiary_type, beneficiary_id, description, created_at')
         .order('created_at', { ascending: false })
         .limit(limit);
     if (error) return [];

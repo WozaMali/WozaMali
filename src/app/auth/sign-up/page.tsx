@@ -243,29 +243,17 @@ const SignUp = () => {
             updated_at: new Date().toISOString()
           };
 
-          // Prefer text-based role assignments first to satisfy schemas where role_id FKs roles.name
-          const roleAssignments: any[] = [
-            { role: 'resident' },
-            { role_id: 'resident' },
-          ];
-          if (residentRoleId) {
-            roleAssignments.push({ role_id: residentRoleId });
-          }
-          // Legacy alias fallback
-          roleAssignments.push({ role: 'member' }, { role_id: 'member' });
+          // Single insert path (faster): prefer UUID if available else role name fallback
+          const roleAssignment = residentRoleId
+            ? { role_id: residentRoleId }
+            : { role_id: 'resident' };
 
-          let created = false;
-          let lastError: any = null;
-          for (const assignment of roleAssignments) {
-            const { error } = await supabase
-              .from('users')
-              .insert({ ...baseData, ...assignment });
-            if (!error) { created = true; break; }
-            lastError = error;
-          }
+          const { error: createErr } = await supabase
+            .from('users')
+            .insert({ ...baseData, ...roleAssignment });
 
-          if (!created) {
-            console.error('User creation error:', lastError);
+          if (createErr) {
+            console.error('User creation error:', createErr);
             toast({
               title: "Profile creation failed",
               description: "Account created but profile setup failed. Please contact support.",
