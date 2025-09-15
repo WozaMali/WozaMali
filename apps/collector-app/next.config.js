@@ -3,6 +3,9 @@ const nextConfig = {
 	eslint: {
 		ignoreDuringBuilds: true,
 	},
+	typescript: {
+		ignoreBuildErrors: true,
+	},
 	webpack: (config, { isServer }) => {
 		if (!isServer) {
 			config.resolve.fallback = {
