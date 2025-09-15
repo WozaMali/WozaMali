@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 interface BottomNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isNavigating?: boolean;
 }
 
-const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => {
+const BottomNavigation = ({ activeTab, onTabChange, isNavigating = false }: BottomNavigationProps) => {
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "rewards", label: "Rewards", icon: Gift },
@@ -27,11 +28,13 @@ const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => 
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
+              disabled={isNavigating}
               className={cn(
                 "flex flex-col items-center justify-center space-y-1 transition-all duration-300",
                 isActive 
                   ? "bg-gradient-primary text-primary-foreground scale-105" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                isNavigating && "opacity-50 cursor-not-allowed"
               )}
             >
               <Icon className={cn("h-5 w-5", isActive && "animate-pulse")} />

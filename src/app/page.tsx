@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Index from "@/pages/Index";
-import { Loader2 } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -16,14 +17,7 @@ export default function Home() {
     authContext = useAuth();
   } catch (error) {
     // AuthProvider not ready yet, show loading
-    return (
-      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Initializing...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="Initializing..." />;
   }
 
   const { user, loading, isLoading, bootGrace } = authContext as any;
@@ -45,14 +39,7 @@ export default function Home() {
 
   // Show loading while authentication is being determined
   if (!mounted || loading || isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="Loading..." />;
   }
 
   // Don't render anything if user is null (will redirect)
@@ -60,6 +47,10 @@ export default function Home() {
     return null;
   }
 
-  // User is authenticated, render the main app
-  return <Index />;
+  // User is authenticated, render the main app with error boundary
+  return (
+    <ErrorBoundary>
+      <Index />
+    </ErrorBoundary>
+  );
 }

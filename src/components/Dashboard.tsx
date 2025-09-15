@@ -4,17 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, ArrowDownRight, Gift, Heart, Star, Calendar, Clock, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Logo from "./Logo";
+import LoadingSpinner from "./LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWallet } from "@/hooks/useWallet";
+import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
 import { supabase } from "@/lib/supabase";
 import { AddressService } from "@/lib/addressService";
 import { WorkingWalletService } from "@/lib/workingWalletService";
 
 const Dashboard = () => {
   const navigate = useRouter();
+  const { logMetrics } = usePerformanceMonitor('Dashboard');
   
   // Try to use auth context, but handle the case where it might not be ready
   let authContext;
@@ -22,14 +25,7 @@ const Dashboard = () => {
     authContext = useAuth();
   } catch (error) {
     // AuthProvider not ready yet, show loading
-    return (
-      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="Loading dashboard..." />;
   }
 
   const { user } = authContext;
@@ -65,7 +61,7 @@ const Dashboard = () => {
     progressPercentage: 0
   };
 
-  // Simple useEffect to refresh wallet data when user changes
+  // Optimized useEffect to refresh wallet data when user changes
   useEffect(() => {
     // Only refresh if user changes and we have a valid refresh function
     if (user?.id && refreshWallet && typeof refreshWallet === 'function') {
