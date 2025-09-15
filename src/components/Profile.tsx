@@ -137,12 +137,13 @@ const Profile = () => {
     try {
       console.log('Profile: Starting logout process...');
       await signOut();
-      console.log('Profile: Sign out completed, redirecting to sign-in...');
-      navigate.push('/auth/sign-in');
+      // signOut() already handles the redirect, no need to call navigate.push
     } catch (error) {
       console.error('Profile: Logout failed:', error);
       // Force redirect even if there's an error
-      navigate.push('/auth/sign-in');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/sign-in';
+      }
     }
   };
 

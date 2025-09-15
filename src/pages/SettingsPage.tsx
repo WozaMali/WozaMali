@@ -42,12 +42,13 @@ const SettingsPage = () => {
     try {
       console.log('Settings: Starting logout process...');
       await signOut();
-      console.log('Settings: Sign out completed, redirecting to sign-in...');
-      router.push('/auth/sign-in');
+      // signOut() already handles the redirect, no need to call router.push
     } catch (error) {
       console.error('Settings: Logout failed:', error);
       // Force redirect even if there's an error
-      router.push('/auth/sign-in');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/sign-in';
+      }
     }
   };
 

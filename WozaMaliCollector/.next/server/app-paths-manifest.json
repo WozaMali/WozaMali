@@ -1,3 +1,16 @@
 {
-  "/_not-found/page": "app/_not-found/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/analytics/page": "app/analytics/page.js",
+  "/collector/page": "app/collector/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/pickups/page": "app/pickups/page.js",
+  "/register/page": "app/register/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/test-connection/page": "app/test-connection/page.js",
+  "/test-supabase-config/page": "app/test-supabase-config/page.js",
+  "/unauthorized/page": "app/unauthorized/page.js",
+  "/users/page": "app/users/page.js"
 }
