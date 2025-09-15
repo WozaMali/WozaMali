@@ -17,6 +17,12 @@ import {
 export default function DashboardPage() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const displayName = useMemo(() => {
+    const anyUser = user as unknown as { first_name?: string; user_metadata?: { first_name?: string } ; email?: string } | null;
+    return (
+      anyUser?.first_name || anyUser?.user_metadata?.first_name || anyUser?.email?.split('@')[0] || 'User'
+    );
+  }, [user]);
   const [recentPickups, setRecentPickups] = useState<Array<{
     id: string;
     customer: string;
@@ -92,7 +98,7 @@ export default function DashboardPage() {
         customer: row.customer_name || 'Customer',
         address: row.pickup_address || '',
         time: formatTime(row.actual_time || row.created_at),
-        status: (row.status || '').replace('_', ' ').replace(/^./, s => s.toUpperCase()),
+        status: (row.status || '').replace('_', ' ').replace(/^./, (s: string) => s.toUpperCase()),
         totalKg: typeof row.total_weight_kg === 'number' ? row.total_weight_kg : (row.total_weight_kg ? Number(row.total_weight_kg) : undefined),
       }));
       setRecentPickups(mapped);
@@ -137,12 +143,12 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="text-gray-400">Welcome back, {user.first_name}!</p>
+            <p className="text-gray-400">Welcome back, {displayName}!</p>
           </div>
           <div className="flex items-center space-x-2">
             <MapPin className="h-5 w-5 text-orange-500" />
             <span className="text-gray-300 text-sm">
-              {user.areas?.name || "Area not assigned"}
+              {(user as any)?.areas?.name ?? "Area not assigned"}
             </span>
           </div>
         </div>

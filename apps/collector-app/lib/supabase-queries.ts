@@ -1,7 +1,7 @@
 // Woza Mali Collector App Supabase Queries
 // CRUD operations for the unified schema - Collector App specific
 
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import type {
   User,
   Collection,
