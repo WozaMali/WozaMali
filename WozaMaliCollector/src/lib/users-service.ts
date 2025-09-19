@@ -11,6 +11,13 @@ export interface User {
   status: string;
   created_at: string;
   updated_at: string;
+  street_addr?: string;
+  township_id?: string;
+  subdivision?: string;
+  suburb?: string;
+  city?: string;
+  postal_code?: string;
+  area_id?: string;
 }
 
 export class UsersService {
@@ -31,7 +38,14 @@ export class UsersService {
           role_id,
           status,
           created_at,
-          updated_at
+          updated_at,
+          street_addr,
+          township_id,
+          subdivision,
+          suburb,
+          city,
+          postal_code,
+          area_id
         `)
         .order('created_at', { ascending: false });
 

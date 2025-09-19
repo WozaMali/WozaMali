@@ -16,6 +16,12 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    
+    /* Rich Yellow Glow Effects for Dark Mode */
+    --glow-primary: 0 0 20px hsl(45 100% 60% / 0.3);
+    --glow-secondary: 0 0 15px hsl(45 100% 50% / 0.2);
+    --glow-card: 0 0 25px hsl(45 100% 60% / 0.15);
+    --glow-accent: 0 0 30px hsl(45 100% 50% / 0.25);
   }
 }
 

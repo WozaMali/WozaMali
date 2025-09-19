@@ -11,8 +11,22 @@ import {
   TrendingUp, 
   DollarSign,
   Calendar,
-  MapPin
+  MapPin,
+  History,
+  BarChart3,
+  Search,
+  User,
+  Mail,
+  Phone,
+  CheckCircle,
+  Loader2
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import CollectionModal from "@/components/CollectionModal";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -39,6 +53,30 @@ export default function DashboardPage() {
   });
 
   const [loading, setLoading] = useState(true);
+  
+  // User search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchUsers, setSearchUsers] = useState<Array<{
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone?: string;
+    full_name?: string;
+    status: string;
+    role_id: string;
+    created_at: string;
+    street_addr?: string;
+    township_id?: string;
+    subdivision?: string;
+    suburb?: string;
+    city?: string;
+    postal_code?: string;
+    area_id?: string;
+  }>>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [showCollectionForm, setShowCollectionForm] = useState(false);
 
   const formatTime = (isoOrTime?: string | null) => {
     if (!isoOrTime) return "";
@@ -52,6 +90,18 @@ export default function DashboardPage() {
     } catch {
       return "";
     }
+  };
+
+  const formatAddress = (user: any) => {
+    const addressParts = [];
+    
+    if (user.street_addr) addressParts.push(user.street_addr);
+    if (user.subdivision) addressParts.push(user.subdivision);
+    if (user.suburb) addressParts.push(user.suburb);
+    if (user.city) addressParts.push(user.city);
+    if (user.postal_code) addressParts.push(user.postal_code);
+    
+    return addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
   };
 
   const statsData = useMemo(() => ([
@@ -74,7 +124,7 @@ export default function DashboardPage() {
       value: `${stats.collectionRate.toFixed(1)}%`,
       change: "",
       icon: TrendingUp,
-      color: "text-purple-500"
+      color: "text-yellow-500"
     }
   ]), [stats]);
 
@@ -182,6 +232,78 @@ export default function DashboardPage() {
     };
   }, [user?.id]);
 
+  // User search function
+  const performUserSearch = async () => {
+    if (searchTerm.length < 2) {
+      setSearchUsers([]);
+      return;
+    }
+
+    try {
+      setSearchLoading(true);
+      console.log('🔍 Searching users with term:', searchTerm);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email, phone, status, role_id, created_at, street_addr, township_id, subdivision, suburb, city, postal_code, area_id')
+        .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+        .eq('status', 'active')
+        .in('role_id', ['resident', 'customer', 'member', 'user'])
+        .order('first_name')
+        .limit(10);
+
+      if (error) {
+        console.error('❌ Error searching users:', error);
+        return;
+      }
+
+      console.log('📊 Search results:', data?.length || 0, 'users found');
+      console.log('👥 Users data:', data);
+
+      // Add full_name field for display
+      const usersWithFullName = data?.map(user => ({
+        ...user,
+        full_name: `${user.first_name} ${user.last_name}`.trim()
+      })) || [];
+
+      setSearchUsers(usersWithFullName);
+    } catch (error) {
+      console.error('❌ Error searching users:', error);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Handle user selection
+  const handleUserSelect = (user: any) => {
+    console.log('🎯 User selected:', user);
+    setSelectedUser(user);
+    setShowCollectionForm(true);
+  };
+
+  // Handle collection form close
+  const handleCollectionClose = () => {
+    setShowCollectionForm(false);
+    setSelectedUser(null);
+  };
+
+  // Handle collection success
+  const handleCollectionSuccess = () => {
+    setShowCollectionForm(false);
+    setSelectedUser(null);
+    // Refresh dashboard data by triggering useEffect
+    window.location.reload();
+  };
+
+  // Search users when search term changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      performUserSearch();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -200,13 +322,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 pb-20">
+    <div className="min-h-screen bg-gray-900 pb-24">
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="text-gray-400">Welcome back, {displayName}!</p>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/w%20yellow.png" 
+                alt="WozaMali Logo" 
+                className="h-10 w-auto"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+                <p className="text-gray-400">Welcome back, {displayName}!</p>
+              </div>
+            </div>
           </div>
           <div className="flex items-center space-x-2">
             <MapPin className="h-5 w-5 text-orange-500" />
@@ -227,13 +358,13 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-400 text-sm">{stat.title}</p>
-                    <p className="text-2xl font-bold text-white">
+                    <div className="text-2xl font-bold text-white">
                       {loading ? (
                         <div className="animate-pulse bg-gray-600 h-8 w-16 rounded"></div>
                       ) : (
                         stat.value
                       )}
-                    </p>
+                    </div>
                     <p className="text-green-400 text-xs">{stat.change}</p>
                   </div>
                   <Icon className={`h-8 w-8 ${stat.color}`} />
@@ -241,6 +372,97 @@ export default function DashboardPage() {
               </div>
             );
           })}
+        </div>
+
+        {/* User Search Section */}
+        <div className="bg-gray-800 rounded-lg border border-gray-700 mb-6">
+          <div className="p-4 border-b border-gray-700">
+            <h2 className="text-lg font-semibold text-white">Start Collection</h2>
+            <p className="text-gray-400 text-sm">Search for a customer to begin collection</p>
+          </div>
+          <div className="p-4">
+            {/* Search Input */}
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by name or email address..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-gray-700/50 border-gray-600/50 text-white placeholder-gray-400 focus:border-green-500/50"
+                />
+              </div>
+
+              {/* Search Results */}
+              {searchLoading && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-green-400" />
+                  <span className="ml-2 text-gray-300">Searching...</span>
+                </div>
+              )}
+
+              {!searchLoading && searchTerm.length >= 2 && searchUsers.length === 0 && (
+                <div className="text-center py-4">
+                  <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-400">No customers found</p>
+                  <p className="text-sm text-gray-500">Try a different search term</p>
+                </div>
+              )}
+
+              {!searchLoading && searchTerm.length < 2 && (
+                <div className="text-center py-4">
+                  <Search className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-400">Start typing to search customers</p>
+                  <p className="text-sm text-gray-500">Enter at least 2 characters</p>
+                </div>
+              )}
+
+              {searchUsers.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-400">
+                    Found {searchUsers.length} customer{searchUsers.length !== 1 ? 's' : ''}
+                  </p>
+                  {searchUsers.map((user) => (
+                    <Card 
+                      key={user.id}
+                      className="cursor-pointer transition-all duration-200 bg-gray-700/50 border-gray-600/50 hover:bg-gray-600/50 hover:border-green-500/50"
+                      onClick={() => handleUserSelect(user)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-green-500/20 rounded-lg">
+                              <User className="h-5 w-5 text-green-400" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-white">{user.full_name}</h3>
+                              <div className="space-y-1 text-sm text-gray-400">
+                                <div className="flex items-center space-x-1">
+                                  <Mail className="h-3 w-3" />
+                                  <span>{user.email}</span>
+                                </div>
+                                {user.phone && (
+                                  <div className="flex items-center space-x-1">
+                                    <Phone className="h-3 w-3" />
+                                    <span>{user.phone}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center space-x-1">
+                                  <MapPin className="h-3 w-3" />
+                                  <span className="text-xs">{formatAddress(user)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <CheckCircle className="h-5 w-5 text-green-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Recent Pickups */}
@@ -278,6 +500,14 @@ export default function DashboardPage() {
 
       {/* Navigation */}
       <Navigation />
+
+      {/* Collection Modal */}
+      <CollectionModal
+        isOpen={showCollectionForm}
+        onClose={handleCollectionClose}
+        user={selectedUser}
+        onSuccess={handleCollectionSuccess}
+      />
     </div>
   );
 }

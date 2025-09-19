@@ -296,7 +296,7 @@ export default function CollectorUI() {
               <Card key={route.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Route className="h-4 w-4 text-purple-600" />
+                    <Route className="h-4 w-4 text-yellow-600" />
                     <span>{route.name}</span>
                   </CardTitle>
                   <CardDescription>

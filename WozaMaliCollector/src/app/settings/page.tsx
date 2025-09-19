@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase";
 import Navigation from "@/components/Navigation";
+import { LogOut } from "lucide-react";
 
 interface SettingsData {
   firstName: string;
@@ -32,8 +33,10 @@ interface SettingsData {
   streetAddress: string;
   townshipId: string;
   subdivision: string;
+  suburb: string;
   city: string;
   postalCode: string;
+  areaId: string;
   employeeNumber: string;
 }
 
@@ -46,7 +49,7 @@ interface Township {
 
 export default function CollectorSettings() {
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [townships, setTownships] = useState<Township[]>([]);
@@ -64,9 +67,11 @@ export default function CollectorSettings() {
     streetAddress: "",
     townshipId: "",
     subdivision: "",
+    suburb: "",
     city: "",
     postalCode: "",
-    employeeNumber: "C0001"
+    areaId: "",
+    employeeNumber: ""
   });
 
   // Redirect if not authenticated
@@ -90,7 +95,7 @@ export default function CollectorSettings() {
     try {
       setIsLoading(true);
       const { data: userData, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select(`
           id,
           email,
@@ -102,12 +107,12 @@ export default function CollectorSettings() {
           street_addr,
           township_id,
           subdivision,
+          suburb,
           city,
           postal_code,
-          identity_number,
+          area_id,
           date_of_birth,
-          employee_number,
-          areas!township_id(name)
+          employee_number
         `)
         .eq('id', user.id)
         .single();
@@ -124,9 +129,11 @@ export default function CollectorSettings() {
           streetAddress: userData.street_addr || "",
           townshipId: userData.township_id || "",
           subdivision: userData.subdivision || "",
+          suburb: userData.suburb || "",
           city: userData.city || "",
           postalCode: userData.postal_code || "",
-          employeeNumber: "C0001" // Static value since it's not stored in users table
+          areaId: userData.area_id || "",
+          employeeNumber: userData.employee_number || "Not assigned"
         });
 
         // Set selected township if exists
@@ -282,8 +289,10 @@ export default function CollectorSettings() {
           street_addr: formData.streetAddress,
           township_id: formData.townshipId,
           subdivision: formData.subdivision,
+          suburb: formData.suburb,
           city: formData.city,
-          postal_code: formData.postalCode
+          postal_code: formData.postalCode,
+          area_id: formData.areaId
         })
         .eq('id', user.id);
 
@@ -328,7 +337,7 @@ export default function CollectorSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8">
+    <div className="min-h-screen bg-gray-900 py-8 pb-24">
       <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
@@ -433,24 +442,24 @@ export default function CollectorSettings() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="dateOfBirth" className="text-white">Date of Birth *</Label>
-                <Input
-                  id="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-                {errors.dateOfBirth && (
-                  <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.dateOfBirth}
-                  </p>
-                )}
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="dateOfBirth" className="text-white">Date of Birth *</Label>
+                  <Input
+                    id="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                  {errors.dateOfBirth && (
+                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.dateOfBirth}
+                    </p>
+                  )}
+                </div>
+
                 <div>
                   <Label htmlFor="employeeNumber" className="text-white">Employee Number</Label>
                   <Input
@@ -459,12 +468,13 @@ export default function CollectorSettings() {
                     value={formData.employeeNumber}
                     onChange={(e) => handleInputChange('employeeNumber', e.target.value)}
                     className="bg-gray-600 border-gray-500 text-gray-300"
-                    placeholder="C0001"
+                    placeholder="SNW-C0001"
                     readOnly
                   />
                   <p className="text-xs text-gray-400 mt-1">Your assigned employee number</p>
                 </div>
               </div>
+
 
               {/* Address Information */}
               <div className="border-t border-gray-600 pt-6">
@@ -590,32 +600,44 @@ export default function CollectorSettings() {
               )}
 
               {/* Submit Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                <Button
-                  type="submit"
-                  disabled={isSaving}
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Changes
-                    </>
-                  )}
-                </Button>
+              <div className="space-y-4 pt-6">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    type="submit"
+                    disabled={isSaving}
+                    className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push('/')}
+                    className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  >
+                    Back to Dashboard
+                  </Button>
+                </div>
 
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => router.push('/')}
-                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  variant="destructive"
+                  onClick={logout}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white"
                 >
-                  Back to Dashboard
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
                 </Button>
               </div>
             </form>

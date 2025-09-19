@@ -191,21 +191,6 @@ export function useWalletSync(userId: string) {
 /**
  * Example: Scheduled wallet sync (for background jobs)
  * 
- * Set up a cron job or scheduled function to sync wallets periodically:
- * 
- * ```javascript
- * // Every hour
- * setInterval(async () => {
- *   console.log('Running scheduled wallet sync...');
- *   await syncAllWallets();
- * }, 60 * 60 * 1000);
- * 
- * // Or using a job scheduler like node-cron:
- * import cron from 'node-cron';
- * 
- * cron.schedule('0 */6 * * *', async () => {
- *   console.log('Running scheduled wallet sync...');
- *   await syncAllWallets();
- * });
- * ```
+ * Set up a cron job or scheduled function to sync wallets periodically.
+ * Use setInterval for simple scheduling or node-cron for more complex patterns.
  */

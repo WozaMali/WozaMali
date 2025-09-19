@@ -9,25 +9,32 @@ export function useTheme() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    // Always use system theme - no manual theme switching
+    setTheme("system");
+  }, [setTheme]);
 
-  const currentTheme = theme === "system" ? systemTheme : theme;
+  const currentTheme = systemTheme || "light";
 
+  // No theme toggling - always follows browser preference
   const toggleTheme = () => {
-    if (currentTheme === "dark") {
-      setTheme("light");
-    } else {
-      setTheme("dark");
-    }
+    // No-op - theme always follows system
   };
 
-  const setLightTheme = () => setTheme("light");
-  const setDarkTheme = () => setTheme("dark");
-  const setSystemTheme = () => setTheme("system");
+  const setLightTheme = () => {
+    // No-op - theme always follows system
+  };
+  
+  const setDarkTheme = () => {
+    // No-op - theme always follows system
+  };
+  
+  const setSystemTheme = () => {
+    // No-op - theme always follows system
+  };
 
   return {
     theme: currentTheme,
-    setTheme,
+    setTheme: () => {}, // No-op
     toggleTheme,
     setLightTheme,
     setDarkTheme,
@@ -35,6 +42,6 @@ export function useTheme() {
     mounted,
     isDark: currentTheme === "dark",
     isLight: currentTheme === "light",
-    isSystem: theme === "system",
+    isSystem: true, // Always true since we only use system
   };
 }

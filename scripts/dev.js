@@ -9,8 +9,8 @@ function run(command, args = [], options = {}) {
 }
 
 function startMain() {
-  // Main app (root Next.js) on 8080
-  return run('npx', ['next', 'dev', '-p', '8080']);
+  // Main app (root Next.js) on 8080 with faster compilation and external access
+  return run('npx', ['next', 'dev', '-p', '8080', '--turbo', '--hostname', '0.0.0.0']);
 }
 
 function startOffice() {
@@ -20,7 +20,7 @@ function startOffice() {
 
 function startCollector() {
   // Collector app on 8082
-  return run('npm', ['run', 'dev'], { cwd: 'WozaMaliOffice/collector-app' });
+  return run('npm', ['run', 'dev'], { cwd: 'WozaMaliCollector' });
 }
 
 function startAll() {

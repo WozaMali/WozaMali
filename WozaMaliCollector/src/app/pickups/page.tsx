@@ -50,6 +50,7 @@ import { addressIntegrationService, ProfileWithAddress } from "@/lib/address-int
 import { ResidentService, type Resident } from "@/lib/resident-service";
 import { UnifiedCollectorService } from "@/lib/unified-collector-service";
 import CollectionModal from "@/components/CollectionModal";
+import LiveCollectionModal from "@/components/LiveCollectionModal";
 
 export default function CollectorPickupsPage() {
   const { theme } = useTheme();
@@ -74,6 +75,7 @@ export default function CollectorPickupsPage() {
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const [isCollectionFormOpen, setIsCollectionFormOpen] = useState(false);
   const [selectedUserForCollection, setSelectedUserForCollection] = useState<any | null>(null);
+  const [showLiveCollection, setShowLiveCollection] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -370,7 +372,7 @@ export default function CollectorPickupsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4">
+    <div className="min-h-screen bg-gray-900 p-4 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -383,16 +385,25 @@ export default function CollectorPickupsPage() {
           </div>
         </div>
         
-        <Button 
-          className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white shadow-lg"
-          onClick={() => {
-            setSelectedUserForCollection(null);
-            setIsCollectionFormOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          New Pickup
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg"
+            onClick={() => setShowLiveCollection(true)}
+          >
+            <Package className="h-4 w-4" />
+            Live Collection
+          </Button>
+          <Button 
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white shadow-lg"
+            onClick={() => {
+              setSelectedUserForCollection(null);
+              setIsCollectionFormOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            New Pickup
+          </Button>
+        </div>
       </div>
 
       {/* Pickups List */}
@@ -484,6 +495,16 @@ export default function CollectorPickupsPage() {
           }}
         />
       )}
+
+      {/* Live Collection Modal */}
+      <LiveCollectionModal
+        isOpen={showLiveCollection}
+        onClose={() => setShowLiveCollection(false)}
+        onSuccess={() => {
+          setShowLiveCollection(false);
+          loadPickupsData();
+        }}
+      />
 
       {/* Navigation */}
       <Navigation />

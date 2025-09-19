@@ -22,8 +22,7 @@ import {
   LogIn,
   UserPlus,
   MapPin,
-  Calendar,
-  IdCard
+  Calendar
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase";
@@ -53,7 +52,6 @@ export default function CollectorAuthPage() {
     lastName: '',
     email: '',
     phone: '',
-    identityNumber: '',
     dateOfBirth: '',
     streetAddress: '',
     townshipId: '',
@@ -177,8 +175,11 @@ export default function CollectorAuthPage() {
         .limit(1);
 
       if (error) {
-        console.error('Error fetching last employee number:', error);
-        return 'SNW-C0001';
+        console.warn('Error fetching last employee number (column may not exist yet):', error);
+        // Generate a fallback employee number based on timestamp
+        const timestamp = Date.now();
+        const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `SNW-C${randomSuffix}`;
       }
 
       const last = data && data.length > 0 ? data[0].employee_number as string : '';
@@ -190,8 +191,11 @@ export default function CollectorAuthPage() {
       const nextNum = lastNum + 1;
       return `SNW-C${nextNum.toString().padStart(4, '0')}`;
     } catch (error) {
-      console.error('Error generating employee number:', error);
-      return 'SNW-C0001';
+      console.warn('Error generating employee number, using fallback:', error);
+      // Generate a fallback employee number based on timestamp
+      const timestamp = Date.now();
+      const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      return `SNW-C${randomSuffix}`;
     }
   };
 
@@ -258,9 +262,11 @@ export default function CollectorAuthPage() {
     }
   };
 
+
   // Sign-up handlers
   const handleSignUpInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
+    
     setSignUpData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -276,17 +282,21 @@ export default function CollectorAuthPage() {
   const validateSignUpForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    console.log('Validating form data:', signUpData);
+
     // Required fields
-    if (!signUpData.firstName.trim()) newErrors.firstName = "First name is required";
-    if (!signUpData.lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!signUpData.email.trim()) newErrors.email = "Email is required";
+    if (!signUpData.firstName?.trim()) newErrors.firstName = "First name is required";
+    if (!signUpData.lastName?.trim()) newErrors.lastName = "Last name is required";
+    if (!signUpData.email?.trim()) newErrors.email = "Email is required";
     if (!signUpData.password) newErrors.password = "Password is required";
-    if (!signUpData.phone.trim()) newErrors.phone = "Phone number is required";
-    if (!signUpData.identityNumber.trim()) newErrors.identityNumber = "Identity number is required";
+    if (!signUpData.phone?.trim()) newErrors.phone = "Phone number is required";
     if (!signUpData.dateOfBirth) newErrors.dateOfBirth = "Date of birth is required";
-    if (!signUpData.streetAddress.trim()) newErrors.streetAddress = "Street address is required";
+    if (!signUpData.streetAddress?.trim()) newErrors.streetAddress = "Street address is required";
     if (!signUpData.townshipId) newErrors.townshipId = "Township is required";
-    if (!signUpData.subdivision.trim()) newErrors.subdivision = "Subdivision is required";
+    if (!signUpData.subdivision?.trim()) {
+      console.log('Subdivision validation failed:', signUpData.subdivision);
+      newErrors.subdivision = "Subdivision is required";
+    }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -310,11 +320,6 @@ export default function CollectorAuthPage() {
       newErrors.phone = "Please enter a valid phone number";
     }
 
-    // Identity number validation (South African ID format)
-    const idRegex = /^[0-9]{13}$/;
-    if (signUpData.identityNumber && !idRegex.test(signUpData.identityNumber.replace(/\s/g, ''))) {
-      newErrors.identityNumber = "Please enter a valid 13-digit identity number";
-    }
 
     // Date of birth validation
     if (signUpData.dateOfBirth) {
@@ -360,7 +365,6 @@ export default function CollectorAuthPage() {
             first_name: signUpData.firstName,
             last_name: signUpData.lastName,
             phone: signUpData.phone,
-            identity_number: signUpData.identityNumber,
             employee_number: empNumber
           }
         }
@@ -375,7 +379,11 @@ export default function CollectorAuthPage() {
       }
 
       // Create collector profile in users table
-      const { error: profileError } = await supabase
+      // Create user profile in users table
+      let profileError = null;
+      
+      // First try with employee_number
+      const { error: errorWithEmp } = await supabase
         .from('users')
         .insert({
           id: authData.user.id,
@@ -384,22 +392,51 @@ export default function CollectorAuthPage() {
           last_name: signUpData.lastName,
           full_name: `${signUpData.firstName} ${signUpData.lastName}`,
           phone: signUpData.phone,
-          role_id: '8d5db8bb-52a3-4865-bb18-e1805249c4a2', // collector role ID
+          role_id: 'collector', // collector role name
           status: 'pending_approval', // Requires admin approval
           street_addr: signUpData.streetAddress,
           township_id: signUpData.townshipId,
           subdivision: signUpData.subdivision,
           city: signUpData.city,
           postal_code: signUpData.postalCode,
-          // Store additional collector-specific data in metadata
           employee_number: empNumber,
-          identity_number: signUpData.identityNumber,
           date_of_birth: signUpData.dateOfBirth
         });
+
+      if (errorWithEmp) {
+        console.warn('Failed to insert with employee_number, trying without:', errorWithEmp.message);
+        
+        // If employee_number column doesn't exist, try without it
+        const { error: errorWithoutEmp } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: signUpData.email,
+            first_name: signUpData.firstName,
+            last_name: signUpData.lastName,
+            full_name: `${signUpData.firstName} ${signUpData.lastName}`,
+            phone: signUpData.phone,
+            role_id: 'collector', // collector role name
+            status: 'pending_approval', // Requires admin approval
+            street_addr: signUpData.streetAddress,
+            township_id: signUpData.townshipId,
+            subdivision: signUpData.subdivision,
+            city: signUpData.city,
+            postal_code: signUpData.postalCode,
+            date_of_birth: signUpData.dateOfBirth
+          });
+        
+        profileError = errorWithoutEmp;
+      } else {
+        profileError = errorWithEmp;
+      }
 
       if (profileError) {
         throw new Error(`Failed to create collector profile: ${profileError.message}`);
       }
+
+      // Note: unified_collections record creation removed due to schema mismatch
+      // This can be added later when the table structure is clarified
 
       setSuccess(`Registration successful! Your employee number is ${empNumber}. Your account is pending admin approval.`);
       
@@ -409,7 +446,6 @@ export default function CollectorAuthPage() {
         lastName: '',
         email: '',
         phone: '',
-        identityNumber: '',
         dateOfBirth: '',
         streetAddress: '',
         townshipId: '',
@@ -463,12 +499,12 @@ export default function CollectorAuthPage() {
             WozaMali Collector
           </CardTitle>
           <CardDescription className="text-gray-300 mt-2">
-            Sign in to your account or create a new collector account
+            Create your collector account or sign in to existing account
           </CardDescription>
         </CardHeader>
         
         <CardContent className="px-8 pb-8">
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs defaultValue="signup" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-800 border border-gray-700">
               <TabsTrigger value="signin" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300">
                 <LogIn className="w-4 h-4 mr-2" />
@@ -702,29 +738,6 @@ export default function CollectorAuthPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="signup-identityNumber" className="text-gray-300">Identity Number *</Label>
-                    <div className="relative">
-                      <IdCard className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="signup-identityNumber"
-                        name="identityNumber"
-                        type="text"
-                        value={signUpData.identityNumber}
-                        onChange={(e) => handleSignUpInputChange({ ...e, target: { ...e.target, value: e.target.value.replace(/\D/g, '') } })}
-                        className="pl-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-orange-500 focus:ring-orange-500"
-                        placeholder="13-digit ID number"
-                        maxLength={13}
-                      />
-                    </div>
-                    {signUpErrors.identityNumber && (
-                      <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {signUpErrors.identityNumber}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
                     <Label htmlFor="signup-dateOfBirth" className="text-gray-300">Date of Birth *</Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -805,7 +818,16 @@ export default function CollectorAuthPage() {
                         <select
                           id="signup-subdivision"
                           value={signUpData.subdivision}
-                          onChange={(e) => handleSignUpInputChange({ ...e, target: { ...e.target, name: 'subdivision' } })}
+                          onChange={(e) => {
+                            console.log('Subdivision changed to:', e.target.value);
+                            setSignUpData(prev => ({
+                              ...prev,
+                              subdivision: e.target.value
+                            }));
+                            if (signUpErrors.subdivision) {
+                              setSignUpErrors(prev => ({ ...prev, subdivision: '' }));
+                            }
+                          }}
                           className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                           disabled={!selectedTownship}
                         >
@@ -816,6 +838,7 @@ export default function CollectorAuthPage() {
                             </option>
                           ))}
                         </select>
+                        <p className="text-xs text-gray-400 mt-1">Current value: {signUpData.subdivision || 'None selected'}</p>
                         {signUpErrors.subdivision && (
                           <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
                             <AlertCircle className="h-4 w-4" />
@@ -978,9 +1001,16 @@ export default function CollectorAuthPage() {
           <div className="text-center mt-8 pt-6 border-t border-gray-600">
             <p className="text-gray-300 text-sm">
               Don't have an account?{" "}
-              <Link href="/register" className="text-orange-400 hover:text-orange-300 font-medium transition-colors duration-200">
-                Register as a Collector
-              </Link>
+              <button 
+                onClick={() => {
+                  // Switch to signup tab
+                  const signupTab = document.querySelector('[value="signup"]') as HTMLElement;
+                  if (signupTab) signupTab.click();
+                }}
+                className="text-orange-400 hover:text-orange-300 font-medium transition-colors duration-200 cursor-pointer"
+              >
+                Sign Up
+              </button>
             </p>
           </div>
         </CardContent>

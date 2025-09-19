@@ -90,14 +90,22 @@ export default function UsersPage() {
     }
   };
 
-  const getRoleBadge = (roleId: string) => {
+  const getRoleBadge = (roleId: string | null | undefined) => {
+    if (!roleId) {
+      return (
+        <Badge className="bg-gray-100 text-gray-800">
+          No Role
+        </Badge>
+      );
+    }
+    
     const roleDisplayName = getUserRoleDisplayName(roleId);
     const roleMap: { [key: string]: { color: string } } = {
       'member': { color: 'bg-green-100 text-green-800' },
       'collector': { color: 'bg-blue-100 text-blue-800' },
       'admin': { color: 'bg-red-100 text-red-800' },
       'super_admin': { color: 'bg-red-200 text-red-900' },
-      'office_staff': { color: 'bg-purple-100 text-purple-800' }
+      'office_staff': { color: 'bg-yellow-100 text-yellow-800' }
     };
 
     const role = roleMap[roleId] || { color: 'bg-gray-100 text-gray-800' };
@@ -134,7 +142,7 @@ export default function UsersPage() {
       case 'member':
         return <Users className="w-5 h-5 text-green-600" />;
       case 'office_staff':
-        return <UserX className="w-5 h-5 text-purple-600" />;
+        return <UserX className="w-5 h-5 text-yellow-600" />;
       default:
         return <Users className="w-5 h-5 text-gray-600" />;
     }
@@ -148,6 +156,18 @@ export default function UsersPage() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const formatAddress = (user: User) => {
+    const addressParts = [];
+    
+    if (user.street_addr) addressParts.push(user.street_addr);
+    if (user.subdivision) addressParts.push(user.subdivision);
+    if (user.suburb) addressParts.push(user.suburb);
+    if (user.city) addressParts.push(user.city);
+    if (user.postal_code) addressParts.push(user.postal_code);
+    
+    return addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
   };
 
   const handleCreateCollection = (user: User) => {
@@ -165,8 +185,8 @@ export default function UsersPage() {
     setSelectedUser(null);
   };
 
-  // Get unique roles for filter
-  const uniqueRoles = Array.from(new Set(users.map(user => user.role_id)));
+  // Get unique roles for filter (filter out null/undefined values)
+  const uniqueRoles = Array.from(new Set(users.map(user => user.role_id).filter(role => role != null)));
 
 
   if (loading) {
@@ -190,7 +210,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 pb-20">
+    <div className="min-h-screen bg-gray-900 pb-24">
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
         <div className="flex items-center justify-between">
@@ -252,7 +272,7 @@ export default function UsersPage() {
                   {users.filter(u => u.role_id === 'collector').length}
                 </p>
               </div>
-              <Package className="h-8 w-8 text-purple-500" />
+              <Package className="h-8 w-8 text-yellow-500" />
             </div>
           </div>
 
@@ -301,7 +321,7 @@ export default function UsersPage() {
                   <SelectItem value="all" className="text-white hover:bg-gray-600">All roles</SelectItem>
                   {uniqueRoles.map(role => (
                     <SelectItem key={role} value={role} className="text-white hover:bg-gray-600">
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                      {role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Unknown'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -357,6 +377,7 @@ export default function UsersPage() {
                       <th className="text-left py-3 px-4 font-medium text-gray-300">User</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-300">Role</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-300">Status</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-300">Address</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-300">Created</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-300">Actions</th>
                     </tr>
@@ -392,6 +413,14 @@ export default function UsersPage() {
                         </td>
                         <td className="py-3 px-4">
                           {getStatusBadge(user.status)}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-2 text-sm text-gray-400">
+                            <MapPin className="h-3 w-3 text-orange-400" />
+                            <span className="max-w-xs truncate" title={formatAddress(user)}>
+                              {formatAddress(user)}
+                            </span>
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-400">
                           {formatDate(user.created_at)}

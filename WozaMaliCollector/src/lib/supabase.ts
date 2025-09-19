@@ -16,7 +16,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    redirectTo: process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL || 'http://localhost:8082'
   },
   db: {
     schema: 'public'

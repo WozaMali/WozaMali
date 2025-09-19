@@ -180,101 +180,121 @@ const AuthCallback = () => {
   // Show loading while component is mounting
   if (!isClient) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Orange Horizontal Bar at Top */}
-      <div className="h-48 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="w-28 h-28 mx-auto mb-4">
-            <Image
-              src="/WozaMali-uploads/w white.png"
-              alt="Woza Mali Logo"
-              width={64}
-              height={64}
-              className="drop-shadow-lg"
-            />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 dark:from-yellow-500 dark:via-yellow-600 dark:to-yellow-700">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.1%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+        </div>
+        
+        <div className="relative px-6 py-16 sm:py-24">
+          <div className="text-center text-white">
+            <div className="mb-6">
+              <Image
+                src="/WozaMali-uploads/w white.png"
+                alt="Woza Mali Logo"
+                width={128}
+                height={128}
+                className="w-32 h-32 drop-shadow-lg mx-auto"
+              />
+            </div>
+            <p className="text-white/90 text-lg mb-2">Powered by</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4 drop-shadow-lg">
+              Sebenza Nathi Waste
+            </h1>
+            <p className="text-white/80 text-sm">
+              {status === "loading" && "Please wait while we complete your sign-in..."}
+              {status === "success" && "You will be redirected shortly"}
+              {status === "error" && "Please try signing in again"}
+            </p>
           </div>
-          <h2 className="text-3xl font-bold text-white drop-shadow-lg mb-2">
-            {status === "loading" && "Processing..."}
-            {status === "success" && "Authentication Successful"}
-            {status === "error" && "Authentication Failed"}
-          </h2>
-          <p className="text-white/90 text-sm mb-3">
-            {status === "loading" && "Please wait while we complete your sign-in..."}
-            {status === "success" && "You will be redirected shortly"}
-            {status === "error" && "Please try signing in again"}
-          </p>
-          <p className="text-white/80 text-xs">
-            Powered by Sebenza Nathi Waste
-          </p>
         </div>
       </div>
 
-      {/* White Content Section */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="text-center bg-white border border-gray-200 shadow-lg p-8 rounded-lg max-w-md mx-4">
-          {/* Status */}
-          <div className="mb-6">
-            {status === "loading" && (
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            )}
-            {status === "success" && (
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            )}
-            {status === "error" && (
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-            )}
-          </div>
-
-          {/* Message */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              {status === "loading" && "Processing Authentication"}
-              {status === "success" && "Welcome to Woza Mali!"}
-              {status === "error" && "Authentication Failed"}
-            </h2>
-            <p className="text-gray-600">
-              {message}
-            </p>
-          </div>
-
-          {/* Actions */}
-          {status === "error" && (
-            <div className="space-y-3">
-              <Button 
-                onClick={() => window.location.href = '/auth/sign-in'}
-                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                Try Again
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => window.location.href = '/'}
-                className="w-full border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold py-3 px-6 rounded-lg transition-all duration-200"
-              >
-                Go Home
-              </Button>
+      {/* Main Content */}
+      <div className="relative -mt-8 px-6 pb-8">
+        <div className="max-w-md mx-auto">
+          <div className="shadow-2xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8">
+            {/* Status */}
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                {status === "loading" && "Processing Authentication"}
+                {status === "success" && "Welcome to Woza Mali!"}
+                {status === "error" && "Authentication Failed"}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                {status === "loading" && "Please wait while we complete your sign-in..."}
+                {status === "success" && "You will be redirected shortly"}
+                {status === "error" && "Please try signing in again"}
+              </p>
             </div>
-          )}
+
+            {/* Status Indicator */}
+            <div className="mb-8">
+              {status === "loading" && (
+                <div className="flex items-center justify-center">
+                  <div className="w-20 h-20 bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 rounded-full flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-600"></div>
+                  </div>
+                </div>
+              )}
+              {status === "success" && (
+                <div className="flex items-center justify-center">
+                  <div className="w-20 h-20 bg-gradient-to-r from-green-500/20 to-green-600/20 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+              {status === "error" && (
+                <div className="flex items-center justify-center">
+                  <div className="w-20 h-20 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Progress Message */}
+            <div className="text-center">
+              <p className="text-gray-700 dark:text-gray-300 font-medium">
+                {message}
+              </p>
+            </div>
+
+            {/* Actions */}
+            {status === "error" && (
+              <div className="mt-8 space-y-3">
+                <Button 
+                  onClick={() => window.location.href = '/auth/sign-in'}
+                  className="w-full h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  Try Again
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => window.location.href = '/'}
+                  className="w-full h-12 border-yellow-500 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-500/10 font-semibold rounded-xl transition-all duration-200"
+                >
+                  Go Home
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

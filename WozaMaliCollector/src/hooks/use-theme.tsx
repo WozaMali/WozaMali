@@ -28,14 +28,7 @@ export function ThemeProvider({
   storageKey = 'woza-mali-theme',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => {
-      if (typeof window !== 'undefined' && localStorage) {
-        return (localStorage.getItem(storageKey) as Theme) || defaultTheme
-      }
-      return defaultTheme
-    }
-  )
+  const [theme, setTheme] = useState<Theme>('system')
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -44,26 +37,19 @@ export function ThemeProvider({
 
     root.classList.remove('light', 'dark')
 
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light'
+    // Always follow system preference
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+      .matches
+      ? 'dark'
+      : 'light'
 
-      root.classList.add(systemTheme)
-      return
-    }
-
-    root.classList.add(theme)
-  }, [theme])
+    root.classList.add(systemTheme)
+  }, [])
 
   const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      if (typeof window !== 'undefined' && localStorage) {
-        localStorage.setItem(storageKey, theme)
-      }
-      setTheme(theme)
+    theme: 'system',
+    setTheme: () => {
+      // No-op - theme follows system preference
     },
   }
 

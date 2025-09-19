@@ -398,53 +398,58 @@ const GreenScholarFund = () => {
     switch (applicationStep) {
       case 1:
         return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-center mb-4">Personal Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="fullName">Full Name *</Label>
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-center mb-6 text-gray-900 dark:text-white">Personal Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="form-group-modern">
+                <Label htmlFor="fullName" className="form-label-modern">Full Name *</Label>
                 <Input
                   id="fullName"
                   value={applicationData.fullName}
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
                   placeholder="Enter your full name"
+                  className="form-input-modern"
                 />
               </div>
-              <div>
-                <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+              <div className="form-group-modern">
+                <Label htmlFor="dateOfBirth" className="form-label-modern">Date of Birth *</Label>
                 <Input
                   id="dateOfBirth"
                   type="date"
                   value={applicationData.dateOfBirth}
                   onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                  className="form-input-modern"
                 />
               </div>
-              <div>
-                <Label htmlFor="phoneNumber">Phone Number *</Label>
+              <div className="form-group-modern">
+                <Label htmlFor="phoneNumber" className="form-label-modern">Phone Number *</Label>
                 <Input
                   id="phoneNumber"
                   value={applicationData.phoneNumber}
                   onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   placeholder="Enter your phone number"
+                  className="form-input-modern"
                 />
               </div>
-              <div>
-                <Label htmlFor="email">Email Address</Label>
+              <div className="form-group-modern">
+                <Label htmlFor="email" className="form-label-modern">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
                   value={applicationData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="Enter your email address"
+                  className="form-input-modern"
                 />
               </div>
-              <div>
-                <Label htmlFor="idNumber">ID Number</Label>
+              <div className="form-group-modern md:col-span-2">
+                <Label htmlFor="idNumber" className="form-label-modern">ID Number</Label>
                 <Input
                   id="idNumber"
                   value={applicationData.idNumber}
                   onChange={(e) => handleInputChange('idNumber', e.target.value)}
                   placeholder="Enter your ID number"
+                  className="form-input-modern"
                 />
               </div>
             </div>
@@ -703,208 +708,305 @@ const GreenScholarFund = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 space-y-6">
+    <div className="min-h-screen bg-gradient-warm dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 p-4 pb-24 space-y-6">
       {/* Header */}
-      <div className="text-center space-y-4">
-        <Logo variant="green-scholar-fund" className="h-20 w-auto mx-auto" />
+      <div className="text-center space-y-6 pt-6">
+        <div className="flex justify-between items-start">
+          <div className="flex-1"></div>
+          <div className="flex-1 text-center">
+            <Logo variant="green-scholar-fund" className="h-24 w-auto mx-auto mb-4" />
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+              Green Scholar Fund
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 font-medium">Empowering education through community support</p>
+          </div>
+          <div className="flex justify-end flex-1">
+            {/* Theme follows browser preference automatically */}
+          </div>
+        </div>
+      </div>
+
+      {/* Fund Status Banner - Beautiful Design */}
+      <Card className="border-0 shadow-2xl bg-gradient-to-br from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 text-white shadow-green-500/25 hover:shadow-green-500/40 transition-all duration-300">
+        <CardContent className="p-8">
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <div className="p-3 bg-white/20 rounded-2xl">
+                <Heart className="h-8 w-8" />
+              </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Green Scholar Fund</h1>
-          <p className="text-muted-foreground">Empowering education through community support</p>
+                <h2 className="text-2xl font-bold">100% of PET Bottles Revenue</h2>
+                <p className="text-green-100 text-sm">Every bottle you recycle supports students in need</p>
+        </div>
+            </div>
+            <p className="text-green-100 text-lg font-medium">Your environmental action creates educational opportunities!</p>
+      </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-6 bg-white/10 rounded-2xl border border-white/20">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wallet className="h-8 w-8" />
+          </div>
+              <p className="text-sm text-green-100 mb-2">Total Community Fund</p>
+              <p className="text-3xl font-bold">{fundLoading ? '—' : `R${Number(fundStats?.total_balance || 0).toLocaleString()}`}</p>
+          </div>
+            
+            <div className="text-center p-6 bg-white/10 rounded-2xl border border-white/20">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Target className="h-8 w-8" />
+          </div>
+              <p className="text-sm text-green-100 mb-2">Left to Reach Goal</p>
+              <p className="text-3xl font-bold">{fundLoading ? '—' : `R${Number(fundStats?.remaining_amount || 0).toLocaleString()}`}</p>
+        </div>
+            
+            <div className="text-center p-6 bg-white/10 rounded-2xl border border-white/20">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="h-8 w-8" />
+              </div>
+              <p className="text-sm text-green-100 mb-2">Monthly Goal</p>
+              <p className="text-3xl font-bold">{fundLoading ? '—' : `R${monthlyGoalVal.toLocaleString()}`}</p>
         </div>
       </div>
 
-      {/* Orange Banner with white text */}
-      <div className="rounded-lg p-4 md:p-5" style={{ backgroundColor: '#0B7D3B' }}>
-        <div className="text-white font-semibold">100% of PET Bottles revenue goes to the Green Scholar Fund</div>
-        <div className="text-white text-sm mt-1">Every PET bottle you recycle contributes directly to supporting students in need. Your environmental action creates educational opportunities!</div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
-          <div className="bg-white/10 rounded-md p-3">
-            <div className="text-xs text-white/80">Total Community Fund</div>
-            <div className="text-white text-xl font-bold">{fundLoading ? '—' : `R${Number(fundStats?.total_balance || 0).toLocaleString()}`}</div>
+          <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
+            <p className="text-green-100 text-sm text-center">
+              <Info className="h-4 w-4 inline mr-2" />
+              Total Community Fund reflects the whole community: PET contributions + cash donations − disbursed support
+            </p>
           </div>
-          <div className="bg-white/10 rounded-md p-3">
-            <div className="text-xs text-white/80">Left to Reach Monthly Goal</div>
-            <div className="text-white text-xl font-bold">{fundLoading ? '—' : `R${Number(fundStats?.remaining_amount || 0).toLocaleString()}`}</div>
-          </div>
-          <div className="bg-white/10 rounded-md p-3">
-            <div className="text-xs text-white/80">Monthly Goal</div>
-            <div className="text-white text-xl font-bold">{fundLoading ? '—' : `R${monthlyGoalVal.toLocaleString()}`}</div>
-          </div>
-        </div>
-        <div className="text-white/80 text-xs mt-3">
-          Total Community Fund reflects the whole community: PET contributions (all users) + cash donations (all users) − disbursed support.
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* PET Bottles Contribution Section */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center space-x-2">
-            <Heart className="h-5 w-5 text-green-600" />
-            <span>Your PET Bottles Contribution</span>
+      {/* Your Contribution Overview */}
+      <Card className="card-modern">
+        <CardHeader className="card-modern-header">
+          <CardTitle className="text-xl font-bold text-white flex items-center">
+            <Heart className="h-6 w-6 mr-3 text-white" />
+            Your Contribution Impact
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-2xl border border-green-200 dark:border-green-700">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Target className="h-8 w-8 text-white" />
+              </div>
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                 {petBottlesSummary.totalWeight.toFixed(1)}kg
+              </p>
+              <p className="text-sm text-green-700 dark:text-green-300 font-medium">Total Weight</p>
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">Current + Future PET</p>
               </div>
-              <div className="text-sm text-muted-foreground">Total Weight (current + future PET)</div>
+            
+            <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-2xl border border-blue-200 dark:border-blue-700">
+              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wallet className="h-8 w-8 text-white" />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                 R{petBottlesSummary.totalValue.toFixed(2)}
+              </p>
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">PET Contribution</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">From Recycling</p>
               </div>
-              <div className="text-sm text-muted-foreground">PET Contribution</div>
+            
+            <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 rounded-2xl border border-purple-200 dark:border-purple-700">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CreditCard className="h-8 w-8 text-white" />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
                 R{cashDonations.toFixed(2)}
+              </p>
+              <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">Cash Donations</p>
+              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Direct Support</p>
               </div>
-              <div className="text-sm text-muted-foreground">Cash Donations</div>
+            
+            <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 rounded-2xl border border-yellow-200 dark:border-yellow-700">
+              <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="h-8 w-8 text-white" />
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
                 R{totalDonation.toFixed(2)}
-              </div>
-              <div className="text-sm text-muted-foreground">Total Donation</div>
+              </p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300 font-medium">Total Impact</p>
+              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Combined Contribution</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Preferred School Selection */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Choose a Primary School to Benefit</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
-            <div>
-              <Label htmlFor="preferredSchool">Primary School</Label>
+      {/* School Selection & Donation */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* School Selection */}
+        <Card className="card-modern">
+          <CardHeader className="card-modern-header">
+            <CardTitle className="text-xl font-bold text-white flex items-center">
+              <GraduationCap className="h-6 w-6 mr-3 text-white" />
+              Choose School to Benefit
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="form-group-modern">
+                <Label htmlFor="preferredSchool" className="form-label-modern">Primary School</Label>
               <Select onValueChange={() => {}}>
-                <SelectTrigger id="preferredSchool">
+                  <SelectTrigger id="preferredSchool" className="form-input-modern">
                   <SelectValue placeholder="Select a school" />
                 </SelectTrigger>
                 <SelectContent>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Button className="w-full md:w-auto">Save Preference</Button>
-            </div>
+              <Button className="btn-primary-yellow w-full">
+                <GraduationCap className="h-5 w-5 mr-2" />
+                Save Preference
+              </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Donation */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center space-x-2">
-            <Heart className="h-5 w-5 text-primary" />
-            <span>Make a Donation</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-4 gap-2">
+        {/* Quick Donation */}
+        <Card className="card-modern">
+          <CardHeader className="card-modern-header">
+            <CardTitle className="text-xl font-bold text-white flex items-center">
+              <Heart className="h-6 w-6 mr-3 text-white" />
+              Make a Donation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-3">
             {quickAmounts.map((amount) => (
               <Button
                 key={amount}
                 variant={donationAmount === amount ? "default" : "outline"}
                 size="sm"
                 onClick={() => setDonationAmount(amount)}
-                className="text-xs"
+                    className={donationAmount === amount ? 'btn-primary-yellow' : 'btn-outline-modern'}
               >
                 R{amount}
               </Button>
             ))}
           </div>
-          <div className="flex space-x-2">
-            <input
+              
+              <div className="space-y-3">
+                <Label htmlFor="customAmount" className="form-label-modern">Custom Amount</Label>
+                <div className="flex space-x-3">
+                  <Input
+                    id="customAmount"
               type="number"
-              placeholder="Custom amount"
+                    placeholder="Enter amount"
               value={donationAmount || ''}
               onChange={(e) => setDonationAmount(Number(e.target.value))}
-              className="flex-1 px-3 py-2 border border-border rounded-md text-sm"
+                    className="form-input-modern"
             />
             <Button 
-              variant="gradient" 
+                    className="btn-primary-yellow"
               disabled={!donationAmount}
               onClick={() => setShowDonationDialog(true)}
             >
+                    <Heart className="h-5 w-5 mr-2" />
               Donate R{donationAmount}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">Donations can be made from your Woza Mali wallet</p>
+              </div>
+              
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+                <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center">
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Donations can be made from your Woza Mali wallet
+                </p>
+              </div>
+            </div>
         </CardContent>
       </Card>
+      </div>
 
       {/* Donation Transactions */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Donation Transactions</CardTitle>
+      <Card className="card-modern">
+        <CardHeader className="card-modern-header">
+          <CardTitle className="text-xl font-bold text-white flex items-center">
+            <FileText className="h-6 w-6 mr-3 text-white" />
+            Donation Transactions
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {(userDonations || []).length === 0 ? (
-            <div className="text-sm text-muted-foreground">No donation transactions yet.</div>
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Donations Yet</h3>
+              <p className="text-gray-600 dark:text-gray-300">Your donation history will appear here</p>
+            </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-muted-foreground">
-                    <th className="py-2 pr-4">Date</th>
-                    <th className="py-2 pr-4">Amount</th>
-                    <th className="py-2 pr-4">Beneficiary</th>
-                    <th className="py-2">Message</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <div className="space-y-4">
                   {userDonations.map((d: any) => (
-                    <tr key={d.id} className="border-t">
-                      <td className="py-2 pr-4">{new Date(d.createdAt || d.created_at).toLocaleDateString()}</td>
-                      <td className="py-2 pr-4">R {Number(d.amount || 0).toFixed(2)}</td>
-                      <td className="py-2 pr-4">
+                <div key={d.id} className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                        <Heart className="h-6 w-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                          R{Number(d.amount || 0).toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
                         {d.beneficiaryType === 'school' ? 'School' : d.beneficiaryType === 'child_headed_home' ? 'Child-Headed Home' : 'General Fund'}
-                      </td>
-                      <td className="py-2">{d.message || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {new Date(d.createdAt || d.created_at).toLocaleDateString()}
+                      </p>
+                      {d.message && (
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{d.message}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* Support Categories */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-foreground">How Your Donation Helps</h3>
+      <div className="space-y-6">
+        <h3 className="section-title-modern">How Your Donation Helps</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {supportCategories.map((category, index) => {
           const Icon = category.icon;
           const totalNeeded = category.funded + category.needed;
           const fundedPercentage = (category.funded / totalNeeded) * 100;
           return (
-            <Card key={index} className="shadow-card">
-              <CardContent className="p-4">
-                <div className="flex items-start space-x-3">
-                  <div className="p-2 bg-gradient-primary rounded-lg">
-                    <Icon className="h-5 w-5 text-primary-foreground" />
+              <Card key={index} className="card-modern hover:scale-105 transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="text-center mb-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/40 dark:to-green-800/40 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Icon className="h-8 w-8 text-green-600 dark:text-green-400" />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-foreground">{category.title}</h4>
-                      <span className="text-sm font-bold text-primary">R{category.cost}</span>
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{category.title}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{category.description}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">{category.description}</p>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">R{category.cost}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">per item</span>
+                    </div>
+                    
                     <div className="space-y-2">
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div className="bg-gradient-impact h-2 rounded-full transition-all duration-500" style={{ width: `${fundedPercentage}%` }} />
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                        <div 
+                          className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500" 
+                          style={{ width: `${fundedPercentage}%` }} 
+                        />
                       </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-success">{category.funded} funded</span>
-                        <span className="text-muted-foreground">{category.needed} still needed</span>
-                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-green-600 dark:text-green-400 font-medium">{category.funded} funded</span>
+                        <span className="text-gray-500 dark:text-gray-400">{category.needed} needed</span>
                     </div>
                   </div>
                 </div>
@@ -912,64 +1014,112 @@ const GreenScholarFund = () => {
             </Card>
           );
         })}
+        </div>
       </div>
 
-      {/* Application CTA */}
-      <Card className="shadow-card border-secondary/20 bg-secondary/10">
-        <CardContent className="p-4 text-center">
-          <Users className="h-8 w-8 text-secondary mx-auto mb-2" />
-          <h4 className="font-medium text-foreground mb-1">Need Support?</h4>
-          <p className="text-sm text-muted-foreground mb-3">If you're a learner or support a child-headed household, apply for assistance</p>
-          <Dialog open={showApplication} onOpenChange={setShowApplication}>
-            <DialogTrigger asChild>
-              <Button variant="secondary" size="sm">Apply for Support</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Green Scholar Fund Application</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-6">
-                {renderApplicationStep()}
-                <div className="flex justify-between pt-4">
-                  <Button variant="outline" onClick={() => setApplicationStep(Math.max(1, applicationStep - 1))} disabled={applicationStep === 1}>Previous</Button>
-                  {applicationStep < 5 ? (
-                    <Button onClick={() => setApplicationStep(applicationStep + 1)} disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}>Next</Button>
-                  ) : (
-                    <Button onClick={handleApplicationSubmit} disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}>Submit Application</Button>
-                  )}
+      {/* Application CTA & Fund Information */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Application CTA */}
+        <Card className="card-modern border-dashed border-green-300 dark:border-green-600">
+          <CardContent className="p-8 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/40 dark:to-green-800/40 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="h-10 w-10 text-green-600 dark:text-green-400" />
+            </div>
+            <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Need Support?</h4>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">If you're a learner or support a child-headed household, apply for assistance</p>
+            <Dialog open={showApplication} onOpenChange={setShowApplication}>
+              <DialogTrigger asChild>
+                <Button className="btn-primary-yellow">
+                  <UserCheck className="h-5 w-5 mr-2" />
+                  Apply for Support
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold">Green Scholar Fund Application</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6">
+                  {renderApplicationStep()}
+                  <div className="flex justify-between pt-4">
+                    <Button 
+                      className="btn-outline-modern" 
+                      onClick={() => setApplicationStep(Math.max(1, applicationStep - 1))} 
+                      disabled={applicationStep === 1}
+                    >
+                      Previous
+                    </Button>
+                    {applicationStep < 5 ? (
+                      <Button 
+                        className="btn-primary-yellow"
+                        onClick={() => setApplicationStep(applicationStep + 1)} 
+                        disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}
+                      >
+                        Next
+                      </Button>
+                    ) : (
+                      <Button 
+                        className="btn-primary-yellow"
+                        onClick={handleApplicationSubmit} 
+                        disabled={!applicationData.fullName || !applicationData.dateOfBirth || !applicationData.phoneNumber}
+                      >
+                        Submit Application
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </CardContent>
-      </Card>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
 
-      {/* Fund Information */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center space-x-2">
-            <Info className="h-5 w-5 text-primary" />
-            <span>About the Fund</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium text-foreground mb-2">Our Mission</h4>
-              <p className="text-sm text-muted-foreground">The Green Scholar Fund supports learners from disadvantaged backgrounds by providing essential educational resources, including school uniforms, stationery, and nutritional support.</p>
+        {/* Fund Information */}
+        <Card className="card-modern">
+          <CardHeader className="card-modern-header">
+            <CardTitle className="text-xl font-bold text-white flex items-center">
+              <Info className="h-6 w-6 mr-3 text-white" />
+              About the Fund
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-6">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                  <Shield className="h-5 w-5 mr-2 text-blue-600" />
+                  Our Mission
+                </h4>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  The Green Scholar Fund supports learners from disadvantaged backgrounds by providing essential educational resources, including school uniforms, stationery, and nutritional support.
+                </p>
+              </div>
+              
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-700">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                  <Clock className="h-5 w-5 mr-2 text-green-600" />
+                  How It Works
+                </h4>
+                <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                  <li className="flex items-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                    Community donations fund the program
+                  </li>
+                  <li className="flex items-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                    Applications are reviewed monthly
+                  </li>
+                  <li className="flex items-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                    Support is distributed based on need
+                  </li>
+                  <li className="flex items-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                    Regular updates on fund usage
+                  </li>
+                </ul>
+              </div>
             </div>
-            <div>
-              <h4 className="font-medium text-foreground mb-2">How It Works</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Community donations fund the program</li>
-                <li>• Applications are reviewed monthly</li>
-                <li>• Support is distributed based on need</li>
-                <li>• Regular updates on fund usage</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

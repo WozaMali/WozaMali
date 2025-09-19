@@ -84,46 +84,77 @@ const History = () => {
   };
 
   return (
-    <div className="pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
+    <div className="pb-24 p-4 space-y-6 bg-gradient-warm dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 min-h-screen">
       {/* Header */}
-      <div className="text-center space-y-2 pt-4">
-        <h1 className="text-2xl font-bold text-foreground">Transaction History</h1>
-        <p className="text-muted-foreground">Track your recycling journey and impact</p>
+      <div className="text-center space-y-4 pt-6">
+        <div className="flex justify-between items-start">
+          <div className="flex-1"></div>
+          <div className="flex-1 text-center">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+              Transaction History
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 font-medium">Track your recycling journey and impact</p>
+          </div>
+          <div className="flex justify-end flex-1">
+            {/* Theme follows browser preference automatically */}
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <ArrowUpRight className="h-6 w-6 text-success" />
-              <div>
-                <p className="text-sm text-muted-foreground">Available Balance</p>
-                <p className="text-lg font-bold text-success">R {netBalance.toFixed(2)}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="card-modern">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-4 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/40 dark:to-green-800/40 rounded-2xl">
+                  <ArrowUpRight className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Available Balance</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">R {netBalance.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-green-600 dark:text-green-400 font-medium">Current</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <ArrowDownRight className="h-6 w-6 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Used</p>
-                <p className="text-lg font-bold text-primary">R {totalSpent.toFixed(2)}</p>
+        <Card className="card-modern">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-4 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/40 dark:to-red-800/40 rounded-2xl">
+                  <ArrowDownRight className="h-8 w-8 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Total Used</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">R {totalSpent.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-red-600 dark:text-red-400 font-medium">Spent</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <Recycle className="h-6 w-6 text-blue-600" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Earned</p>
-                <p className="text-lg font-bold text-blue-600">R {totalEarnings.toFixed(2)}</p>
+        <Card className="card-modern">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-4 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 rounded-2xl">
+                  <Recycle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Total Earned</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">R {totalEarnings.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Earnings</p>
               </div>
             </div>
           </CardContent>
@@ -131,43 +162,49 @@ const History = () => {
       </div>
 
       {/* Filter Buttons */}
-      <Card className="shadow-card">
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-2 mb-4">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filter by type:</span>
+      <Card className="card-modern">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/40 dark:to-yellow-800/40 rounded-xl">
+              <Filter className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <span className="text-lg font-semibold text-gray-900 dark:text-white">Filter Transactions</span>
           </div>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Button
               variant={filter === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('all')}
-              className="text-xs"
+              className={filter === 'all' ? 'btn-primary-yellow' : 'btn-outline-modern'}
             >
+              <Recycle className="h-4 w-4 mr-2" />
               All
             </Button>
             <Button
               variant={filter === 'earnings' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('earnings')}
-              className="text-xs"
+              className={filter === 'earnings' ? 'btn-primary-yellow' : 'btn-outline-modern'}
             >
+              <ArrowUpRight className="h-4 w-4 mr-2" />
               Earnings
             </Button>
             <Button
               variant={filter === 'rewards' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('rewards')}
-              className="text-xs"
+              className={filter === 'rewards' ? 'btn-primary-yellow' : 'btn-outline-modern'}
             >
+              <Gift className="h-4 w-4 mr-2" />
               Rewards
             </Button>
             <Button
               variant={filter === 'withdrawals' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('withdrawals')}
-              className="text-xs"
+              className={filter === 'withdrawals' ? 'btn-primary-yellow' : 'btn-outline-modern'}
             >
+              <ArrowDownRight className="h-4 w-4 mr-2" />
               Withdrawals
             </Button>
           </div>
@@ -175,66 +212,98 @@ const History = () => {
       </Card>
 
       {/* Transaction List */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {!loading && filteredTransactions.length === 0 && (
-          <Card className="shadow-card">
-            <CardContent className="p-6 text-center text-sm text-muted-foreground">
-              No transactions to show yet.
+          <Card className="card-modern">
+            <CardContent className="p-12 text-center">
+              <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Recycle className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Transactions Yet</h3>
+              <p className="text-gray-600 dark:text-gray-300">Your transaction history will appear here</p>
             </CardContent>
           </Card>
         )}
         {(loading ? [] : filteredTransactions).map((transaction) => {
           const collectionId = transaction.reference || transaction.id;
+          const type = mapType(transaction);
           return (
-          <Card key={transaction.id} className="shadow-card">
-            <CardContent className="p-4" onClick={() => {
-              if (collectionId) {
-                try {
-                  window.location.href = `/collections/${collectionId}`;
-                } catch {}
-              }
-            }}>
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3">
-                  {getTransactionIcon(transaction)}
+          <Card key={transaction.id} className="card-modern hover:scale-105 transition-all duration-300 cursor-pointer" onClick={() => {
+            if (collectionId) {
+              try {
+                window.location.href = `/collections/${collectionId}`;
+              } catch {}
+            }
+          }}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className={`p-4 rounded-2xl ${
+                    type === 'earning' ? 'bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/40 dark:to-green-800/40' :
+                    type === 'reward' ? 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40' :
+                    type === 'donation' ? 'bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/40' : 
+                    'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/40 dark:to-red-800/40'
+                  }`}>
+                    {type === 'earning' && <Recycle className="h-6 w-6 text-green-600 dark:text-green-400" />}
+                    {type === 'reward' && <Gift className="h-6 w-6 text-blue-600 dark:text-blue-400" />}
+                    {type === 'donation' && <Heart className="h-6 w-6 text-purple-600 dark:text-purple-400" />}
+                    {type === 'withdrawal' && <ArrowDownRight className="h-6 w-6 text-red-600 dark:text-red-400" />}
+                  </div>
+                  
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h4 className="font-medium text-foreground">{(transaction.description || transaction.transaction_type || transaction.source_type || 'Transaction')}</h4>
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {(transaction.description || transaction.transaction_type || transaction.source_type || 'Transaction')}
+                      </h4>
                       <Badge 
-                        variant="outline" 
-                        className={`text-xs ${
-                          mapType(transaction) === 'earning' ? 'border-success text-success' :
-                          mapType(transaction) === 'reward' ? 'border-primary text-primary' :
-                          mapType(transaction) === 'donation' ? 'border-accent text-accent' : 'border-primary text-primary'
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          type === 'earning' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' :
+                          type === 'reward' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' :
+                          type === 'donation' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200' : 
+                          'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
                         }`}
                       >
-                        {mapType(transaction) === 'earning' ? 'Earning' :
-                         mapType(transaction) === 'reward' ? 'Reward' :
-                         mapType(transaction) === 'donation' ? 'Donation' : 'Withdrawal'}
+                        {type === 'earning' ? 'Earning' :
+                         type === 'reward' ? 'Reward' :
+                         type === 'donation' ? 'Donation' : 'Withdrawal'}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {transaction.material_type ? `${transaction.material_type}` : ''}
-                      {transaction.kgs ? `${transaction.material_type ? ' • ' : ''}${Number(transaction.kgs).toFixed(1)} kg` : ''}
-                      {transaction.amount && transaction.kgs ? ` • R${(Number(transaction.amount) / Number(transaction.kgs)).toFixed(2)}/kg` : ''}
-                    </p>
-                    {(transaction.reference_code || transaction.reference) && (
-                      <p className="text-xs text-muted-foreground break-all">
-                        {transaction.reference_code ? `Collection ${transaction.reference_code}` : `Collection ID ${transaction.reference}`}
-                      </p>
-                    )}
+                    
+                    <div className="space-y-1">
+                      {transaction.material_type && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          <span className="font-medium">Material:</span> {transaction.material_type}
+                        </p>
+                      )}
+                      {transaction.kgs && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          <span className="font-medium">Weight:</span> {Number(transaction.kgs).toFixed(1)} kg
+                        </p>
+                      )}
+                      {transaction.amount && transaction.kgs && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          <span className="font-medium">Rate:</span> R{(Number(transaction.amount) / Number(transaction.kgs)).toFixed(2)}/kg
+                        </p>
+                      )}
+                      {(transaction.reference_code || transaction.reference) && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {transaction.reference_code ? `Collection ${transaction.reference_code}` : `Collection ID ${transaction.reference}`}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
                 <div className="text-right">
-                  <p className={`font-bold ${
-                    (Number(transaction.amount) || 0) > 0 ? 'text-success' : 'text-foreground'
+                  <p className={`text-2xl font-bold ${
+                    (Number(transaction.amount) || 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                   }`}>
                     {(Number(transaction.amount) || 0) > 0 ? '+' : ''}R {Math.abs(Number(transaction.amount) || 0).toFixed(2)}
                   </p>
-                  <div className="flex items-center space-x-1 text-xs text-muted-foreground mt-1">
-                    <Calendar className="h-3 w-3" />
+                  <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    <Calendar className="h-4 w-4" />
                     <span>{formatDate(transaction.approved_at || transaction.created_at)}</span>
+                    <span>•</span>
                     <span>{formatTime(transaction.approved_at || transaction.created_at)}</span>
                   </div>
                 </div>
@@ -245,14 +314,23 @@ const History = () => {
       </div>
 
       {/* Load More */}
-      <Card className="shadow-card border-dashed border-muted-foreground/30">
-        <CardContent className="p-4 text-center">
+      <Card className="card-modern border-dashed border-gray-300 dark:border-gray-600">
+        <CardContent className="p-8 text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+          </div>
           {loading ? (
-            <p className="text-xs text-muted-foreground">Loading transactions...</p>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Loading Transactions...</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Please wait while we fetch your data</p>
+            </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
-              Showing {filteredTransactions.length} of {transactions.length} transactions
-            </p>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Transaction Summary</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Showing {filteredTransactions.length} of {transactions.length} transactions
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>

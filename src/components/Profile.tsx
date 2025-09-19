@@ -207,30 +207,53 @@ const Profile = () => {
   ];
 
   return (
-    <div className="pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
+    <div className="pb-24 p-4 space-y-6 bg-gradient-warm dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 min-h-screen">
       {/* Header */}
-      <div className="text-center space-y-2 pt-4">
-        <h1 className="text-2xl font-bold text-foreground">Profile</h1>
-        <p className="text-muted-foreground">Manage your account and recycling journey</p>
+      <div className="text-center space-y-4 pt-6">
+        <div className="flex justify-between items-start">
+          <div className="flex-1"></div>
+          <div className="flex-1 text-center">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+              Profile
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 font-medium">Manage your account and recycling journey</p>
+          </div>
+          <div className="flex justify-end flex-1">
+            {/* Theme follows browser preference automatically */}
+          </div>
+        </div>
       </div>
 
       {/* User Info Card */}
-      <Card className="bg-gradient-primary text-primary-foreground shadow-warm border-0">
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-white/20 rounded-full">
-              <User className="h-8 w-8" />
+      <Card className="card-modern">
+        <CardContent className="p-8">
+          <div className="flex items-center space-x-6">
+            <div className="relative">
+              <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg">
+                <User className="h-10 w-10 text-white" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-800">
+                <Shield className="h-3 w-3 text-white" />
+              </div>
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-bold">{userProfile.name}</h2>
-              <p className="text-sm opacity-90">{userProfile.phone}</p>
-              <p className="text-sm opacity-90">{userProfile.email}</p>
-              <div className="flex items-center space-x-2 mt-2">
-                <Badge variant="secondary" className="bg-white/20 text-primary-foreground border-0">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sebenza Mngqi</h2>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Phone className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{userProfile.phone}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{userProfile.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3 mt-4">
+                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 px-3 py-1 rounded-full">
                   <Shield className="h-3 w-3 mr-1" />
                   {userProfile.kycStatus === 'verified' ? 'Verified' : 'Pending'}
                 </Badge>
-                <span className="text-xs opacity-75">Member since {userProfile.memberSince}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Member since {userProfile.memberSince}</span>
               </div>
             </div>
           </div>
@@ -238,9 +261,9 @@ const Profile = () => {
       </Card>
 
       {/* Address Information */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Address Information</CardTitle>
+      <Card className="card-modern">
+        <CardHeader className="card-modern-header">
+          <CardTitle className="text-xl font-bold text-white">Address Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
@@ -310,51 +333,83 @@ const Profile = () => {
       </Card>
 
       {/* Recycling Level */}
-      <Card className="shadow-card border-secondary/20 bg-secondary/10">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="font-semibold text-foreground">{safeUserTier.charAt(0).toUpperCase() + safeUserTier.slice(1)} Recycler</h3>
-              <p className="text-sm text-muted-foreground">{safeTotalWeightKg.toFixed(1)} kg recycled</p>
+      <Card className="card-modern">
+        <CardContent className="p-8">
+          <div className="text-center mb-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <Star className="h-10 w-10 text-white" />
             </div>
-            <Star className="h-8 w-8 text-secondary" />
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              {safeUserTier.charAt(0).toUpperCase() + safeUserTier.slice(1)} Recycler
+            </h3>
+            <p className="text-lg text-gray-600 dark:text-gray-300 font-semibold">
+              {safeTotalWeightKg.toFixed(1)} kg recycled
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Progress to {safeNextTierRequirements.nextTier ? `${safeNextTierRequirements.nextTier.charAt(0).toUpperCase() + safeNextTierRequirements.nextTier.slice(1)} Recycler` : 'Next Tier'}</span>
-              <span className="font-medium">{safeNextTierRequirements.weightNeeded} kg to go</span>
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                Progress to {safeNextTierRequirements.nextTier ? `${safeNextTierRequirements.nextTier.charAt(0).toUpperCase() + safeNextTierRequirements.nextTier.slice(1)} Recycler` : 'Next Tier'}
+              </p>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                {safeNextTierRequirements.weightNeeded} kg to go
+              </p>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
+            
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
               <div
-                className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-4 rounded-full transition-all duration-500 shadow-lg"
                 style={{ width: `${safeNextTierRequirements.progressPercentage}%` }}
               />
+            </div>
+            
+            <div className="text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {safeNextTierRequirements.progressPercentage.toFixed(1)}% Complete
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Achievements */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Achievements</CardTitle>
+      <Card className="card-modern">
+        <CardHeader className="card-modern-header">
+          <CardTitle className="text-xl font-bold text-white">Achievements</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-2 gap-4">
             {achievements.map((achievement, index) => {
               const Icon = achievement.icon;
               return (
                 <div 
                   key={index}
-                  className={`p-3 rounded-lg border text-center ${
+                  className={`p-6 rounded-2xl text-center transition-all duration-300 hover:scale-105 ${
                     achievement.earned 
-                      ? 'bg-gradient-primary text-primary-foreground border-primary' 
-                      : 'bg-muted text-muted-foreground border-border'
+                      ? 'bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/40 dark:to-yellow-800/40 border-2 border-yellow-300 dark:border-yellow-600 shadow-lg' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-2 border-gray-200 dark:border-gray-600'
                   }`}
                 >
-                  <Icon className="h-6 w-6 mx-auto mb-1" />
-                  <p className="text-xs font-medium">{achievement.title}</p>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                    achievement.earned 
+                      ? 'bg-yellow-500 shadow-lg' 
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  }`}>
+                    <Icon className={`h-6 w-6 ${
+                      achievement.earned ? 'text-white' : 'text-gray-500 dark:text-gray-400'
+                    }`} />
+                  </div>
+                  <p className={`text-sm font-semibold ${
+                    achievement.earned ? 'text-yellow-800 dark:text-yellow-200' : 'text-gray-500 dark:text-gray-400'
+                  }`}>
+                    {achievement.title}
+                  </p>
+                  {achievement.earned && (
+                    <div className="mt-2">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full mx-auto"></div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -363,105 +418,136 @@ const Profile = () => {
       </Card>
 
       {/* Quick Access */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Quick Access</CardTitle>
+      <Card className="card-modern">
+        <CardHeader className="card-modern-header">
+          <CardTitle className="text-xl font-bold text-white">Quick Access</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Button 
-            variant="outline" 
-            className="w-full justify-start"
+              className="h-16 justify-start bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500 transition-all duration-200"
             onClick={() => navigate.push('/settings')}
           >
-            <Settings className="h-4 w-4 mr-3" />
-            Settings
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg mr-3">
+                <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Settings</p>
+                <p className="text-xs opacity-75">Account preferences</p>
+              </div>
           </Button>
           
           <Button 
-            variant="outline" 
-            className="w-full justify-start"
+              className="h-16 justify-start bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500 transition-all duration-200"
             onClick={() => navigate.push('/notifications')}
           >
-            <Bell className="h-4 w-4 mr-3" />
-            Notifications
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg mr-3">
+                <Bell className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Notifications</p>
+                <p className="text-xs opacity-75">Alerts & updates</p>
+              </div>
           </Button>
           
           <Button 
-            variant="outline" 
-            className="w-full justify-start"
+              className="h-16 justify-start bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500 transition-all duration-200"
             onClick={() => navigate.push('/guides')}
           >
-            <BookOpen className="h-4 w-4 mr-3" />
-            Recycling Guides
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg mr-3">
+                <BookOpen className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Guides</p>
+                <p className="text-xs opacity-75">Recycling tips</p>
+              </div>
           </Button>
           
           <Button 
-            variant="outline" 
-            className="w-full justify-start"
+              className="h-16 justify-start bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500 transition-all duration-200"
             onClick={() => navigate.push('/leaderboard')}
           >
-            <TrendingUp className="h-4 w-4 mr-3" />
-            Leaderboard
+              <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg mr-3">
+                <TrendingUp className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold">Leaderboard</p>
+                <p className="text-xs opacity-75">Top recyclers</p>
+              </div>
           </Button>
           
           {/* Collector Link - Only show for collectors, admins, and managers */}
           {(userRole === 'collector' || userRole === 'admin' || userRole === 'manager') && (
             <Button 
-              variant="outline" 
-              className="w-full justify-start"
+                className="h-16 justify-start md:col-span-2 bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500 transition-all duration-200"
               onClick={() => navigate.push('/collector')}
             >
-              <Recycle className="h-4 w-4 mr-3" />
-              Collector Dashboard
+                <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg mr-3">
+                  <Recycle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold">Collector Dashboard</p>
+                  <p className="text-xs opacity-75">Collection management</p>
+                </div>
             </Button>
           )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Settings */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Settings</CardTitle>
+      <Card className="card-modern">
+        <CardHeader className="card-modern-header">
+          <CardTitle className="text-xl font-bold text-white">Account Settings</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1">
+        <CardContent className="p-6">
+          <div className="space-y-3">
           {settings.map((setting, index) => {
             const Icon = setting.icon;
             return (
               <button
                 key={index}
-                className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                  className="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 text-left group"
                 onClick={setting.action}
               >
-                <Icon className="h-5 w-5 text-muted-foreground" />
+                  <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-xl group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                    <Icon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                  </div>
                 <div className="flex-1">
-                  <p className="font-medium text-foreground">{setting.title}</p>
-                  <p className="text-sm text-muted-foreground">{setting.description}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{setting.title}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{setting.description}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
               </button>
             );
           })}
+          </div>
         </CardContent>
       </Card>
 
       {/* App Info */}
-      <Card className="shadow-card">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">App Version</span>
-            <span className="text-sm font-medium">1.0.0</span>
+      <Card className="card-modern">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">App Version</span>
+              <span className="text-sm font-bold text-gray-900 dark:text-white">1.0.0</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Last Sync</span>
+              <span className="text-sm font-bold text-green-600 dark:text-green-400">Just now</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Last Sync</span>
-            <span className="text-sm font-medium">Just now</span>
           </div>
         </CardContent>
       </Card>
 
       {/* Logout */}
-      <Button variant="destructive" className="w-full h-12" onClick={handleLogout}>
-        <LogOut className="h-5 w-5 mr-2" />
-        Logout
+      <Button 
+        className="w-full h-16 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+        onClick={handleLogout}
+      >
+        <LogOut className="h-5 w-5 mr-3" />
+        Sign Out
       </Button>
     </div>
   );

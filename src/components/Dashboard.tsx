@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, ArrowDownRight, Gift, Heart, Star, Calendar, Clock, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Logo from "./Logo";
 import LoadingSpinner from "./LoadingSpinner";
@@ -14,8 +14,9 @@ import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
 import { supabase } from "@/lib/supabase";
 import { AddressService } from "@/lib/addressService";
 import { WorkingWalletService } from "@/lib/workingWalletService";
+import VirtualizedTransactionList from "./VirtualizedTransactionList";
 
-const Dashboard = () => {
+const Dashboard = memo(() => {
   const navigate = useRouter();
   const { logMetrics } = usePerformanceMonitor('Dashboard');
   
@@ -45,205 +46,195 @@ const Dashboard = () => {
     totalWeightKg
   } = useWallet(user?.id);
 
-  // Add error boundary for wallet data
-  const safeWalletBalance = walletBalance || 0;
-  const safeTotalPoints = totalPoints || 0;
-  const safeUserTier = userTier || 'bronze';
-  const safeTotalWeightKg = totalWeightKg || 0;
-  const safeEnvironmentalImpact = environmentalImpact || {
+  // Memoize safe values to prevent unnecessary re-renders
+  const safeWalletBalance = useMemo(() => walletBalance || 0, [walletBalance]);
+  const safeTotalPoints = useMemo(() => totalPoints || 0, [totalPoints]);
+  const safeUserTier = useMemo(() => userTier || 'bronze', [userTier]);
+  const safeTotalWeightKg = useMemo(() => totalWeightKg || 0, [totalWeightKg]);
+  const safeEnvironmentalImpact = useMemo(() => environmentalImpact || {
     co2_saved_kg: 0,
     water_saved_liters: 0,
     landfill_saved_kg: 0
-  };
-  const safeNextTierRequirements = nextTierRequirements || {
+  }, [environmentalImpact]);
+  const safeNextTierRequirements = useMemo(() => nextTierRequirements || {
     nextTier: 'silver',
     weightNeeded: 20,
     progressPercentage: 0
-  };
+  }, [nextTierRequirements]);
 
-  // Optimized useEffect to refresh wallet data when user changes
+  // Consolidated state for better performance
+  const [dashboardData, setDashboardData] = useState({
+    allTransactions: [] as any[],
+    recentLoading: false, // Start with false to prevent initial loading state
+    recentError: null as string | null,
+    computedBalance: null as number | null,
+    nonPetBalance: null as number | null,
+    userAddress: null as any,
+    addressLoading: false // Start with false to prevent initial loading state
+  });
+
+  // Track if initial load is complete
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+
+  // Memoize expensive calculations to prevent re-computation on every render
+  const totalKgRecycled = useMemo(() => safeTotalWeightKg || safeTotalPoints, [safeTotalWeightKg, safeTotalPoints]);
+  const co2Saved = useMemo(() => safeEnvironmentalImpact?.co2_saved_kg || (totalKgRecycled * 0.5), [safeEnvironmentalImpact?.co2_saved_kg, totalKgRecycled]);
+
+  // Prefer non-PET unified total; fallback to walletBalance
+  const displayBalance = useMemo(() => 
+    (typeof dashboardData.nonPetBalance === 'number') ? dashboardData.nonPetBalance : safeWalletBalance,
+    [dashboardData.nonPetBalance, safeWalletBalance]
+  );
+
+  // Optimized data loading with lazy loading for transactions
   useEffect(() => {
-    // Only refresh if user changes and we have a valid refresh function
+    const loadDashboardData = async () => {
+      if (!user?.id) return;
+      
+      // Load critical data first (address and non-PET balance)
+      setDashboardData(prev => ({ ...prev, addressLoading: true }));
+      
+      try {
+        const [nonPetData, addressData] = await Promise.allSettled([
+          WorkingWalletService.getNonPetApprovedTotal(user.id),
+          loadUserAddress(user.id)
+        ]);
+
+        // Process non-PET balance
+        if (nonPetData.status === 'fulfilled') {
+          setDashboardData(prev => ({ ...prev, nonPetBalance: nonPetData.value }));
+        }
+
+        // Process address data
+        if (addressData.status === 'fulfilled') {
+          setDashboardData(prev => ({ ...prev, userAddress: addressData.value, addressLoading: false }));
+        } else {
+          setDashboardData(prev => ({ ...prev, userAddress: null, addressLoading: false }));
+        }
+
+        // Mark initial load as complete
+        setIsInitialLoadComplete(true);
+
+      } catch (error) {
+        console.error('Error loading critical dashboard data:', error);
+        setDashboardData(prev => ({
+          ...prev,
+          addressLoading: false
+        }));
+        setIsInitialLoadComplete(true);
+      }
+    };
+
+    loadDashboardData();
+  }, [user?.id]);
+
+  // Lazy load transactions after initial render
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!user?.id) return;
+      
+      setDashboardData(prev => ({ ...prev, recentLoading: true }));
+      
+      try {
+        const txData = await WorkingWalletService.getTransactionHistory(user.id, 5);
+        const safeTx = Array.isArray(txData) ? txData : [];
+        const sum = safeTx.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+        
+        setDashboardData(prev => ({
+          ...prev,
+          allTransactions: safeTx,
+          computedBalance: Number(sum.toFixed(2)),
+          recentLoading: false,
+          recentError: null
+        }));
+      } catch (error) {
+        console.error('Error loading transactions:', error);
+        setDashboardData(prev => ({
+          ...prev,
+          allTransactions: [],
+          computedBalance: null,
+          recentLoading: false,
+          recentError: 'Failed to load recent activity'
+        }));
+      }
+    };
+
+    // Load transactions after a short delay to prioritize critical data
+    const timer = setTimeout(loadTransactions, 100);
+    return () => clearTimeout(timer);
+  }, [user?.id]);
+
+  // Optimized wallet refresh effect
+  useEffect(() => {
     if (user?.id && refreshWallet && typeof refreshWallet === 'function') {
-      // Add a small delay to prevent immediate refresh on mount
       const timer = setTimeout(() => {
         refreshWallet();
       }, 100);
-      
       return () => clearTimeout(timer);
     }
-  }, [user?.id]); // Remove refreshWallet from dependencies to prevent infinite loops
-  
-  const totalKgRecycled = safeTotalWeightKg || safeTotalPoints; // Use actual weight if available
-  const co2Saved = safeEnvironmentalImpact?.co2_saved_kg || (totalKgRecycled * 0.5); // Use calculated impact if available
+  }, [user?.id, refreshWallet]);
 
-  // Transactions and balance computed from transactions
-  const [allTransactions, setAllTransactions] = useState<any[]>([]);
-  const [recentLoading, setRecentLoading] = useState(true);
-  const [recentError, setRecentError] = useState<string | null>(null);
-  const [computedBalance, setComputedBalance] = useState<number | null>(null);
+  // Optimized address loading function
+  const loadUserAddress = useCallback(async (userId: string) => {
+    try {
+      // 1) Try unified users table first
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select(`
+          id, email, first_name, last_name, full_name, phone, role_id, status,
+          street_addr, township_id, subdivision, city, postal_code
+        `)
+        .eq('id', userId)
+        .maybeSingle();
 
-  useEffect(() => {
-    const loadRecent = async () => {
-      if (!user?.id) return;
-      setRecentLoading(true);
-      setRecentError(null);
-      try {
-        const tx = await WorkingWalletService.getTransactionHistory(user.id);
-        const safeTx = Array.isArray(tx) ? tx : [];
-        setAllTransactions(safeTx);
-        // Keep computed history sum for other UI, but not for wallet balance
-        const sum = safeTx.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
-        setComputedBalance(Number(sum.toFixed(2)));
-      } catch (e: any) {
-        console.error('Error loading recent transactions:', e);
-        setRecentError(e?.message || 'Failed to load recent activity');
-        setAllTransactions([]);
-        setComputedBalance(null);
-      } finally {
-        setRecentLoading(false);
+      if (!userError && userData) {
+        return userData;
       }
-    };
-    loadRecent();
-  }, [user?.id]);
 
-  // Compute wallet display balance from unified collections (exclude PET)
-  const [nonPetBalance, setNonPetBalance] = useState<number | null>(null);
-  useEffect(() => {
-    const loadNonPet = async () => {
-      if (!user?.id) return;
-      try {
-        const val = await WorkingWalletService.getNonPetApprovedTotal(user.id);
-        setNonPetBalance(val);
-      } catch {
-        setNonPetBalance(null);
+      // 2) Try user_addresses table
+      const { data: defaultAddr, error: addrErr } = await supabase
+        .from('user_addresses')
+        .select('address_line1, address_line2, city, province, postal_code')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      if (!addrErr && defaultAddr) {
+        return {
+          address_line1: defaultAddr.address_line1,
+          address_line2: defaultAddr.address_line2,
+          city: defaultAddr.city,
+          postal_code: defaultAddr.postal_code,
+          province: defaultAddr.province
+        };
       }
-    };
-    loadNonPet();
-  }, [user?.id]);
 
-  // Prefer non-PET unified total; fallback to walletBalance
-  const displayBalance = (typeof nonPetBalance === 'number') ? nonPetBalance : safeWalletBalance;
-
-  const formatDate = (iso?: string) => {
-    if (!iso) return '';
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString();
-  };
-  const formatAmount = (amount: number) => {
-    const val = Number(amount) || 0;
-    return `${val >= 0 ? '+' : '-'}R ${Math.abs(val).toFixed(2)}`;
-  };
-  const getTxIcon = (amount: number) => {
-    const val = Number(amount) || 0;
-    return val >= 0 ? (
-      <div className="p-2 bg-success/20 rounded-lg"><Recycle className="h-4 w-4 text-success" /></div>
-    ) : (
-      <div className="p-2 bg-primary/20 rounded-lg"><ArrowDownRight className="h-4 w-4 text-primary" /></div>
-    );
-  };
-
-  // Collection scheduling
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>('');
-
-  const nextCollectionDate = "2025-08-12";
-  const nextCollectionTime = "09:00 - 12:00";
-  
-  // Fetch user's address from unified users table
-  const [userAddress, setUserAddress] = useState<any>(null);
-  const [addressLoading, setAddressLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchUserAddress = async () => {
-      if (!user?.id) return;
-
+      // 3) Try RPC helper
       try {
-        // 1) Try unified users table first
-        let userData: any = null;
-        let userError: any = null;
-        try {
-          const resp = await supabase
-            .from('users')
-            .select(`
-              id,
-              email,
-              first_name,
-              last_name,
-              full_name,
-              phone,
-              role_id,
-              status,
-              street_addr,
-              township_id,
-              subdivision,
-              city,
-              postal_code
-            `)
-            .eq('id', user.id)
-            .maybeSingle();
-          userData = resp.data;
-          userError = resp.error;
-        } catch (e) {
-          userError = e;
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_default_address', {
+          target_user_uuid: userId,
+          address_type_filter: null
+        });
+        
+        if (!rpcError && rpcData?.found && rpcData.address) {
+          const a = rpcData.address;
+          return {
+            address_line1: a.address_line1,
+            address_line2: a.address_line2,
+            city: a.city,
+            postal_code: a.postal_code,
+            province: a.province
+          };
         }
+      } catch (_) {
+        // RPC not available, continue to fallback
+      }
 
-        // 2) If users table missing/empty, try default address from user_addresses
-        if (userError || !userData) {
-          // Try direct table first
-          const { data: defaultAddr, error: addrErr } = await supabase
-            .from('user_addresses')
-            .select('address_line1, address_line2, city, province, postal_code')
-            .eq('user_id', user.id)
-            .eq('is_active', true)
-            .eq('is_default', true)
-            .maybeSingle();
-
-          if (!addrErr && defaultAddr) {
-            setUserAddress({
-              address_line1: defaultAddr.address_line1,
-              address_line2: defaultAddr.address_line2,
-              city: defaultAddr.city,
-              postal_code: defaultAddr.postal_code,
-              province: defaultAddr.province
-            });
-            setAddressLoading(false);
-            return;
-          }
-
-          // Try RPC helper if available
-          try {
-            const rpc = await supabase.rpc('get_default_address', {
-              target_user_uuid: user.id,
-              address_type_filter: null
-            });
-            if (!rpc.error && rpc.data && rpc.data.found && rpc.data.address) {
-              const a = rpc.data.address;
-              setUserAddress({
-                address_line1: a.address_line1,
-                address_line2: a.address_line2,
-                city: a.city,
-                postal_code: a.postal_code,
-                province: a.province
-              });
-              setAddressLoading(false);
-              return;
-            }
-          } catch (_) {
-            // ignore
-          }
-        }
-
-        // 3) If we have users row, use it
-        if (userData) {
-          setUserAddress(userData);
-          setAddressLoading(false);
-          return;
-        }
-
-        // 4) Fallback to auth metadata
-        setUserAddress({
+      // 4) Fallback to auth metadata
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        return {
           id: user.id,
           email: user.email || '',
           first_name: user.user_metadata?.first_name || '',
@@ -254,21 +245,51 @@ const Dashboard = () => {
           subdivision: user.user_metadata?.subdivision || null,
           city: user.user_metadata?.city || 'Soweto',
           postal_code: user.user_metadata?.postal_code || null
-        });
-      } catch (error) {
-        console.error('Error fetching user address:', error);
-        setUserAddress(null);
-      } finally {
-        setAddressLoading(false);
+        };
       }
-    };
 
-    fetchUserAddress();
-  }, [user?.id]);
+      return null;
+    } catch (error) {
+      console.error('Error fetching user address:', error);
+      return null;
+    }
+  }, []);
 
-  const getUserAddress = () => {
-    if (addressLoading) return "Loading address...";
-    if (!userAddress) return "Address not available in current schema";
+  // Memoize format functions to prevent recreation on every render
+  const formatDate = useCallback((iso?: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString();
+  }, []);
+
+  const formatAmount = useCallback((amount: number) => {
+    const val = Number(amount) || 0;
+    return `${val >= 0 ? '+' : '-'}R ${Math.abs(val).toFixed(2)}`;
+  }, []);
+
+  const getTxIcon = useCallback((amount: number) => {
+    const val = Number(amount) || 0;
+    return val >= 0 ? (
+      <div className="p-2 bg-success/20 rounded-lg"><Recycle className="h-4 w-4 text-success" /></div>
+    ) : (
+      <div className="p-2 bg-primary/20 rounded-lg"><ArrowDownRight className="h-4 w-4 text-primary" /></div>
+    );
+  }, []);
+
+  // Collection scheduling
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+
+  const nextCollectionDate = "2025-08-12";
+  const nextCollectionTime = "09:00 - 12:00";
+  
+  // Memoize address calculations to prevent re-computation
+  const nextCollectionArea = useMemo(() => {
+    if (dashboardData.addressLoading) return "Loading address...";
+    if (!dashboardData.userAddress) return "Address not available in current schema";
+    
+    const userAddress = dashboardData.userAddress;
     
     // If using user_addresses structure
     if (userAddress.address_line1) {
@@ -293,11 +314,10 @@ const Dashboard = () => {
 
     if (city) return `${city}`;
     return "Address not available in current schema";
-  };
+  }, [dashboardData.addressLoading, dashboardData.userAddress]);
 
-  const nextCollectionArea = getUserAddress();
-  const getUserAddressFields = () => {
-    if (addressLoading || !userAddress) {
+  const addressFields = useMemo(() => {
+    if (dashboardData.addressLoading || !dashboardData.userAddress) {
       return { street_addr: '', township_name: '', subdivision: '', city: '', postal_code: '' } as {
         street_addr: string;
         township_name: string;
@@ -306,21 +326,20 @@ const Dashboard = () => {
         postal_code: string;
       };
     }
-    const ua = userAddress as any;
+    const ua = dashboardData.userAddress as any;
     const street = ua.address_line1 || ua.street_addr || '';
     const subdivision = ua.address_line2 || ua.subdivision || '';
     const townshipName = ua.township_name || '';
     const city = ua.city || '';
     const postal = ua.postal_code || '';
     return { street_addr: street, township_name: townshipName, subdivision, city, postal_code: postal };
-  };
-  const addressFields = getUserAddressFields();
+  }, [dashboardData.addressLoading, dashboardData.userAddress]);
   
-  // Check if user has provided address information
-  const hasAddress = !!(
-    (userAddress && (userAddress as any).address_line1 && (userAddress as any).city) ||
-    (userAddress && (userAddress as any).street_addr && (userAddress as any).city)
-  );
+  // Memoize address validation to prevent re-computation
+  const hasAddress = useMemo(() => !!(
+    (dashboardData.userAddress && (dashboardData.userAddress as any).address_line1 && (dashboardData.userAddress as any).city) ||
+    (dashboardData.userAddress && (dashboardData.userAddress as any).street_addr && (dashboardData.userAddress as any).city)
+  ), [dashboardData.userAddress]);
 
   const handleBookCollection = (date: string) => {
     setSelectedDate(date);
@@ -333,113 +352,164 @@ const Dashboard = () => {
     alert(`Collection booked for ${selectedDate}`);
   };
 
-  // Debug logging to see what's happening
-  console.log('Dashboard Debug - Wallet Values:', {
-    walletBalance: safeWalletBalance,
-    displayBalance,
-    totalPoints: safeTotalPoints,
-    tier: safeUserTier,
-    totalWeightKg: safeTotalWeightKg,
-    walletLoading,
-    error: walletError
-  });
+  // Debug logging to see what's happening (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Dashboard Debug - Wallet Values:', {
+      walletBalance: safeWalletBalance,
+      displayBalance,
+      totalPoints: safeTotalPoints,
+      tier: safeUserTier,
+      totalWeightKg: safeTotalWeightKg,
+      walletLoading,
+      error: walletError,
+      isInitialLoadComplete
+    });
+  }
 
-  const handleRefreshBalance = () => {
+  // Don't render early return - this violates hooks rules
+  // Instead, we'll show loading state in the JSX
+
+  // Memoize refresh function to prevent recreation
+  const handleRefreshBalance = useCallback(() => {
     if (refreshWallet && typeof refreshWallet === 'function') {
       refreshWallet();
     }
-  };
+  }, [refreshWallet]);
+
+  // Memoized transaction renderer for virtual scrolling
+  const renderTransaction = useCallback((transaction: any, index: number) => (
+    <div key={transaction.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-xl border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+      <div className="flex items-center space-x-4">
+        <div className="w-10 h-10 bg-gradient-to-r from-orange-100 to-yellow-100 rounded-xl flex items-center justify-center shadow-sm">
+          {getTxIcon(transaction.amount)}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {transaction.description || (Number(transaction.amount) >= 0 ? 'Collection approved' : 'Withdrawal')}
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-300">
+            {transaction.material_type ? `${transaction.material_type}` : ''}
+            {transaction.kgs ? `${transaction.material_type ? ' • ' : ''}${Number(transaction.kgs).toFixed(1)} kg` : ''}
+            {` ${formatDate(transaction.approved_at || transaction.updated_at || transaction.created_at)}`}
+          </p>
+        </div>
+      </div>
+      <p className={`text-lg font-bold ${Number(transaction.amount) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        {formatAmount(Number(transaction.amount) || 0)}
+      </p>
+    </div>
+  ), [getTxIcon, formatDate, formatAmount]);
 
   return (
-    <div className="relative pb-20 p-4 space-y-6 bg-gradient-warm min-h-screen">
-      {/* Header */}
-      <div className="text-center space-y-3 pt-4">
-        <div className="flex justify-center">
-          <Logo className="h-16 w-auto" alt="Woza Mali Logo" variant="woza-mali" />
+    <div className="relative pb-20 p-4 space-y-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+      {/* Show loading spinner if initial load is not complete */}
+      {!isInitialLoadComplete ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <LoadingSpinner fullScreen text="Loading dashboard..." />
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="text-center space-y-4 pt-6">
+        <div className="flex justify-between items-start">
+          <div className="flex-1"></div>
+          <div className="flex justify-center flex-1">
+            <Logo className="h-16 w-auto" alt="Woza Mali Logo" variant="woza-mali" />
+          </div>
+          <div className="flex justify-end flex-1">
+            {/* Theme follows browser preference automatically */}
+          </div>
         </div>
         
-        <div className="space-y-1">
-          <p className="text-muted-foreground">Powered by Sebenza Nathi Waste</p>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+            Welcome, Sebenza Mngqi!
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 font-medium">Powered by Sebenza Nathi Waste</p>
         </div>
       </div>
 
       {/* Wallet Balance Card */}
-      <Card className="bg-gradient-primary text-primary-foreground shadow-warm border-0">
+      <Card className="border-0 shadow-2xl wallet-card dark:wallet-card-dark">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm opacity-90 mb-1">Wallet Balance</p>
+              <p className="text-sm opacity-90 mb-2 font-medium">Wallet Balance</p>
               {walletLoading ? (
                 <div className="animate-pulse">
-                  <div className="h-8 bg-white/20 rounded mb-2"></div>
-                  <div className="h-3 bg-white/20 rounded w-24"></div>
+                  <div className="h-10 bg-white/20 rounded-lg mb-2"></div>
+                  <div className="h-4 bg-white/20 rounded w-32"></div>
                 </div>
               ) : walletError ? (
                 <div>
-                  <p className="text-xl font-bold text-red-200">Error</p>
-                  <p className="text-xs opacity-75 mt-1">Failed to load balance</p>
+                  <p className="text-2xl font-bold text-red-100">Error</p>
+                  <p className="text-sm opacity-75 mt-1">Failed to load balance</p>
                   <button
                     onClick={() => {
                       if (refreshWallet && typeof refreshWallet === 'function') {
                         refreshWallet();
                       }
                     }}
-                    className="text-xs text-blue-200 underline hover:text-blue-100 mt-1"
+                    className="text-sm text-blue-100 underline hover:text-blue-50 mt-2 px-3 py-1 bg-white/20 rounded-lg hover:bg-white/30 transition-all"
                   >
                     Click to retry
                   </button>
                 </div>
               ) : (
                 <>
-                  <p className="text-3xl font-bold">R {displayBalance.toFixed(2)}</p>
-                  <p className="text-xs opacity-75 mt-1">
+                  <p className="text-4xl font-bold mb-2">R {displayBalance.toFixed(2)}</p>
+                  <p className="text-sm opacity-90">
                     {displayBalance === 0 ? 'No balance yet - Complete pickups to earn real money!' : 'Available for withdrawal'}
                   </p>
                 </>
               )}
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => navigate.push('/withdrawal')}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-                title="Withdrawal"
-              >
-                <ArrowUpRight className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => navigate.push('/guides')}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-                title="Recycling Guide"
-              >
-                <Recycle className="h-5 w-5" />
-              </button>
-              <Wallet className="h-12 w-12 opacity-80" />
+            <div className="flex flex-col items-center space-y-3">
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => navigate.push('/withdrawal')}
+                  className="p-3 rounded-xl bg-white/20 hover:bg-white/30 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  title="Withdrawal"
+                >
+                  <ArrowUpRight className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => navigate.push('/guides')}
+                  className="p-3 rounded-xl bg-white/20 hover:bg-white/30 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  title="Recycling Guide"
+                >
+                  <Recycle className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center shadow-lg">
+                <Wallet className="h-8 w-8" />
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Recycling Level & Impact */}
-      <Card className="shadow-card border-secondary/20 bg-secondary/10">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
+      <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-2xl transition-all duration-300">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-foreground">{safeUserTier.charAt(0).toUpperCase() + safeUserTier.slice(1)} Recycler</h3>
-              <p className="text-sm text-muted-foreground">{safeTotalWeightKg} kg recycled</p>
+              <h3 className="text-xl font-bold text-green-900">{safeUserTier.charAt(0).toUpperCase() + safeUserTier.slice(1)} Recycler</h3>
+              <p className="text-sm text-green-700 font-medium">{safeTotalWeightKg} kg recycled</p>
             </div>
-            <div className="p-2 bg-gradient-impact rounded-lg">
-              <Recycle className="h-6 w-6 text-success-foreground" />
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <Recycle className="h-8 w-8 text-white" />
             </div>
           </div>
           
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Progress to {safeNextTierRequirements.nextTier ? `${safeNextTierRequirements.nextTier.charAt(0).toUpperCase() + safeNextTierRequirements.nextTier.slice(1)} Recycler` : 'Max Level'}</span>
-              <span className="font-medium">{safeNextTierRequirements.weightNeeded} kg to go</span>
+              <span className="text-green-700 font-medium">Progress to {safeNextTierRequirements.nextTier ? `${safeNextTierRequirements.nextTier.charAt(0).toUpperCase() + safeNextTierRequirements.nextTier.slice(1)} Recycler` : 'Max Level'}</span>
+              <span className="font-bold text-green-800">{safeNextTierRequirements.weightNeeded} kg to go</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
+            <div className="w-full bg-green-200 rounded-full h-3 shadow-inner">
               <div 
-                className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500 shadow-sm"
                 style={{ width: `${safeNextTierRequirements.progressPercentage}%` }}
               />
             </div>
@@ -449,179 +519,203 @@ const Dashboard = () => {
 
       {/* CO2 Impact & Monthly Growth */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-impact rounded-lg">
-                <Leaf className="h-6 w-6 text-success-foreground" />
+        <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-2xl transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Leaf className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">CO₂ Saved</p>
-                <p className="text-xl font-bold text-foreground">{co2Saved.toFixed(1)} kg</p>
+                <p className="text-sm text-blue-700 font-medium">CO₂ Saved</p>
+                <p className="text-2xl font-bold text-blue-900">{co2Saved.toFixed(1)} kg</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card border-success/20 bg-success/5">
-          <CardContent className="p-4">
+        <Card className="border-0 shadow-xl bg-gradient-to-br from-emerald-50 to-emerald-100 hover:shadow-2xl transition-all duration-300">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-success/20 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-success" />
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <TrendingUp className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Weight</p>
-                  <p className="text-lg font-bold text-success">{safeTotalWeightKg.toFixed(1)} kg</p>
+                  <p className="text-sm text-emerald-700 font-medium">Total Weight</p>
+                  <p className="text-2xl font-bold text-emerald-900">{safeTotalWeightKg.toFixed(1)} kg</p>
                 </div>
               </div>
-              <ArrowUpRight className="h-5 w-5 text-success" />
+              <ArrowUpRight className="h-6 w-6 text-emerald-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Quick Actions */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+      <div className="space-y-4">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Quick Actions</h3>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <Button 
-            variant="gradient" 
-            className="h-12"
+            className="h-16 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
             onClick={() => navigate.push('/withdrawal')}
           >
-            <ArrowUpRight className="h-5 w-5 mr-2" />
-            Withdrawal
+            <ArrowUpRight className="h-6 w-6 mr-3" />
+            <span className="font-semibold">Withdrawal</span>
           </Button>
           <Button 
-            variant="impact" 
-            className="h-12"
+            className="h-16 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
             onClick={() => navigate.push('/guides')}
           >
-            <Recycle className="h-5 w-5 mr-2" />
-            Recycling Guide
+            <Recycle className="h-6 w-6 mr-3" />
+            <span className="font-semibold">Recycling Guide</span>
           </Button>
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <Button 
-            variant="gradient" 
-            className="h-12"
+            className="h-16 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
             onClick={() => navigate.push('/rewards')}
           >
-            <Gift className="h-5 w-5 mr-2" />
-            Redeem Reward
+            <Gift className="h-6 w-6 mr-3" />
+            <span className="font-semibold">Redeem Reward</span>
           </Button>
           
           <Button 
-            variant="gradient" 
-            className="h-12"
+            className="h-16 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
             onClick={() => navigate.push('/fund')}
           >
-            <Heart className="h-5 w-5 mr-2" />
-            Donate to Fund
+            <Heart className="h-6 w-6 mr-3" />
+            <span className="font-semibold">Donate to Fund</span>
           </Button>
         </div>
       </div>
 
       {/* Recent Activity */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Recent Activity</CardTitle>
+      <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:shadow-2xl transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-700 dark:to-gray-600 text-white rounded-t-lg">
+          <CardTitle className="text-xl font-semibold">Recent Activity</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {recentLoading ? (
-            <div className="text-xs text-muted-foreground">Loading recent activity...</div>
-          ) : recentError ? (
-            <div className="text-xs text-red-500">{recentError}</div>
-          ) : allTransactions.length === 0 ? (
-            <div className="text-xs text-muted-foreground">No recent activity yet.</div>
+        <CardContent className="p-6">
+          {dashboardData.recentLoading ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-yellow-600 border-t-transparent mx-auto mb-2"></div>
+              <p className="text-sm">Loading recent activity...</p>
+            </div>
+          ) : dashboardData.recentError ? (
+            <div className="text-center py-8 text-red-500 dark:text-red-400">
+              <div className="text-red-500 text-4xl mb-2">⚠️</div>
+              <p className="text-sm">{dashboardData.recentError}</p>
+            </div>
+          ) : dashboardData.allTransactions.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <div className="text-gray-400 dark:text-gray-500 text-4xl mb-2">📊</div>
+              <p className="text-sm font-medium">No recent activity yet</p>
+              <p className="text-xs">Complete your first collection to see activity here</p>
+            </div>
           ) : (
-            allTransactions.slice(0, 3).map((t) => (
-              <div key={t.id} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  {getTxIcon(t.amount)}
-                  <div>
-                    <p className="text-sm font-medium">{t.description || (Number(t.amount) >= 0 ? 'Collection approved' : 'Withdrawal')}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t.material_type ? `${t.material_type}` : ''}
-                      {t.kgs ? `${t.material_type ? ' • ' : ''}${Number(t.kgs).toFixed(1)} kg` : ''}
-                      {` ${formatDate(t.approved_at || t.updated_at || t.created_at)}`}
-                    </p>
-                  </div>
-                </div>
-                <p className={`text-sm font-bold ${Number(t.amount) >= 0 ? 'text-success' : 'text-foreground'}`}>{formatAmount(Number(t.amount) || 0)}</p>
-              </div>
-            ))
+            <VirtualizedTransactionList
+              transactions={dashboardData.allTransactions}
+              renderTransaction={renderTransaction}
+              itemHeight={80}
+              containerHeight={240}
+              overscan={2}
+            />
           )}
         </CardContent>
       </Card>
 
       {/* Collection Schedule */}
-      <Card className="shadow-card border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center">
-            <Calendar className="h-5 w-5 mr-2 text-primary" />
+      <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:shadow-3xl transition-all duration-300 overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-yellow-600 dark:from-yellow-600 dark:to-yellow-700 text-white p-6">
+          <CardTitle className="text-xl font-bold flex items-center">
+            <div className="p-2 bg-white/20 rounded-xl mr-3">
+              <Calendar className="h-6 w-6" />
+            </div>
             Next Collection
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-gradient-primary text-primary-foreground rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-sm opacity-90">Collection Date</p>
-                <p className="text-lg font-bold">{nextCollectionDate}</p>
-              </div>
-              <Calendar className="h-8 w-8 opacity-80" />
+        <CardContent className="p-6 space-y-6">
+          {/* Collection Info Card */}
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-2xl p-6 border border-yellow-200 dark:border-yellow-700">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-2">
+                  <div className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded-lg">
+                    <Calendar className="h-5 w-5 text-yellow-600 dark:text-yellow-300" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Collection Date</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{nextCollectionDate}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div className="flex items-center space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl">
+                    <Clock className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Time Slot</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{nextCollectionTime}</p>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 opacity-80" />
-                <span>{nextCollectionTime}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 opacity-80" />
-                <span className="text-sm">
+                  
+                  <div className="flex items-center space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl">
+                    <MapPin className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
                   {nextCollectionArea}
-                </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
+            {/* Status Badge */}
             {!hasAddress ? (
-              <div className="mt-3 p-3 bg-warning/20 rounded-lg border border-warning/30">
-                <p className="text-xs text-warning-foreground text-center mb-2">
-                  Address information not provided
-                </p>
-                <p className="text-xs text-muted-foreground text-center">
-                  Please complete your profile with address information to enable collection booking
+              <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-700">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Address Required</p>
+                </div>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  Complete your profile with address information to enable collection booking
                 </p>
               </div>
             ) : (
-              <div className="mt-3 p-3 bg-success/20 rounded-lg border border-success/30">
-                <p className="text-xs text-success-foreground text-center">
+              <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-700">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <p className="text-sm font-medium text-green-800 dark:text-green-200">Ready for Collection</p>
+                </div>
+                <p className="text-xs text-green-700 dark:text-green-300">
                   ✓ Collection address confirmed: {nextCollectionArea}
                 </p>
               </div>
             )}
           </div>
           
-          <Button 
-            variant="gradient" 
-            className="w-full"
-            onClick={() => handleBookCollection(nextCollectionDate)}
-            disabled={!hasAddress}
-          >
-            {hasAddress ? "Book Collection" : "Address Required"}
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => navigate.push('/collections')}
-          >
-            View All Dates
-          </Button>
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <Button 
+              className="w-full h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => handleBookCollection(nextCollectionDate)}
+              disabled={!hasAddress}
+            >
+              <Calendar className="h-5 w-5 mr-2" />
+              {hasAddress ? "Book Collection" : "Address Required"}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full h-12 border-2 border-gray-300 dark:border-gray-600 hover:border-yellow-500 dark:hover:border-yellow-400 text-gray-700 dark:text-gray-300 font-semibold rounded-xl transition-all duration-200"
+              onClick={() => navigate.push('/collections')}
+            >
+              <Clock className="h-5 w-5 mr-2" />
+              View All Dates
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -666,8 +760,10 @@ const Dashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+        </>
+      )}
     </div>
   );
-};
+});
 
 export default Dashboard;

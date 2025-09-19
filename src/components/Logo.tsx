@@ -19,13 +19,15 @@ const Logo = ({ className = "h-16 w-auto", alt = "Woza Mali Logo", variant = "wo
   let logoSrc: string;
   
   if (variant === "green-scholar-fund") {
-    // Green Scholar Fund always uses its specific logo
-    logoSrc = "/WozaMali-uploads/9c12d890-c6b5-4b95-a3af-15175c504d86.png";
+    // Green Scholar Fund switches based on theme
+    logoSrc = resolvedTheme === "dark" 
+      ? "/WozaMali-uploads/Green Scholar.png"  // Dark theme - Green Scholar.png
+      : "/WozaMali-uploads/green scholar grey.png"; // Light theme - green scholar grey.png
   } else {
     // Woza Mali logo switches based on theme
     logoSrc = resolvedTheme === "dark" 
-      ? "/WozaMali-uploads/f6006743-2187-4d7a-8b7c-c77f6b6feda8.png"  // Dark theme logo
-      : "/WozaMali-uploads/d6e53af1-4f80-4896-855d-42c46ca1b7e8.png"; // Light theme logo
+      ? "/WozaMali-uploads/Woza white.png"  // Dark theme - Woza white.png
+      : "/WozaMali-uploads/Woza Yellow.png"; // Light theme - Woza Yellow.png
   }
 
   return (

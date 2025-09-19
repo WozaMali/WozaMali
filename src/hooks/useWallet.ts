@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { WorkingWalletService, WorkingWalletInfo } from '@/lib/workingWalletService';
 import { getWalletCache, saveWalletCache, clearWalletCache } from '@/lib/session-utils';
 
@@ -31,11 +31,21 @@ export const useWallet = (userId?: string) => {
   const [error, setError] = useState<string | null>(null);
   const [lastFetchTime, setLastFetchTime] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Use ref to prevent unnecessary re-renders
+  const fetchInProgress = useRef(false);
+  const lastUserId = useRef<string | undefined>(userId);
 
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
 
   const fetchWalletData = useCallback(async () => {
     if (!userId) return;
+
+    // Prevent duplicate requests
+    if (fetchInProgress.current) {
+      console.log('Wallet fetch already in progress, skipping...');
+      return;
+    }
 
     // Check if we have recent data in cache
     const now = Date.now();
@@ -44,10 +54,14 @@ export const useWallet = (userId?: string) => {
       return;
     }
 
-    // Clear old cache - we're now using calculated views
-    clearWalletCache();
-    console.log('Cleared old wallet cache - fetching fresh data from calculated views');
+    // Check if userId changed
+    if (lastUserId.current !== userId) {
+      lastUserId.current = userId;
+      // Clear cache when user changes
+      clearWalletCache();
+    }
 
+    fetchInProgress.current = true;
     setLoading(true);
     setError(null);
 
@@ -89,52 +103,59 @@ export const useWallet = (userId?: string) => {
       setWalletData(null);
     } finally {
       setLoading(false);
+      fetchInProgress.current = false;
     }
-  }, [userId, walletData, lastFetchTime]);
+  }, [userId]); // Remove walletData and lastFetchTime from dependencies to prevent infinite loops
 
   useEffect(() => {
     fetchWalletData();
   }, [fetchWalletData]);
 
   const refreshWallet = useCallback(async () => {
+    if (!userId) return;
+    
     // Clear all caches and force refresh
     setLastFetchTime(0);
     clearWalletCache();
+    fetchInProgress.current = false; // Reset fetch flag
     
-    if (userId) {
-      try {
-        const workingData = await WorkingWalletService.refreshWalletData(userId);
-        
-        // Convert working data to the expected WalletData format
-        const combinedData: WalletData = {
-          balance: workingData.balance,
-          points: workingData.points,
-          tier: workingData.tier,
-          totalEarnings: workingData.balance,
-          environmentalImpact: workingData.environmentalImpact,
-          tierBenefits: getTierBenefits(workingData.tier),
-          nextTierRequirements: workingData.nextTierRequirements,
-          totalPickups: workingData.collectionSummary.total_pickups,
-          approvedPickups: workingData.collectionSummary.total_pickups,
-          pendingPickups: 0,
-          rejectedPickups: 0,
-          totalWeightKg: workingData.totalWeightKg
-        };
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const workingData = await WorkingWalletService.refreshWalletData(userId);
+      
+      // Convert working data to the expected WalletData format
+      const combinedData: WalletData = {
+        balance: workingData.balance,
+        points: workingData.points,
+        tier: workingData.tier,
+        totalEarnings: workingData.balance,
+        environmentalImpact: workingData.environmentalImpact,
+        tierBenefits: getTierBenefits(workingData.tier),
+        nextTierRequirements: workingData.nextTierRequirements,
+        totalPickups: workingData.collectionSummary.total_pickups,
+        approvedPickups: workingData.collectionSummary.total_pickups,
+        pendingPickups: 0,
+        rejectedPickups: 0,
+        totalWeightKg: workingData.totalWeightKg
+      };
 
-        setWalletData(combinedData);
-        setLastFetchTime(Date.now());
-        setIsInitialized(true);
-        
-        // Save to localStorage cache
-        saveWalletCache(userId, combinedData);
-      } catch (err: any) {
-        console.error('Error refreshing wallet data:', err);
-        setError(err.message || 'Failed to refresh wallet data');
-        
-        // Clear cache on error to prevent showing stale data
-        clearWalletCache();
-        setWalletData(null);
-      }
+      setWalletData(combinedData);
+      setLastFetchTime(Date.now());
+      setIsInitialized(true);
+      
+      // Save to localStorage cache
+      saveWalletCache(userId, combinedData);
+    } catch (err: any) {
+      console.error('Error refreshing wallet data:', err);
+      setError(err.message || 'Failed to refresh wallet data');
+      
+      // Clear cache on error to prevent showing stale data
+      clearWalletCache();
+      setWalletData(null);
+    } finally {
+      setLoading(false);
     }
   }, [userId]);
 
@@ -161,7 +182,8 @@ export const useWallet = (userId?: string) => {
     }
   }, [userId, refreshWallet]);
 
-  return {
+  // Memoize return values to prevent unnecessary re-renders
+  return useMemo(() => ({
     // Main data - show 0 if no data or if there's an error
     balance: (walletData && !error) ? walletData.balance : 0,
     points: (walletData && !error) ? walletData.points : 0,
@@ -198,7 +220,14 @@ export const useWallet = (userId?: string) => {
     refreshWallet,
     syncWalletBalances,
     refreshCustomerPerformance
-  };
+  }), [
+    walletData,
+    error,
+    loading,
+    refreshWallet,
+    syncWalletBalances,
+    refreshCustomerPerformance
+  ]);
 };
 
 // Helper functions

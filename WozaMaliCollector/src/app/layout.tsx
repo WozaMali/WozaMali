@@ -11,10 +11,14 @@ export const metadata: Metadata = {
   title: "Woza Mali - Collector Portal",
   description: "Recycling collection management system for collectors",
   icons: {
-    icon: "/w%20yellow.png",
-    shortcut: "/w%20yellow.png",
-    apple: "/w%20yellow.png",
+    icon: [
+      { url: "/w yellow.png", sizes: "32x32", type: "image/png" },
+      { url: "/w yellow.png", sizes: "192x192", type: "image/png" }
+    ],
+    shortcut: "/w yellow.png",
+    apple: "/w yellow.png",
   },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
