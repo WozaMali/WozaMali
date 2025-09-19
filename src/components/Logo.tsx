@@ -35,6 +35,7 @@ const Logo = ({ className = "h-16 w-auto", alt = "Woza Mali Logo", variant = "wo
       src={logoSrc} 
       alt={alt} 
       className={className}
+      style={{ objectFit: 'contain', maxHeight: '100%' }}
     />
   );
 };

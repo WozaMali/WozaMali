@@ -18,7 +18,7 @@ const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => 
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-2xl z-50 backdrop-blur-sm">
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-5 h-20">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -28,7 +28,7 @@ const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => 
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "flex flex-col items-center justify-center space-y-2 transition-all duration-300 relative group overflow-hidden",
+                "flex flex-col items-center justify-center space-y-1 transition-all duration-300 relative group overflow-hidden px-1",
                 isActive 
                   ? "text-yellow-600 dark:text-yellow-400" 
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -43,18 +43,18 @@ const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => 
               <div className={cn(
                 "relative z-10 transition-all duration-300",
                 isActive 
-                  ? "transform -translate-y-1" 
+                  ? "transform -translate-y-0.5" 
                   : "group-hover:transform group-hover:-translate-y-0.5"
               )}>
                 {/* Icon Background Circle */}
                 <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 relative",
+                  "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 relative",
                   isActive 
                     ? "bg-gradient-to-br from-yellow-500 to-yellow-600 dark:from-yellow-400 dark:to-yellow-500 shadow-lg shadow-yellow-500/30 dark:shadow-yellow-500/40" 
                     : "bg-gray-100 dark:bg-gray-700 group-hover:bg-yellow-100 dark:group-hover:bg-yellow-900/30"
                 )}>
                   <Icon className={cn(
-                    "h-6 w-6 transition-all duration-300",
+                    "h-5 w-5 transition-all duration-300",
                     isActive 
                       ? "text-white drop-shadow-sm" 
                       : "text-gray-500 dark:text-gray-400 group-hover:text-yellow-600 dark:group-hover:text-yellow-400"
@@ -67,9 +67,9 @@ const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => 
                 </div>
               </div>
               
-              {/* Modern Label */}
+              {/* Modern Label - Mobile Optimized */}
               <span className={cn(
-                "text-xs font-medium transition-all duration-300 relative z-10 px-2 py-1 rounded-full",
+                "text-xs font-medium transition-all duration-300 relative z-10 px-1 py-0.5 rounded-full text-center leading-tight",
                 isActive 
                   ? "text-yellow-700 dark:text-yellow-300 bg-yellow-100/50 dark:bg-yellow-900/30 font-semibold" 
                   : "text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200"

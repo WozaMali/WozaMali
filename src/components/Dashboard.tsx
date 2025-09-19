@@ -376,32 +376,32 @@ const Dashboard = memo(() => {
     }
   }, [refreshWallet]);
 
-  // Memoized transaction renderer for virtual scrolling
+  // Memoized transaction renderer for virtual scrolling - Mobile Optimized
   const renderTransaction = useCallback((transaction: any, index: number) => (
-    <div key={transaction.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-xl border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
-      <div className="flex items-center space-x-4">
-        <div className="w-10 h-10 bg-gradient-to-r from-orange-100 to-yellow-100 rounded-xl flex items-center justify-center shadow-sm">
+    <div key={transaction.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200">
+      <div className="flex items-center space-x-3 flex-1 min-w-0">
+        <div className="w-8 h-8 bg-gradient-to-r from-orange-100 to-yellow-100 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
           {getTxIcon(transaction.amount)}
         </div>
-        <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
             {transaction.description || (Number(transaction.amount) >= 0 ? 'Collection approved' : 'Withdrawal')}
           </p>
-          <p className="text-xs text-gray-600 dark:text-gray-300">
+          <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
             {transaction.material_type ? `${transaction.material_type}` : ''}
             {transaction.kgs ? `${transaction.material_type ? ' • ' : ''}${Number(transaction.kgs).toFixed(1)} kg` : ''}
             {` ${formatDate(transaction.approved_at || transaction.updated_at || transaction.created_at)}`}
           </p>
         </div>
       </div>
-      <p className={`text-lg font-bold ${Number(transaction.amount) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+      <p className={`text-sm font-bold flex-shrink-0 ml-2 ${Number(transaction.amount) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
         {formatAmount(Number(transaction.amount) || 0)}
       </p>
     </div>
   ), [getTxIcon, formatDate, formatAmount]);
 
   return (
-    <div className="relative pb-20 p-4 space-y-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+    <div className="relative pb-20 px-3 py-4 space-y-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
       {/* Show loading spinner if initial load is not complete */}
       {!isInitialLoadComplete ? (
         <div className="min-h-screen flex items-center justify-center">
@@ -409,107 +409,83 @@ const Dashboard = memo(() => {
         </div>
       ) : (
         <>
-          {/* Header */}
-          <div className="text-center space-y-4 pt-6">
-        <div className="flex justify-between items-start">
-          <div className="flex-1"></div>
-          <div className="flex justify-center flex-1">
-            <Logo className="h-16 w-auto" alt="Woza Mali Logo" variant="woza-mali" />
+          {/* Header - Mobile Optimized */}
+          <div className="text-center space-y-2 pt-3">
+            <div className="flex justify-center items-center">
+              <Logo className="h-20 w-auto max-w-[280px]" alt="Woza Mali Logo" variant="woza-mali" />
+            </div>
+            
+            <div className="space-y-1">
+              <h1 className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+                Welcome, Sebenza Mngqi!
+              </h1>
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-medium">Powered by Sebenza Nathi Waste</p>
+            </div>
           </div>
-          <div className="flex justify-end flex-1">
-            {/* Theme follows browser preference automatically */}
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
-            Welcome, Sebenza Mngqi!
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 font-medium">Powered by Sebenza Nathi Waste</p>
-        </div>
-      </div>
 
-      {/* Wallet Balance Card */}
+      {/* Wallet Balance Card - Mobile Optimized */}
       <Card className="border-0 shadow-2xl wallet-card dark:wallet-card-dark">
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <p className="text-sm opacity-90 mb-2 font-medium">Wallet Balance</p>
               {walletLoading ? (
                 <div className="animate-pulse">
-                  <div className="h-10 bg-white/20 rounded-lg mb-2"></div>
-                  <div className="h-4 bg-white/20 rounded w-32"></div>
+                  <div className="h-8 bg-white/20 rounded-lg mb-2"></div>
+                  <div className="h-3 bg-white/20 rounded w-24"></div>
                 </div>
               ) : walletError ? (
                 <div>
-                  <p className="text-2xl font-bold text-red-100">Error</p>
-                  <p className="text-sm opacity-75 mt-1">Failed to load balance</p>
+                  <p className="text-xl font-bold text-red-100">Error</p>
+                  <p className="text-xs opacity-75 mt-1">Failed to load balance</p>
                   <button
                     onClick={() => {
                       if (refreshWallet && typeof refreshWallet === 'function') {
                         refreshWallet();
                       }
                     }}
-                    className="text-sm text-blue-100 underline hover:text-blue-50 mt-2 px-3 py-1 bg-white/20 rounded-lg hover:bg-white/30 transition-all"
+                    className="text-xs text-blue-100 underline hover:text-blue-50 mt-2 px-2 py-1 bg-white/20 rounded-lg hover:bg-white/30 transition-all"
                   >
-                    Click to retry
+                    Retry
                   </button>
                 </div>
               ) : (
                 <>
-                  <p className="text-4xl font-bold mb-2">R {displayBalance.toFixed(2)}</p>
-                  <p className="text-sm opacity-90">
-                    {displayBalance === 0 ? 'No balance yet - Complete pickups to earn real money!' : 'Available for withdrawal'}
+                  <p className="text-3xl font-bold mb-1">R {displayBalance.toFixed(2)}</p>
+                  <p className="text-xs opacity-90">
+                    {displayBalance === 0 ? 'Complete pickups to earn!' : 'Available for withdrawal'}
                   </p>
                 </>
               )}
             </div>
-            <div className="flex flex-col items-center space-y-3">
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => navigate.push('/withdrawal')}
-                  className="p-3 rounded-xl bg-white/20 hover:bg-white/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                  title="Withdrawal"
-                >
-                  <ArrowUpRight className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => navigate.push('/guides')}
-                  className="p-3 rounded-xl bg-white/20 hover:bg-white/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                  title="Recycling Guide"
-                >
-                  <Recycle className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center shadow-lg">
-                <Wallet className="h-8 w-8" />
-              </div>
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shadow-lg">
+              <Wallet className="h-6 w-6" />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Recycling Level & Impact */}
+      {/* Recycling Level & Impact - Mobile Optimized */}
       <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-2xl transition-all duration-300">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-bold text-green-900">{safeUserTier.charAt(0).toUpperCase() + safeUserTier.slice(1)} Recycler</h3>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex-1">
+              <h3 className="text-base font-bold text-green-900">{safeUserTier.charAt(0).toUpperCase() + safeUserTier.slice(1)} Recycler</h3>
               <p className="text-sm text-green-700 font-medium">{safeTotalWeightKg} kg recycled</p>
             </div>
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <Recycle className="h-8 w-8 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Recycle className="h-6 w-6 text-white" />
             </div>
           </div>
           
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-green-700 font-medium">Progress to {safeNextTierRequirements.nextTier ? `${safeNextTierRequirements.nextTier.charAt(0).toUpperCase() + safeNextTierRequirements.nextTier.slice(1)} Recycler` : 'Max Level'}</span>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-green-700 font-medium">Progress to {safeNextTierRequirements.nextTier ? `${safeNextTierRequirements.nextTier.charAt(0).toUpperCase() + safeNextTierRequirements.nextTier.slice(1)}` : 'Max Level'}</span>
               <span className="font-bold text-green-800">{safeNextTierRequirements.weightNeeded} kg to go</span>
             </div>
-            <div className="w-full bg-green-200 rounded-full h-3 shadow-inner">
+            <div className="w-full bg-green-200 rounded-full h-2 shadow-inner">
               <div 
-                className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500 shadow-sm"
+                className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-500 shadow-sm"
                 style={{ width: `${safeNextTierRequirements.progressPercentage}%` }}
               />
             </div>
@@ -517,202 +493,200 @@ const Dashboard = memo(() => {
         </CardContent>
       </Card>
 
-      {/* CO2 Impact & Monthly Growth */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* CO2 Impact & Monthly Growth - Mobile Optimized */}
+      <div className="grid grid-cols-2 gap-3">
         <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-2xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Leaf className="h-6 w-6 text-white" />
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+                <Leaf className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="text-sm text-blue-700 font-medium">CO₂ Saved</p>
-                <p className="text-2xl font-bold text-blue-900">{co2Saved.toFixed(1)} kg</p>
+                <p className="text-xs text-blue-700 font-medium">CO₂ Saved</p>
+                <p className="text-lg font-bold text-blue-900">{co2Saved.toFixed(1)} kg</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-xl bg-gradient-to-br from-emerald-50 to-emerald-100 hover:shadow-2xl transition-all duration-300">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <TrendingUp className="h-6 w-6 text-white" />
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <TrendingUp className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-emerald-700 font-medium">Total Weight</p>
-                  <p className="text-2xl font-bold text-emerald-900">{safeTotalWeightKg.toFixed(1)} kg</p>
+                  <p className="text-xs text-emerald-700 font-medium">Total Weight</p>
+                  <p className="text-lg font-bold text-emerald-900">{safeTotalWeightKg.toFixed(1)} kg</p>
                 </div>
               </div>
-              <ArrowUpRight className="h-6 w-6 text-emerald-600" />
+              <ArrowUpRight className="h-4 w-4 text-emerald-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Quick Actions</h3>
+      {/* Quick Actions - Mobile Optimized */}
+      <div className="space-y-3">
+        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Quick Actions</h3>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Button 
-            className="h-16 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
+            className="h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
             onClick={() => navigate.push('/withdrawal')}
           >
-            <ArrowUpRight className="h-6 w-6 mr-3" />
-            <span className="font-semibold">Withdrawal</span>
+            <ArrowUpRight className="h-4 w-4 mr-2" />
+            <span className="text-sm font-semibold">Withdraw</span>
           </Button>
           <Button 
-            className="h-16 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
+            className="h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
             onClick={() => navigate.push('/guides')}
           >
-            <Recycle className="h-6 w-6 mr-3" />
-            <span className="font-semibold">Recycling Guide</span>
+            <Recycle className="h-4 w-4 mr-2" />
+            <span className="text-sm font-semibold">Guide</span>
           </Button>
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Button 
-            className="h-16 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
+            className="h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
             onClick={() => navigate.push('/rewards')}
           >
-            <Gift className="h-6 w-6 mr-3" />
-            <span className="font-semibold">Redeem Reward</span>
+            <Gift className="h-4 w-4 mr-2" />
+            <span className="text-sm font-semibold">Rewards</span>
           </Button>
           
           <Button 
-            className="h-16 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
+            className="h-12 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
             onClick={() => navigate.push('/fund')}
           >
-            <Heart className="h-6 w-6 mr-3" />
-            <span className="font-semibold">Donate to Fund</span>
+            <Heart className="h-4 w-4 mr-2" />
+            <span className="text-sm font-semibold">Donate</span>
           </Button>
         </div>
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Activity - Mobile Optimized */}
       <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:shadow-2xl transition-all duration-300">
-        <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-700 dark:to-gray-600 text-white rounded-t-lg">
-          <CardTitle className="text-xl font-semibold">Recent Activity</CardTitle>
+        <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-700 dark:to-gray-600 text-white rounded-t-lg p-4">
+          <CardTitle className="text-base font-semibold">Recent Activity</CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           {dashboardData.recentLoading ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-yellow-600 border-t-transparent mx-auto mb-2"></div>
-              <p className="text-sm">Loading recent activity...</p>
+            <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-yellow-600 border-t-transparent mx-auto mb-2"></div>
+              <p className="text-xs">Loading recent activity...</p>
             </div>
           ) : dashboardData.recentError ? (
-            <div className="text-center py-8 text-red-500 dark:text-red-400">
-              <div className="text-red-500 text-4xl mb-2">⚠️</div>
-              <p className="text-sm">{dashboardData.recentError}</p>
+            <div className="text-center py-6 text-red-500 dark:text-red-400">
+              <div className="text-red-500 text-3xl mb-2">⚠️</div>
+              <p className="text-xs">{dashboardData.recentError}</p>
             </div>
           ) : dashboardData.allTransactions.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <div className="text-gray-400 dark:text-gray-500 text-4xl mb-2">📊</div>
-              <p className="text-sm font-medium">No recent activity yet</p>
+            <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+              <div className="text-gray-400 dark:text-gray-500 text-3xl mb-2">📊</div>
+              <p className="text-xs font-medium">No recent activity yet</p>
               <p className="text-xs">Complete your first collection to see activity here</p>
             </div>
           ) : (
             <VirtualizedTransactionList
               transactions={dashboardData.allTransactions}
               renderTransaction={renderTransaction}
-              itemHeight={80}
-              containerHeight={240}
+              itemHeight={60}
+              containerHeight={180}
               overscan={2}
             />
           )}
         </CardContent>
       </Card>
 
-      {/* Collection Schedule */}
+      {/* Collection Schedule - Mobile Optimized */}
       <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:shadow-3xl transition-all duration-300 overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-yellow-500 to-yellow-600 dark:from-yellow-600 dark:to-yellow-700 text-white p-6">
-          <CardTitle className="text-xl font-bold flex items-center">
-            <div className="p-2 bg-white/20 rounded-xl mr-3">
-              <Calendar className="h-6 w-6" />
+        <CardHeader className="bg-gradient-to-r from-yellow-500 to-yellow-600 dark:from-yellow-600 dark:to-yellow-700 text-white p-4">
+          <CardTitle className="text-base font-bold flex items-center">
+            <div className="p-2 bg-white/20 rounded-lg mr-3">
+              <Calendar className="h-4 w-4" />
             </div>
             Next Collection
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          {/* Collection Info Card */}
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-2xl p-6 border border-yellow-200 dark:border-yellow-700">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded-lg">
-                    <Calendar className="h-5 w-5 text-yellow-600 dark:text-yellow-300" />
-                  </div>
+        <CardContent className="p-4 space-y-4">
+          {/* Collection Info Card - Mobile Optimized */}
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-xl p-4 border border-yellow-200 dark:border-yellow-700">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded-lg">
+                  <Calendar className="h-4 w-4 text-yellow-600 dark:text-yellow-300" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Collection Date</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{nextCollectionDate}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3 p-2 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                  <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Collection Date</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{nextCollectionDate}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Time Slot</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{nextCollectionTime}</p>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div className="flex items-center space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl">
-                    <Clock className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Time Slot</p>
-                      <p className="font-semibold text-gray-900 dark:text-white">{nextCollectionTime}</p>
-            </div>
-              </div>
-                  
-                  <div className="flex items-center space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl">
-                    <MapPin className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
-                      <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
-                  {nextCollectionArea}
-                      </p>
-                    </div>
+                <div className="flex items-center space-x-3 p-2 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                  <MapPin className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Location</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                      {nextCollectionArea}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
             
-            {/* Status Badge */}
+            {/* Status Badge - Mobile Optimized */}
             {!hasAddress ? (
-              <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-700">
-                <div className="flex items-center space-x-2 mb-2">
+              <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
+                <div className="flex items-center space-x-2 mb-1">
                   <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Address Required</p>
+                  <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Address Required</p>
                 </div>
                 <p className="text-xs text-amber-700 dark:text-amber-300">
                   Complete your profile with address information to enable collection booking
                 </p>
               </div>
             ) : (
-              <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-700">
-                <div className="flex items-center space-x-2 mb-2">
+              <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="flex items-center space-x-2 mb-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <p className="text-sm font-medium text-green-800 dark:text-green-200">Ready for Collection</p>
+                  <p className="text-xs font-medium text-green-800 dark:text-green-200">Ready for Collection</p>
                 </div>
                 <p className="text-xs text-green-700 dark:text-green-300">
-                  ✓ Collection address confirmed: {nextCollectionArea}
+                  ✓ Collection address confirmed
                 </p>
               </div>
             )}
           </div>
           
-          {/* Action Buttons */}
-          <div className="space-y-3">
+          {/* Action Buttons - Mobile Optimized */}
+          <div className="space-y-2">
             <Button 
-              className="w-full h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-10 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => handleBookCollection(nextCollectionDate)}
               disabled={!hasAddress}
             >
-              <Calendar className="h-5 w-5 mr-2" />
+              <Calendar className="h-4 w-4 mr-2" />
               {hasAddress ? "Book Collection" : "Address Required"}
             </Button>
             
             <Button 
               variant="outline" 
-              className="w-full h-12 border-2 border-gray-300 dark:border-gray-600 hover:border-yellow-500 dark:hover:border-yellow-400 text-gray-700 dark:text-gray-300 font-semibold rounded-xl transition-all duration-200"
+              className="w-full h-10 border-2 border-gray-300 dark:border-gray-600 hover:border-yellow-500 dark:hover:border-yellow-400 text-gray-700 dark:text-gray-300 font-semibold rounded-xl transition-all duration-200"
               onClick={() => navigate.push('/collections')}
             >
-              <Clock className="h-5 w-5 mr-2" />
+              <Clock className="h-4 w-4 mr-2" />
               View All Dates
             </Button>
           </div>
