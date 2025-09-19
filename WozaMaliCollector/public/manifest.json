@@ -1,6 +1,6 @@
 {
-  "name": "Woza Mali - Collector Portal",
-  "short_name": "Woza Mali Collector",
+  "name": "Collector",
+  "short_name": "Collector",
   "description": "Recycling collection management system for collectors",
   "start_url": "/",
   "display": "standalone",
@@ -8,10 +8,22 @@
   "theme_color": "#f97316",
   "icons": [
     {
-      "src": "/w yellow.png",
+      "src": "/Collector Icon.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/Collector Icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/Collector Icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/favicon.png",
