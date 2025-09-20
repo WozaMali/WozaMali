@@ -84,6 +84,7 @@ const Dashboard = memo(() => {
   
   // Simple loading state that doesn't depend on complex logic
   const [simpleLoading, setSimpleLoading] = useState(true);
+  const [forceShow, setForceShow] = useState(false);
 
   // Memoize expensive calculations to prevent re-computation on every render
   const totalKgRecycled = useMemo(() => safeTotalWeightKg || safeTotalPoints, [safeTotalWeightKg, safeTotalPoints]);
@@ -259,7 +260,18 @@ const Dashboard = memo(() => {
       setIsInitialLoadComplete(true);
     }, 3000); // 3 second simple timeout
     
-    return () => clearTimeout(simpleTimeout);
+    // Force show timeout - bypass all loading logic
+    const forceTimeout = setTimeout(() => {
+      console.log('Dashboard: Force show timeout - bypassing all loading');
+      setForceShow(true);
+      setSimpleLoading(false);
+      setIsInitialLoadComplete(true);
+    }, 6000); // 6 second force timeout
+    
+    return () => {
+      clearTimeout(simpleTimeout);
+      clearTimeout(forceTimeout);
+    };
   }, []); // Empty dependency array - runs only once
 
   useEffect(() => {
@@ -483,7 +495,7 @@ const Dashboard = memo(() => {
   return (
     <div className="relative pb-20 px-3 py-4 space-y-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
       {/* Show loading spinner if initial load is not complete and app is visible */}
-      {simpleLoading || (!isInitialLoadComplete && isAppVisible && !loadingTimeout) ? (
+      {!forceShow && (simpleLoading || (!isInitialLoadComplete && isAppVisible && !loadingTimeout)) ? (
         <div className="min-h-screen flex items-center justify-center">
           <LoadingSpinner fullScreen text="Loading dashboard..." />
         </div>
