@@ -52,19 +52,12 @@ export default function Home() {
       }
     };
 
-    // Listen for visibility changes
+    // Listen for visibility changes only (avoid pageshow/pagehide loops)
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Also listen for page show/hide events for better mobile support
-    window.addEventListener('pageshow', handleVisibilityChange);
-    const handlePageHide = () => setIsAppVisible(false);
-    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       clearTimeout(simpleTimeout);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pageshow', handleVisibilityChange);
-      window.removeEventListener('pagehide', handlePageHide);
     };
   }, []);
 
