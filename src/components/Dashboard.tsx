@@ -81,6 +81,9 @@ const Dashboard = memo(() => {
   
   // Timeout to prevent infinite loading states
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  // Simple loading state that doesn't depend on complex logic
+  const [simpleLoading, setSimpleLoading] = useState(true);
 
   // Memoize expensive calculations to prevent re-computation on every render
   const totalKgRecycled = useMemo(() => safeTotalWeightKg || safeTotalPoints, [safeTotalWeightKg, safeTotalPoints]);
@@ -246,9 +249,22 @@ const Dashboard = memo(() => {
       window.removeEventListener('pageshow', handleVisibilityChange);
       window.removeEventListener('pagehide', () => setIsAppVisible(false));
     };
-  }, [user?.id, isInitialLoadComplete, loadDashboardData]);
+  }, [user?.id]); // Only depend on user?.id to prevent infinite loops
+
+  // Simple loading timeout that always completes
+  useEffect(() => {
+    const simpleTimeout = setTimeout(() => {
+      console.log('Dashboard: Simple loading timeout - forcing completion');
+      setSimpleLoading(false);
+      setIsInitialLoadComplete(true);
+    }, 3000); // 3 second simple timeout
+    
+    return () => clearTimeout(simpleTimeout);
+  }, []); // Empty dependency array - runs only once
 
   useEffect(() => {
+    if (!user?.id) return;
+    
     loadDashboardData();
     
     // Set a timeout to prevent infinite loading states
@@ -271,7 +287,7 @@ const Dashboard = memo(() => {
       clearTimeout(timeout);
       clearTimeout(aggressiveTimeout);
     };
-  }, [loadDashboardData, isInitialLoadComplete]);
+  }, [user?.id]); // Only depend on user?.id to prevent infinite loops
 
   // Lazy load transactions after initial render
   useEffect(() => {
@@ -467,7 +483,7 @@ const Dashboard = memo(() => {
   return (
     <div className="relative pb-20 px-3 py-4 space-y-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
       {/* Show loading spinner if initial load is not complete and app is visible */}
-      {!isInitialLoadComplete && isAppVisible && !loadingTimeout ? (
+      {simpleLoading || (!isInitialLoadComplete && isAppVisible && !loadingTimeout) ? (
         <div className="min-h-screen flex items-center justify-center">
           <LoadingSpinner fullScreen text="Loading dashboard..." />
         </div>

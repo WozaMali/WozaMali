@@ -12,6 +12,7 @@ import { IOSInstallInstructions } from "@/components/PWAInstallPrompt";
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [isAppVisible, setIsAppVisible] = useState(true);
+  const [simpleLoading, setSimpleLoading] = useState(true);
   const router = useRouter();
   
   // Try to use auth context, but handle the case where it might not be ready
@@ -33,6 +34,12 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     
+    // Simple loading timeout
+    const simpleTimeout = setTimeout(() => {
+      console.log('Page: Simple loading timeout - forcing completion');
+      setSimpleLoading(false);
+    }, 2000); // 2 second simple timeout
+    
     // Handle app visibility changes (lock/unlock scenarios)
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
@@ -47,6 +54,7 @@ export default function Home() {
     window.addEventListener('pagehide', () => setIsAppVisible(false));
 
     return () => {
+      clearTimeout(simpleTimeout);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handleVisibilityChange);
       window.removeEventListener('pagehide', () => setIsAppVisible(false));
@@ -65,7 +73,7 @@ export default function Home() {
   }, [user, loading, isLoading, bootGrace, router, mounted, isAppVisible]);
 
   // Show loading while authentication is being determined
-  if (!mounted || loading || isLoading) {
+  if (simpleLoading || !mounted || loading || isLoading) {
     return <LoadingSpinner fullScreen text="Loading..." />;
   }
 
