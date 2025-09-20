@@ -244,18 +244,11 @@ const Dashboard = memo(() => {
       }
     };
 
-    // Listen for visibility changes
+    // Listen for visibility changes only to avoid SPA navigation loops
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Also listen for page show/hide events for better mobile support
-    window.addEventListener('pageshow', handleVisibilityChange);
-    const handlePageHide = () => setIsAppVisible(false);
-    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pageshow', handleVisibilityChange);
-      window.removeEventListener('pagehide', handlePageHide);
     };
   }, [user?.id, isInitialLoadComplete, loadDashboardData]);
 

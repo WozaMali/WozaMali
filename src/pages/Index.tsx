@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import BottomNavigation from "@/components/BottomNavigation";
 import Dashboard from "@/components/Dashboard";
@@ -12,6 +12,7 @@ import Profile from "@/components/Profile";
 const Index = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const navigateLockUntil = useRef(0);
   
   // Map URL paths to tab IDs - memoized for performance
   const getActiveTabFromPath = useCallback((pathname: string | null) => {
@@ -36,6 +37,11 @@ const Index = () => {
 
   // Handle tab change with optimized Next.js routing
   const handleTabChange = useCallback((tab: string) => {
+    // Debounce rapid toggles to avoid route churn/loops
+    const now = Date.now();
+    if (now < navigateLockUntil.current) return;
+    navigateLockUntil.current = now + 250;
+
     // Only change when the tab actually changes
     if (activeTab === tab) return;
 
@@ -44,7 +50,6 @@ const Index = () => {
                 tab === 'scholar' ? '/fund' : 
                 `/${tab}`;
     
-    // Use push for proper navigation
     router.push(url);
   }, [activeTab, router]);
 
