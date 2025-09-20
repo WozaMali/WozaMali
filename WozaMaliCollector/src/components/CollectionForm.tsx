@@ -223,9 +223,9 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
   }
 
   return (
-    <div className={`${isModal ? 'p-4 sm:p-6 bg-gray-800 rounded-xl border border-gray-700' : 'bg-white rounded-2xl shadow-xl p-4 sm:p-6 max-w-2xl mx-auto'}`}>
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <h2 className={`text-xl sm:text-2xl font-bold ${isModal ? 'text-white' : 'text-gray-900'}`}>Create New Collection</h2>
+    <div className={`${isModal ? 'p-3 sm:p-4 bg-gray-800 rounded-xl border border-gray-700' : 'bg-white rounded-2xl shadow-xl p-3 sm:p-4 max-w-2xl mx-auto'}`}>
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h2 className={`text-lg sm:text-xl font-bold ${isModal ? 'text-white' : 'text-gray-900'}`}>Create New Collection</h2>
         {onCancel && (
           <button onClick={onCancel} className={`${isModal ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'} transition-colors`}>✕</button>
         )}
@@ -234,27 +234,29 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
       {error && <div className={`${isModal ? 'bg-red-900/30 text-red-200 border border-red-700' : 'bg-red-50 text-red-700 border border-red-200'} mb-4 p-3 rounded`}>{error}</div>}
       {success && <div className={`${isModal ? 'bg-green-900/30 text-green-200 border border-green-700' : 'bg-green-50 text-green-700 border border-green-200'} mb-4 p-3 rounded`}>{success}</div>}
 
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
         {/* Resident */}
         <div>
-          <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isModal ? 'text-gray-300' : 'text-gray-700'}`}>Resident *</label>
-          <input
-            value={residentSearch}
-            onChange={async (e) => { setResidentSearch(e.target.value); await loadResidents(e.target.value); }}
-            placeholder="Search residents by name or email"
-            className={`w-full px-3 py-2 mb-1.5 sm:mb-2 rounded-lg focus:ring-2 focus:ring-yellow-500 text-sm ${isModal ? 'bg-gray-700 border border-gray-600 text-white' : 'border border-gray-300'}`}
-          />
-          <select
-            value={formData.resident_id}
-            onChange={(e) => setFormData({ ...formData, resident_id: e.target.value })}
-            className={`w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-yellow-500 text-sm ${isModal ? 'bg-gray-700 border border-gray-600 text-white' : 'border border-gray-300'}`}
-            required
-          >
-            <option value="">Choose a resident…</option>
-            {residents.map(r => (
-              <option key={r.id} value={r.id}>{r.name} - {r.email}</option>
-            ))}
-          </select>
+          <label className={`block text-xs sm:text-sm font-medium mb-1 ${isModal ? 'text-gray-300' : 'text-gray-700'}`}>Resident *</label>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={residentSearch}
+              onChange={async (e) => { setResidentSearch(e.target.value); await loadResidents(e.target.value); }}
+              placeholder="Search residents"
+              className={`w-full px-2.5 py-2 rounded-lg focus:ring-2 focus:ring-yellow-500 text-xs sm:text-sm ${isModal ? 'bg-gray-700 border border-gray-600 text-white' : 'border border-gray-300'}`}
+            />
+            <select
+              value={formData.resident_id}
+              onChange={(e) => setFormData({ ...formData, resident_id: e.target.value })}
+              className={`w-full px-2.5 py-2 rounded-lg focus:ring-2 focus:ring-yellow-500 text-xs sm:text-sm ${isModal ? 'bg-gray-700 border border-gray-600 text-white' : 'border border-gray-300'}`}
+              required
+            >
+              <option value="">Choose…</option>
+              {residents.map(r => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Materials (multiple) */}
@@ -263,10 +265,10 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
             <label className={`block text-sm font-medium ${isModal ? 'text-gray-300' : 'text-gray-700'}`}>Materials</label>
             <button type="button" onClick={() => setFormData(prev => ({ ...prev, materials: [...prev.materials, { material_id: '', weight_kg: '', unit_price: '' }] }))} className="px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs sm:text-sm">Add Material</button>
           </div>
-          <div className="space-y-2.5 sm:space-y-3">
+          <div className="space-y-2">
             {formData.materials.map((row, idx) => (
-              <div key={idx} className={`grid grid-cols-1 md:grid-cols-4 gap-2.5 sm:gap-3 ${isModal ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-2.5 sm:p-3`}>
-                <div>
+              <div key={idx} className={`grid grid-cols-2 md:grid-cols-4 gap-2 ${isModal ? 'bg-gray-700 border border-gray-600' : 'bg-gray-50 border border-gray-200'} rounded-lg p-2`}>
+                <div className="col-span-2 md:col-span-1">
                   <label className={`block text-[11px] sm:text-xs mb-1 ${isModal ? 'text-gray-300' : 'text-gray-700'}`}>Material</label>
                   <select
                     value={row.material_id}
@@ -277,7 +279,7 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
                       (materialsArr[idx] as any).unit_price = String(mat?.unit_price ?? '');
                       setFormData({ ...formData, materials: materialsArr });
                     }}
-                    className={`w-full px-3 py-2 rounded text-sm ${isModal ? 'bg-gray-600 border border-gray-500 text-white' : 'border border-gray-300'}`}
+                    className={`w-full px-2.5 py-2 rounded text-xs sm:text-sm ${isModal ? 'bg-gray-600 border border-gray-500 text-white' : 'border border-gray-300'}`}
                     required
                   >
                     <option value="">Choose…</option>
@@ -286,7 +288,7 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="col-span-1 md:col-span-1">
                   <label className={`block text-[11px] sm:text-xs mb-1 ${isModal ? 'text-gray-300' : 'text-gray-700'}`}>Weight (kg)</label>
                   <input
                     type="number"
@@ -298,12 +300,12 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
                       materialsArr[idx].weight_kg = e.target.value;
                       setFormData({ ...formData, materials: materialsArr });
                     }}
-                    className={`w-full px-3 py-2 rounded text-sm ${isModal ? 'bg-gray-600 border border-gray-500 text-white' : 'border border-gray-300'}`}
+                    className={`w-full px-2.5 py-2 rounded text-xs sm:text-sm ${isModal ? 'bg-gray-600 border border-gray-500 text-white' : 'border border-gray-300'}`}
                     placeholder="0.00"
                     required
                   />
                 </div>
-                <div>
+                <div className="col-span-1 md:col-span-1">
                   <label className={`block text-[11px] sm:text-xs mb-1 ${isModal ? 'text-gray-300' : 'text-gray-700'}`}>Rate (R/kg)</label>
                   <input
                     type="number"
@@ -315,12 +317,12 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
                       (materialsArr[idx] as any).unit_price = e.target.value;
                       setFormData({ ...formData, materials: materialsArr });
                     }}
-                    className={`w-full px-3 py-2 rounded text-sm ${isModal ? 'bg-gray-600 border border-gray-500 text-white' : 'border border-gray-300'}`}
+                    className={`w-full px-2.5 py-2 rounded text-xs sm:text-sm ${isModal ? 'bg-gray-600 border border-gray-500 text-white' : 'border border-gray-300'}`}
                     placeholder="0.00"
                   />
                 </div>
-                <div className="flex items-end">
-                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, materials: prev.materials.filter((_, i) => i !== idx) }))} className={`${isModal ? 'bg-gray-600 text-gray-200 hover:bg-gray-500' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'} w-full px-3 py-2 rounded text-sm`}>
+                <div className="col-span-2 md:col-span-1 flex items-end">
+                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, materials: prev.materials.filter((_, i) => i !== idx) }))} className={`${isModal ? 'bg-gray-600 text-gray-200 hover:bg-gray-500' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'} w-full px-3 py-2 rounded text-xs sm:text-sm`}>
                     Remove
                   </button>
                 </div>
@@ -364,8 +366,8 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
           />
         </div>
 
-        {/* Optional Photos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        {/* Collection Photos */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className={`block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isModal ? 'text-gray-300' : 'text-gray-700'}`}>Weight Photo (Optional)</label>
             <input ref={weightInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => {
@@ -377,8 +379,8 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
                 reader.readAsDataURL(f);
               } else setWeightPhotoPreview(null);
             }} className="hidden" />
-            <button type="button" onClick={() => weightInputRef.current?.click()} className={`${isModal ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'} w-full px-3 py-2 rounded-lg border ${isModal ? 'border-gray-600' : 'border-gray-300'} transition text-sm`}>Use Camera</button>
-            {weightPhotoPreview && <img src={weightPhotoPreview} alt="Weight preview" className="mt-2 w-28 h-28 sm:w-32 sm:h-32 object-cover rounded" />}
+            <button type="button" onClick={() => weightInputRef.current?.click()} className={`${isModal ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'} w-full px-2.5 py-2 rounded-lg border ${isModal ? 'border-gray-600' : 'border-gray-300'} transition text-xs sm:text-sm`}>Use Camera</button>
+            {weightPhotoPreview && <img src={weightPhotoPreview} alt="Weight preview" className="mt-2 w-24 h-24 sm:w-28 sm:h-28 object-cover rounded" />}
           </div>
 
           <div>
@@ -392,8 +394,8 @@ export default function CollectionForm({ collectorId, residentId, onSuccess, onC
                 reader.readAsDataURL(f);
               } else setMaterialPhotoPreview(null);
             }} className="hidden" />
-            <button type="button" onClick={() => materialInputRef.current?.click()} className={`${isModal ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'} w-full px-3 py-2 rounded-lg border ${isModal ? 'border-gray-600' : 'border-gray-300'} transition text-sm`}>Use Camera</button>
-            {materialPhotoPreview && <img src={materialPhotoPreview} alt="Material preview" className="mt-2 w-28 h-28 sm:w-32 sm:h-32 object-cover rounded" />}
+            <button type="button" onClick={() => materialInputRef.current?.click()} className={`${isModal ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'} w-full px-2.5 py-2 rounded-lg border ${isModal ? 'border-gray-600' : 'border-gray-300'} transition text-xs sm:text-sm`}>Use Camera</button>
+            {materialPhotoPreview && <img src={materialPhotoPreview} alt="Material preview" className="mt-2 w-24 h-24 sm:w-28 sm:h-28 object-cover rounded" />}
           </div>
         </div>
 
