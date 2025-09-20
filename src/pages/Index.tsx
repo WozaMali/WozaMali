@@ -8,6 +8,7 @@ import Rewards from "@/components/Rewards";
 import GreenScholarFund from "@/components/GreenScholarFund";
 import History from "@/components/History";
 import Profile from "@/components/Profile";
+import OfflineBanner from "@/components/OfflineBanner";
 
 const Index = () => {
   const router = useRouter();
@@ -96,6 +97,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <OfflineBanner />
       {renderActiveComponent}
       <BottomNavigation 
         activeTab={activeTab} 

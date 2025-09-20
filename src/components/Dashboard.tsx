@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { AddressService } from "@/lib/addressService";
 import { WorkingWalletService } from "@/lib/workingWalletService";
 import VirtualizedTransactionList from "./VirtualizedTransactionList";
+import OfflineBanner from "./OfflineBanner";
 
 const Dashboard = memo(() => {
   const navigate = useRouter();
@@ -468,6 +469,12 @@ const Dashboard = memo(() => {
 
   return (
     <div className="relative pb-20 px-3 py-4 space-y-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+      <OfflineBanner onRetry={() => {
+        if (user?.id) {
+          try { refreshWallet?.(); } catch {}
+          try { loadDashboardData(); } catch {}
+        }
+      }} />
       {/* Show loading spinner if initial load is not complete and app is visible */}
       {simpleLoading || (!isInitialLoadComplete && isAppVisible) ? (
         <div className="min-h-screen flex items-center justify-center">
