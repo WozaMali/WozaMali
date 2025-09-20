@@ -66,7 +66,7 @@ export default function SignIn() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      router.push("/");
+      router.replace("/");
     }
   }, [user, router]);
 

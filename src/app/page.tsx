@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Index from "@/pages/Index";
@@ -14,6 +14,7 @@ export default function Home() {
   const [isAppVisible, setIsAppVisible] = useState(true);
   const [simpleLoading, setSimpleLoading] = useState(true);
   const router = useRouter();
+  const redirectOnceRef = useRef(false);
   
   // Try to use auth context, but handle the case where it might not be ready
   let authContext;
@@ -29,7 +30,7 @@ export default function Home() {
     );
   }
 
-  const { user, loading, isLoading, bootGrace } = authContext as any;
+  const { user, loading, isLoading, bootGrace, session } = authContext as any;
 
   useEffect(() => {
     setMounted(true);
@@ -63,15 +64,24 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'isLoading:', isLoading, 'bootGrace:', bootGrace, 'user:', user);
+    if (redirectOnceRef.current) return;
+    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'isLoading:', isLoading, 'bootGrace:', bootGrace, 'user:', user, 'session:', !!session);
 
-    // Only redirect if we're mounted, not loading, and definitely no user
-    // Avoid triggering redirects due to background/visibility toggles
-    if (mounted && document.visibilityState === 'visible' && !loading && !isLoading && !bootGrace && user === null) {
-      console.log('Redirecting to sign-in...');
-      router.push('/auth/sign-in');
+    // Only redirect if we're mounted, not loading, visible, and confirmed no session
+    if (
+      mounted &&
+      document.visibilityState === 'visible' &&
+      !loading &&
+      !isLoading &&
+      !bootGrace &&
+      user === null &&
+      session === null
+    ) {
+      redirectOnceRef.current = true;
+      console.log('Redirecting to sign-in (replace)...');
+      router.replace('/auth/sign-in');
     }
-  }, [user, loading, isLoading, bootGrace, router, mounted]);
+  }, [user, session, loading, isLoading, bootGrace, router, mounted]);
 
   // Show loading while authentication is being determined
   if (simpleLoading || !mounted || loading || isLoading) {
