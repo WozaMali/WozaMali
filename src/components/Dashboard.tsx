@@ -233,7 +233,10 @@ const Dashboard = memo(() => {
           // App became visible and we have a user but initial load isn't complete
           // This can happen after phone unlock - trigger data reload
           console.log('App became visible, reloading dashboard data...');
-          loadDashboardData();
+          // Defer reload slightly to avoid race conditions on resume
+          setTimeout(() => {
+            loadDashboardData();
+          }, 300);
         } else if (user?.id && isInitialLoadComplete) {
           // App became visible and we're already loaded, just ensure we're not stuck
           console.log('App became visible, dashboard already loaded');

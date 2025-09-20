@@ -12,6 +12,7 @@ import { IOSInstallInstructions } from "@/components/PWAInstallPrompt";
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [isAppVisible, setIsAppVisible] = useState(true);
+  const resumeGraceUntil = useRef(0);
   const [simpleLoading, setSimpleLoading] = useState(true);
   const router = useRouter();
   const redirectOnceRef = useRef(false);
@@ -45,6 +46,10 @@ export default function Home() {
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       setIsAppVisible(isVisible);
+      if (isVisible) {
+        // Add a short grace window after resume to prevent false redirects
+        resumeGraceUntil.current = Date.now() + 1500;
+      }
     };
 
     // Listen for visibility changes
@@ -75,7 +80,8 @@ export default function Home() {
       !isLoading &&
       !bootGrace &&
       user === null &&
-      session === null
+      session === null &&
+      Date.now() > resumeGraceUntil.current
     ) {
       redirectOnceRef.current = true;
       console.log('Redirecting to sign-in (replace)...');
