@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [bootGrace, setBootGrace] = useState(true);
   const [roleLoading, setRoleLoading] = useState(false);
-  const [forceComplete, setForceComplete] = useState(false);
+  // Removed aggressive force-complete logic to avoid masking issues
   const initRef = useRef(false);
 
   // Define fetchUserRole function before using it
@@ -71,14 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setBootGrace(false);
     }, 500);
 
-    // Force completion timer to prevent infinite loading
-    const forceTimer = setTimeout(() => {
-      if (loading) {
-        console.warn('AuthContext: Force completing loading state after timeout');
-        setForceComplete(true);
-        setLoading(false);
-      }
-    }, 8000); // 8 second timeout
+    // Removed aggressive force completion timer
 
     // Handle app visibility changes to prevent loading loops
     const handleVisibilityChange = () => {
@@ -174,7 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       try { subscription.unsubscribe(); } catch {}
       clearTimeout(graceTimer);
-      clearTimeout(forceTimer);
+      // no force timer to clear
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handleVisibilityChange);
     };
@@ -406,10 +399,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     session,
-    loading: loading && !forceComplete,
+    loading,
     userRole,
     isAuthenticated: !!user,
-    isLoading: (loading && !forceComplete) || roleLoading,
+    isLoading: loading || roleLoading,
     signUp,
     signIn,
     signOut,

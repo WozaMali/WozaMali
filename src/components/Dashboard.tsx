@@ -79,12 +79,8 @@ const Dashboard = memo(() => {
   // Track app visibility state to handle lock/unlock scenarios
   const [isAppVisible, setIsAppVisible] = useState(true);
   
-  // Timeout to prevent infinite loading states
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
-  
   // Simple loading state that doesn't depend on complex logic
   const [simpleLoading, setSimpleLoading] = useState(true);
-  const [forceShow, setForceShow] = useState(false);
 
   // Memoize expensive calculations to prevent re-computation on every render
   const totalKgRecycled = useMemo(() => safeTotalWeightKg || safeTotalPoints, [safeTotalWeightKg, safeTotalPoints]);
@@ -223,8 +219,7 @@ const Dashboard = memo(() => {
       
       if (isVisible) {
         console.log('App became visible, checking dashboard state...');
-        // Always reset loading timeout when app becomes visible
-        setLoadingTimeout(false);
+        // Ensure clean state when app becomes visible
         
         if (user?.id && !isInitialLoadComplete) {
           // App became visible and we have a user but initial load isn't complete
@@ -261,17 +256,8 @@ const Dashboard = memo(() => {
       setIsInitialLoadComplete(true);
     }, 3000); // 3 second simple timeout
     
-    // Force show timeout - bypass all loading logic
-    const forceTimeout = setTimeout(() => {
-      console.log('Dashboard: Force show timeout - bypassing all loading');
-      setForceShow(true);
-      setSimpleLoading(false);
-      setIsInitialLoadComplete(true);
-    }, 6000); // 6 second force timeout
-    
     return () => {
       clearTimeout(simpleTimeout);
-      clearTimeout(forceTimeout);
     };
   }, []); // Empty dependency array - runs only once
 
@@ -280,25 +266,8 @@ const Dashboard = memo(() => {
     
     loadDashboardData();
     
-    // Set a timeout to prevent infinite loading states
-    const timeout = setTimeout(() => {
-      if (!isInitialLoadComplete) {
-        console.warn('Dashboard loading timeout - forcing completion');
-        setLoadingTimeout(true);
-        setIsInitialLoadComplete(true);
-      }
-    }, 8000); // 8 second timeout
-    
-    // Additional aggressive timeout for stuck states
-    const aggressiveTimeout = setTimeout(() => {
-      console.warn('Dashboard aggressive timeout - forcing all states to complete');
-      setLoadingTimeout(false);
-      setIsInitialLoadComplete(true);
-    }, 15000); // 15 second aggressive timeout
-    
     return () => {
-      clearTimeout(timeout);
-      clearTimeout(aggressiveTimeout);
+      // no-op
     };
   }, [user?.id]); // Only depend on user?.id to prevent infinite loops
 
@@ -496,7 +465,7 @@ const Dashboard = memo(() => {
   return (
     <div className="relative pb-20 px-3 py-4 space-y-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
       {/* Show loading spinner if initial load is not complete and app is visible */}
-      {!forceShow && (simpleLoading || (!isInitialLoadComplete && isAppVisible && !loadingTimeout)) ? (
+      {simpleLoading || (!isInitialLoadComplete && isAppVisible) ? (
         <div className="min-h-screen flex items-center justify-center">
           <LoadingSpinner fullScreen text="Loading dashboard..." />
         </div>
@@ -505,24 +474,6 @@ const Dashboard = memo(() => {
           <div className="text-center space-y-4">
             <div className="animate-pulse rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="text-muted-foreground">App is in background...</p>
-          </div>
-        </div>
-      ) : loadingTimeout ? (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto">
-              <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Loading took too long</h2>
-            <p className="text-gray-600 dark:text-gray-400">Please try refreshing the page</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-            >
-              Refresh Page
-            </button>
           </div>
         </div>
       ) : (

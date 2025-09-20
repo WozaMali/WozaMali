@@ -13,7 +13,6 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [isAppVisible, setIsAppVisible] = useState(true);
   const [simpleLoading, setSimpleLoading] = useState(true);
-  const [forceShow, setForceShow] = useState(false);
   const router = useRouter();
   
   // Try to use auth context, but handle the case where it might not be ready
@@ -41,13 +40,6 @@ export default function Home() {
       setSimpleLoading(false);
     }, 2000); // 2 second simple timeout
     
-    // Force show timeout - bypass all loading logic
-    const forceTimeout = setTimeout(() => {
-      console.log('Page: Force show timeout - bypassing all loading');
-      setForceShow(true);
-      setSimpleLoading(false);
-    }, 5000); // 5 second force timeout
-    
     // Handle app visibility changes (lock/unlock scenarios)
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
@@ -64,7 +56,6 @@ export default function Home() {
 
     return () => {
       clearTimeout(simpleTimeout);
-      clearTimeout(forceTimeout);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
@@ -83,7 +74,7 @@ export default function Home() {
   }, [user, loading, isLoading, bootGrace, router, mounted]);
 
   // Show loading while authentication is being determined
-  if (!forceShow && (simpleLoading || !mounted || loading || isLoading)) {
+  if (simpleLoading || !mounted || loading || isLoading) {
     return <LoadingSpinner fullScreen text="Loading..." />;
   }
 
@@ -99,32 +90,9 @@ export default function Home() {
     );
   }
 
-  // Don't render anything if user is null (will redirect) - unless force show
-  if (!forceShow && user === null) {
+  // Don't render anything if user is null (will redirect)
+  if (user === null) {
     return null;
-  }
-  
-  // If force show and no user, show a simple message
-  if (forceShow && user === null) {
-    return (
-      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto">
-            <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Loading Issue Detected</h2>
-          <p className="text-gray-600 dark:text-gray-400">Please refresh the page or try again</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
   }
 
   // User is authenticated, render the main app with error boundary
