@@ -485,7 +485,7 @@ const Dashboard = memo(() => {
           {/* Header - Mobile Optimized */}
           <div className="text-center space-y-2 pt-3">
             <div className="flex justify-center items-center">
-              <Logo className="h-20 w-auto max-w-[280px]" alt="Woza Mali Logo" variant="woza-mali" />
+              <Logo className="h-16 w-auto max-w-[220px]" alt="Woza Mali Logo" variant="woza-mali" />
             </div>
             
             <div className="space-y-1">
