@@ -7,14 +7,6 @@
   "regions": ["iad1"],
   "outputDirectory": ".next",
   "public": true,
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "NEXT_PUBLIC_MAIN_URL": "@main_app_url",
-    "NEXT_PUBLIC_OFFICE_URL": "@office_app_url",
-    "NEXT_PUBLIC_COLLECTOR_URL": "@collector_app_url",
-    "NEXT_PUBLIC_SUPABASE_REDIRECT_URL": "@collector_app_url"
-  },
   "headers": [
     {
       "source": "/(.*)",
