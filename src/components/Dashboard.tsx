@@ -181,8 +181,16 @@ const Dashboard = memo(() => {
     setDashboardData(prev => ({ ...prev, addressLoading: true }));
     
     try {
+      // Add a soft timeout to non-PET total to avoid blocking UI
+      const softTimeout = <T,>(p: Promise<T>, ms: number, fallback: T) => new Promise<T>((resolve) => {
+        let settled = false;
+        const t = setTimeout(() => { if (!settled) { settled = true; resolve(fallback); } }, ms);
+        p.then(v => { if (!settled) { settled = true; clearTimeout(t); resolve(v); } })
+         .catch(() => { if (!settled) { settled = true; clearTimeout(t); resolve(fallback); } });
+      });
+
       const [nonPetData, addressData] = await Promise.allSettled([
-        WorkingWalletService.getNonPetApprovedTotal(user.id),
+        softTimeout(WorkingWalletService.getNonPetApprovedTotal(user.id), 1500, 0),
         loadUserAddress(user.id)
       ]);
 

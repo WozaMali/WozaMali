@@ -37,6 +37,7 @@ export const useWallet = (userId?: string) => {
   const lastUserId = useRef<string | undefined>(userId);
 
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
+  const FETCH_TIMEOUT_MS = 2000; // soft timeout for initial paint
 
   const fetchWalletData = useCallback(async () => {
     if (!userId) return;
@@ -47,10 +48,17 @@ export const useWallet = (userId?: string) => {
       return;
     }
 
-    // Check if we have recent data in cache
+    // Show any cached data immediately to avoid blocking UI
+    const cached = getWalletCache(userId);
+    if (cached && (!walletData || !lastFetchTime)) {
+      setWalletData(cached);
+      setLoading(false);
+    }
+
+    // Check if we have recent in-memory data
     const now = Date.now();
     if (walletData && (now - lastFetchTime) < CACHE_DURATION) {
-      console.log('Using cached wallet data');
+      console.log('Using in-memory cached wallet data');
       return;
     }
 
@@ -68,8 +76,15 @@ export const useWallet = (userId?: string) => {
     try {
       console.log('Fetching fresh wallet data from unified schema...');
       
-      // Use the new working wallet service
-      const workingData = await WorkingWalletService.getWalletData(userId);
+      // Start fetch and a soft timeout to unblock UI
+      const fetchPromise = WorkingWalletService.getWalletData(userId);
+      const timeoutId = setTimeout(() => {
+        // If still loading after timeout, allow UI to render with cached/defaults
+        setLoading(false);
+      }, FETCH_TIMEOUT_MS);
+
+      const workingData = await fetchPromise;
+      clearTimeout(timeoutId);
       
       // Convert working data to the expected WalletData format
       const combinedData: WalletData = {
@@ -88,7 +103,7 @@ export const useWallet = (userId?: string) => {
       };
 
       setWalletData(combinedData);
-      setLastFetchTime(now);
+      setLastFetchTime(Date.now());
       setIsInitialized(true);
       
       // Save to localStorage cache
