@@ -177,7 +177,9 @@ const Dashboard = memo(() => {
   const loadDashboardData = useCallback(async () => {
     if (!user?.id) return;
     
-    // Load critical data first (address and non-PET balance)
+    // Mark initial load complete immediately to render UI, then hydrate in background
+    setIsInitialLoadComplete(true);
+    // Load critical data in background (address and non-PET balance)
     setDashboardData(prev => ({ ...prev, addressLoading: true }));
     
     try {
@@ -206,8 +208,7 @@ const Dashboard = memo(() => {
         setDashboardData(prev => ({ ...prev, userAddress: null, addressLoading: false }));
       }
 
-      // Mark initial load as complete
-      setIsInitialLoadComplete(true);
+      // Initial load already marked complete; UI will update as data arrives
 
     } catch (error) {
       console.error('Error loading critical dashboard data:', error);
@@ -215,7 +216,7 @@ const Dashboard = memo(() => {
         ...prev,
         addressLoading: false
       }));
-      setIsInitialLoadComplete(true);
+      // Keep UI responsive even on errors
     }
   }, [user?.id, loadUserAddress]);
 
@@ -252,13 +253,12 @@ const Dashboard = memo(() => {
     };
   }, [user?.id, isInitialLoadComplete, loadDashboardData]);
 
-  // Simple loading timeout that always completes
+  // Simple loading timeout for first paint
   useEffect(() => {
     const simpleTimeout = setTimeout(() => {
-      console.log('Dashboard: Simple loading timeout - forcing completion');
       setSimpleLoading(false);
       setIsInitialLoadComplete(true);
-    }, 3000); // 3 second simple timeout
+    }, 800); // show UI fast
     
     return () => {
       clearTimeout(simpleTimeout);

@@ -1,110 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import Index from "@/pages/Index";
+import { useEffect, useState } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
-import { IOSInstallInstructions } from "@/components/PWAInstallPrompt";
+import PWAInstallPrompt, { IOSInstallInstructions } from "@/components/PWAInstallPrompt";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Index from "@/pages/Index";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
-  const [isAppVisible, setIsAppVisible] = useState(true);
-  const resumeGraceUntil = useRef(0);
-  const [simpleLoading, setSimpleLoading] = useState(true);
-  const router = useRouter();
-  const redirectOnceRef = useRef(false);
-  
-  // Try to use auth context, but handle the case where it might not be ready
-  let authContext;
-  try {
-    authContext = useAuth();
-  } catch (error) {
-    console.error('AuthContext error:', error);
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold text-red-600">Authentication Error</h1>
-        <p>Error: {error instanceof Error ? error.message : 'Unknown error'}</p>
-      </div>
-    );
-  }
-
-  const { user, loading, isLoading, bootGrace, session } = authContext as any;
 
   useEffect(() => {
     setMounted(true);
-    
-    // Simple loading timeout
-    const simpleTimeout = setTimeout(() => {
-      console.log('Page: Simple loading timeout - forcing completion');
-      setSimpleLoading(false);
-    }, 2000); // 2 second simple timeout
-    
-    // Handle app visibility changes (lock/unlock scenarios)
-    const handleVisibilityChange = () => {
-      const isVisible = !document.hidden;
-      setIsAppVisible(isVisible);
-      if (isVisible) {
-        // Add a short grace window after resume to prevent false redirects
-        resumeGraceUntil.current = Date.now() + 1500;
-      }
-    };
-
-    // Listen for visibility changes only (avoid pageshow/pagehide loops)
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      clearTimeout(simpleTimeout);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
   }, []);
 
-  useEffect(() => {
-    if (redirectOnceRef.current) return;
-    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'isLoading:', isLoading, 'bootGrace:', bootGrace, 'user:', user, 'session:', !!session);
-
-    // Only redirect if we're mounted, not loading, visible, and confirmed no session
-    if (
-      mounted &&
-      document.visibilityState === 'visible' &&
-      !loading &&
-      !isLoading &&
-      !bootGrace &&
-      user === null &&
-      session === null &&
-      Date.now() > resumeGraceUntil.current
-    ) {
-      redirectOnceRef.current = true;
-      console.log('Redirecting to sign-in (replace)...');
-      router.replace('/auth/sign-in');
-    }
-  }, [user, session, loading, isLoading, bootGrace, router, mounted]);
-
-  // Show loading while authentication is being determined
-  if (simpleLoading || !mounted || loading || isLoading) {
+  if (!mounted) {
     return <LoadingSpinner fullScreen text="Loading..." />;
   }
 
-  // Show background state when app is not visible
-  if (!isAppVisible) {
-    return (
-      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-pulse rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">App is in background...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render anything if user is null (will redirect)
-  if (user === null) {
-    return null;
-  }
-
-  // User is authenticated, render the main app with error boundary
   return (
     <>
       <ErrorBoundary fallback={
@@ -126,10 +39,10 @@ export default function Home() {
           </div>
         </div>
       }>
-        <Index />
+        <ProtectedRoute>
+          <Index />
+        </ProtectedRoute>
       </ErrorBoundary>
-      
-      {/* PWA Install Prompts */}
       <PWAInstallPrompt />
       <IOSInstallInstructions />
     </>
