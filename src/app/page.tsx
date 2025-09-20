@@ -11,6 +11,7 @@ import { IOSInstallInstructions } from "@/components/PWAInstallPrompt";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const [isAppVisible, setIsAppVisible] = useState(true);
   const router = useRouter();
   
   // Try to use auth context, but handle the case where it might not be ready
@@ -31,6 +32,25 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Handle app visibility changes (lock/unlock scenarios)
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      setIsAppVisible(isVisible);
+    };
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also listen for page show/hide events for better mobile support
+    window.addEventListener('pageshow', handleVisibilityChange);
+    window.addEventListener('pagehide', () => setIsAppVisible(false));
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handleVisibilityChange);
+      window.removeEventListener('pagehide', () => setIsAppVisible(false));
+    };
   }, []);
 
   useEffect(() => {
@@ -47,6 +67,18 @@ export default function Home() {
   // Show loading while authentication is being determined
   if (!mounted || loading || isLoading) {
     return <LoadingSpinner fullScreen text="Loading..." />;
+  }
+
+  // Show background state when app is not visible
+  if (!isAppVisible) {
+    return (
+      <div className="min-h-screen bg-gradient-warm flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-pulse rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">App is in background...</p>
+        </div>
+      </div>
+    );
   }
 
   // Don't render anything if user is null (will redirect)

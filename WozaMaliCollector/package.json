@@ -6,7 +6,11 @@
     "dev": "next dev -p 8082",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel",
+    "vercel:build": "next build",
+    "postbuild": "next-sitemap"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

@@ -1,9 +1,7 @@
 import CollectorUI from '@/components/CollectorUI';
 import ProtectedCollectorRoute from '@/components/ProtectedCollectorRoute';
 
-// Disable static generation for this page
-export const dynamic = 'force-dynamic';
-
+// For static export, we need to handle dynamic content client-side
 export default function CollectorPage() {
   return (
     <ProtectedCollectorRoute>

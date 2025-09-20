@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable static export for Capacitor
+  output: 'export',
+  trailingSlash: true,
+  skipTrailingSlashRedirect: true,
+  assetPrefix: '',
+  basePath: '',
+  
   // Image optimization
   images: {
     remotePatterns: [
