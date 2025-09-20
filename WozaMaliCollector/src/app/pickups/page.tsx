@@ -84,9 +84,13 @@ export default function CollectorPickupsPage() {
       (async () => {
         try {
           const [{ data: mats }] = await Promise.all([
-            supabase.from('materials').select('id, name, unit_price')
+            supabase.from('materials').select('id, name, unit_price, rate_per_kg, current_rate')
           ]);
-          setMaterials((mats || []).map((m: any) => ({ id: m.id, name: m.name, unit_price: m.unit_price })) as any);
+          setMaterials((mats || []).map((m: any) => ({ 
+            id: String(m.id), 
+            name: m.name, 
+            unit_price: Number(m.current_rate ?? m.unit_price ?? m.rate_per_kg ?? 0) 
+          })) as any);
           // initial residents
           await loadResidents('');
         } catch {}
@@ -372,16 +376,16 @@ export default function CollectorPickupsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4 pb-24">
+    <div className="min-h-screen bg-gray-900 p-3 sm:p-4 pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div className="flex items-center gap-3">
           <Link href="/" className="p-2 hover:bg-gray-800 rounded-lg text-gray-300 hover:text-white transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">Pickups</h1>
-            <p className="text-gray-300">Manage your collection pickups</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Pickups</h1>
+            <p className="text-gray-300 text-sm">Manage your collection pickups</p>
           </div>
         </div>
         
@@ -407,7 +411,7 @@ export default function CollectorPickupsPage() {
       </div>
 
       {/* Pickups List */}
-      <div className="grid gap-4">
+      <div className="grid gap-3 sm:gap-4">
         {pickups.length === 0 ? (
           <Card className="bg-gray-800 border-gray-700 text-white">
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -425,14 +429,14 @@ export default function CollectorPickupsPage() {
         ) : (
           pickups.map((pickup) => (
             <Card key={pickup.pickup_id} className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
-              <CardHeader>
+            <CardHeader className="p-3 sm:p-4 pb-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2 text-white">
+                    <CardTitle className="flex items-center gap-2 text-white text-sm sm:text-base">
                       <MapPin className="h-4 w-4 text-orange-400" />
                       Pickup #{pickup.pickup_id}
                     </CardTitle>
-                    <CardDescription className="text-gray-300">
+                    <CardDescription className="text-gray-300 text-xs sm:text-sm">
                       {pickup.customer_name} • {pickup.address_line1}, {pickup.address_line2}, {pickup.city}
                     </CardDescription>
                   </div>
@@ -441,8 +445,8 @@ export default function CollectorPickupsPage() {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+              <CardContent className="p-3 sm:p-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm mb-3 sm:mb-4">
                   <div>
                     <span className="font-medium text-gray-300">Date:</span> {pickup.started_at}
                   </div>
@@ -467,7 +471,7 @@ export default function CollectorPickupsPage() {
                       });
                       setIsCollectionFormOpen(true);
                     }}
-                    className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white"
+                    className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white text-sm"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Collect from {pickup.customer_name}

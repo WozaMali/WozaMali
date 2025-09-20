@@ -137,7 +137,6 @@ export class UnifiedCollectorService {
       const { data, error } = await supabase
         .from('materials')
         .select('*')
-        .eq('is_active', true)
         .order('name');
 
       if (error) {

@@ -49,28 +49,46 @@ export class ResidentService {
         // continue to fallback
       }
 
-      // 2) Fallback: user_profiles minimal (no email if not available)
+      // 2) Fallback: users table (resident/member/customer roles)
       try {
+        const { data: rolesData } = await supabase
+          .from('roles')
+          .select('id, name')
+          .in('name', ['resident', 'member', 'customer']);
+
+        const roleIds = (rolesData || []).map(r => r.id);
+        const orParts = [
+          'role.eq.resident',
+          'role.eq.member',
+          'role.eq.customer',
+          'role_name.eq.resident',
+          'role_name.eq.member',
+          'role_name.eq.customer',
+          ...roleIds.map((id: string) => `role_id.eq.${id}`)
+        ];
+
         const { data, error } = await supabase
-          .from('user_profiles')
-          .select('id, full_name')
-          .order('full_name', { ascending: true })
+          .from('users')
+          .select('id, first_name, last_name, email, created_at')
+          .or(orParts.join(','))
+          .order('first_name', { ascending: true })
           .limit(1000);
-        if (!error && Array.isArray(data) && data.length > 0) {
-          return data.map((p: any) => ({
-            id: String(p.id),
-            name: p.full_name || 'Resident',
+
+        if (!error && Array.isArray(data)) {
+          return data.map((u: any) => ({
+            id: String(u.id),
+            name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || 'Resident',
             phone: undefined,
-            email: undefined,
+            email: u.email || undefined,
             area_id: '',
             township: '',
             address: undefined,
             hasAddress: false,
-            created_at: new Date().toISOString()
+            created_at: u.created_at || new Date().toISOString()
           }));
         }
       } catch (e) {
-        // continue to fallback
+        // continue to final fallback
       }
 
       // 3) Final fallback: return empty list

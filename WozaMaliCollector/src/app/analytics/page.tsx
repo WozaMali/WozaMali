@@ -318,7 +318,7 @@ export default function CollectorAnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4 pb-24">
+    <div className="min-h-screen bg-gray-900 p-3 sm:p-4 pb-24">
       {/* Error Display */}
       {error && (
         <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-lg">
@@ -338,20 +338,20 @@ export default function CollectorAnalyticsPage() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div className="flex items-center gap-3">
           <Link href="/" className="p-2 hover:bg-gray-800 rounded-lg text-gray-300 hover:text-white transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">Analytics</h1>
-            <p className="text-gray-300">Track your collection performance</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Analytics</h1>
+            <p className="text-gray-300 text-sm">Track your collection performance</p>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32 bg-gray-800 border-gray-600 text-white">
+            <SelectTrigger className="w-28 sm:w-32 bg-gray-800 border-gray-600 text-white text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-600">
@@ -368,15 +368,15 @@ export default function CollectorAnalyticsPage() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <Card className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Collections</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-300">Collections</CardTitle>
             <Package className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-400">{currentStats.collections}</div>
-            <p className="text-xs text-gray-400">
+            <div className="text-xl sm:text-2xl font-bold text-orange-400">{currentStats.collections}</div>
+            <p className="text-[11px] sm:text-xs text-gray-400">
               {timeRange === 'week' ? 'This week' : timeRange === 'month' ? 'This month' : 'Total'}
             </p>
           </CardContent>
@@ -384,12 +384,12 @@ export default function CollectorAnalyticsPage() {
 
         <Card className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Weight Collected</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-300">Weight Collected</CardTitle>
             <Target className="h-4 w-4 text-yellow-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-400">{currentStats.kg.toFixed(1)} kg</div>
-            <p className="text-xs text-gray-400">
+            <div className="text-xl sm:text-2xl font-bold text-yellow-400">{currentStats.kg.toFixed(1)} kg</div>
+            <p className="text-[11px] sm:text-xs text-gray-400">
               {timeRange === 'week' ? 'This week' : timeRange === 'month' ? 'This month' : 'Total'}
             </p>
           </CardContent>
@@ -397,12 +397,12 @@ export default function CollectorAnalyticsPage() {
 
         <Card className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Points Earned</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-300">Points Earned</CardTitle>
             <Leaf className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-400">{currentStats.points}</div>
-            <p className="text-xs text-gray-400">
+            <div className="text-xl sm:text-2xl font-bold text-orange-400">{currentStats.points}</div>
+            <p className="text-[11px] sm:text-xs text-gray-400">
               {timeRange === 'week' ? 'This week' : timeRange === 'month' ? 'This month' : 'Total'}
             </p>
           </CardContent>
@@ -410,12 +410,12 @@ export default function CollectorAnalyticsPage() {
 
         <Card className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Performance</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-300">Performance</CardTitle>
             <TrendingUp className="h-4 w-4 text-yellow-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-400">{performanceRate.toFixed(1)}%</div>
-            <p className="text-xs text-gray-400">
+            <div className="text-xl sm:text-2xl font-bold text-yellow-400">{performanceRate.toFixed(1)}%</div>
+            <p className="text-[11px] sm:text-xs text-gray-400">
               {timeRange === 'week' ? 'This week' : timeRange === 'month' ? 'This month' : 'Total'}
             </p>
           </CardContent>
@@ -423,38 +423,38 @@ export default function CollectorAnalyticsPage() {
       </div>
 
       {/* Performance Metrics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-4 pb-2">
             <CardTitle className="flex items-center gap-2 text-white">
               <TrendingUp className="h-5 w-5 text-orange-400" />
               Performance Trends
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-gray-300 text-xs sm:text-sm">
               Your collection performance over time
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">Daily Average Collections</span>
-                <span className="text-sm text-gray-400">
+                <span className="text-xs sm:text-sm font-medium text-gray-300">Daily Average Collections</span>
+                <span className="text-xs sm:text-sm text-gray-400">
                   {timeRange === 'week' ? (stats.weeklyCollections / 7).toFixed(1) : 
                    timeRange === 'month' ? (stats.monthlyCollections / 30).toFixed(1) : 
                    (stats.totalCollections / 365).toFixed(1)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">Daily Average Weight</span>
-                <span className="text-sm text-gray-400">
+                <span className="text-xs sm:text-sm font-medium text-gray-300">Daily Average Weight</span>
+                <span className="text-xs sm:text-sm text-gray-400">
                   {timeRange === 'week' ? (stats.weeklyKg / 7).toFixed(1) : 
                    timeRange === 'month' ? (stats.monthlyKg / 30).toFixed(1) : 
                    (stats.totalKg / 365).toFixed(1)} kg
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">Efficiency Rate</span>
-                <span className="text-sm text-gray-400">
+                <span className="text-xs sm:text-sm font-medium text-gray-300">Efficiency Rate</span>
+                <span className="text-xs sm:text-sm text-gray-400">
                   {((currentStats.collections / Math.max(currentStats.collections, 1)) * 100).toFixed(1)}%
                 </span>
               </div>
@@ -463,32 +463,32 @@ export default function CollectorAnalyticsPage() {
         </Card>
 
         <Card className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-4 pb-2">
             <CardTitle className="flex items-center gap-2 text-white">
               <BarChart3 className="h-5 w-5 text-yellow-400" />
               Environmental Impact
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-gray-300 text-xs sm:text-sm">
               Your contribution to sustainability
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">CO₂ Saved</span>
-                <span className="text-sm text-gray-400">
+                <span className="text-xs sm:text-sm font-medium text-gray-300">CO₂ Saved</span>
+                <span className="text-xs sm:text-sm text-gray-400">
                   {(currentStats.kg * 2.5).toFixed(1)} kg
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">Water Saved</span>
-                <span className="text-sm text-gray-400">
+                <span className="text-xs sm:text-sm font-medium text-gray-300">Water Saved</span>
+                <span className="text-xs sm:text-sm text-gray-400">
                   {(currentStats.kg * 3.5).toFixed(1)} liters
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">Trees Equivalent</span>
-                <span className="text-sm text-gray-400">
+                <span className="text-xs sm:text-sm font-medium text-gray-300">Trees Equivalent</span>
+                <span className="text-xs sm:text-sm text-gray-400">
                   {(currentStats.kg / 22).toFixed(1)} trees
                 </span>
               </div>
@@ -498,21 +498,21 @@ export default function CollectorAnalyticsPage() {
       </div>
 
       {/* Additional Metrics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-4 pb-2">
             <CardTitle className="flex items-center gap-2 text-white">
               <Package className="h-5 w-5 text-green-400" />
               Top Materials
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-gray-300 text-xs sm:text-sm">
               Most collected materials this period
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {topMaterials.length === 0 ? (
-                <p className="text-gray-400 text-sm">No material data available</p>
+                <p className="text-gray-400 text-xs sm:text-sm">No material data available</p>
               ) : (
                 topMaterials.map((material, index) => (
                   <div key={material.name} className="flex items-center justify-between">
@@ -520,9 +520,9 @@ export default function CollectorAnalyticsPage() {
                       <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center text-xs font-bold text-green-400">
                         {index + 1}
                       </div>
-                      <span className="text-sm font-medium text-white">{material.name}</span>
+                      <span className="text-xs sm:text-sm font-medium text-white">{material.name}</span>
                     </div>
-                    <span className="text-sm text-gray-400">{material.count} collections</span>
+                    <span className="text-xs sm:text-sm text-gray-400">{material.count} collections</span>
                   </div>
                 ))
               )}
@@ -531,32 +531,32 @@ export default function CollectorAnalyticsPage() {
         </Card>
 
         <Card className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-4 pb-2">
             <CardTitle className="flex items-center gap-2 text-white">
               <Users className="h-5 w-5 text-blue-400" />
               Customer Insights
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-gray-300 text-xs sm:text-sm">
               Your customer relationship metrics
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">Total Customers</span>
-                <span className="text-sm text-gray-400">{customerStats.totalCustomers}</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-300">Total Customers</span>
+                <span className="text-xs sm:text-sm text-gray-400">{customerStats.totalCustomers}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">Repeat Customers</span>
-                <span className="text-sm text-gray-400">{customerStats.repeatCustomers}</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-300">Repeat Customers</span>
+                <span className="text-xs sm:text-sm text-gray-400">{customerStats.repeatCustomers}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">New Customers</span>
-                <span className="text-sm text-gray-400">{customerStats.newCustomers}</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-300">New Customers</span>
+                <span className="text-xs sm:text-sm text-gray-400">{customerStats.newCustomers}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-300">Retention Rate</span>
-                <span className="text-sm text-gray-400">
+                <span className="text-xs sm:text-sm font-medium text-gray-300">Retention Rate</span>
+                <span className="text-xs sm:text-sm text-gray-400">
                   {customerStats.totalCustomers > 0 
                     ? ((customerStats.repeatCustomers / customerStats.totalCustomers) * 100).toFixed(1)
                     : 0}%
@@ -569,22 +569,22 @@ export default function CollectorAnalyticsPage() {
 
       {/* Recent Activity */}
       <Card className="bg-gray-800 border-gray-700 text-white hover:shadow-lg transition-shadow duration-200">
-        <CardHeader>
+        <CardHeader className="p-3 sm:p-4 pb-2">
           <CardTitle className="flex items-center gap-2 text-white">
             <Calendar className="h-5 w-5 text-orange-400" />
             Recent Activity
           </CardTitle>
-          <CardDescription className="text-gray-300">
+          <CardDescription className="text-gray-300 text-xs sm:text-sm">
             Your latest collection activities
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {recentActivity.length === 0 ? (
-              <div className="text-center py-8">
+              <div className="text-center py-6 sm:py-8">
                 <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">No recent activity</p>
-                <p className="text-sm text-gray-500">Your collection activities will appear here</p>
+                <p className="text-gray-400 text-sm">No recent activity</p>
+                <p className="text-xs sm:text-sm text-gray-500">Your collection activities will appear here</p>
               </div>
             ) : (
               recentActivity.map((activity, index) => {
@@ -597,13 +597,13 @@ export default function CollectorAnalyticsPage() {
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full ${statusColor}`}></div>
                       <div>
-                        <span className="text-sm font-medium text-white">{statusText}</span>
-                        <p className="text-xs text-gray-400">
+                        <span className="text-xs sm:text-sm font-medium text-white">{statusText}</span>
+                        <p className="text-[11px] sm:text-xs text-gray-400">
                           {activity.customerName} • {activity.weight.toFixed(1)}kg • R{activity.value.toFixed(2)}
                         </p>
                       </div>
                     </div>
-                    <span className="text-sm text-gray-400">{timeAgo}</span>
+                    <span className="text-xs sm:text-sm text-gray-400">{timeAgo}</span>
                   </div>
                 );
               })

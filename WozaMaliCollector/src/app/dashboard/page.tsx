@@ -324,7 +324,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-900 pb-24">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-4">
+      <div className="bg-gray-800 border-b border-gray-700 px-4 py-3 sm:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
@@ -334,8 +334,8 @@ export default function DashboardPage() {
                 className="h-10 w-auto"
               />
               <div>
-                <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-                <p className="text-gray-400">Welcome back, {displayName}!</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-white">Dashboard</h1>
+                <p className="text-gray-400 text-sm">Welcome back, {displayName}!</p>
               </div>
             </div>
           </div>
@@ -350,24 +350,24 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="p-4">
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
           {statsData.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <div key={index} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <div key={index} className="bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">{stat.title}</p>
-                    <div className="text-2xl font-bold text-white">
+                    <p className="text-gray-400 text-xs sm:text-sm">{stat.title}</p>
+                    <div className="text-xl sm:text-2xl font-bold text-white">
                       {loading ? (
                         <div className="animate-pulse bg-gray-600 h-8 w-16 rounded"></div>
                       ) : (
                         stat.value
                       )}
                     </div>
-                    <p className="text-green-400 text-xs">{stat.change}</p>
+                    <p className="text-green-400 text-[11px] sm:text-xs">{stat.change}</p>
                   </div>
-                  <Icon className={`h-8 w-8 ${stat.color}`} />
+                  <Icon className={`h-6 w-6 sm:h-8 sm:w-8 ${stat.color}`} />
                 </div>
               </div>
             );
@@ -376,11 +376,11 @@ export default function DashboardPage() {
 
         {/* User Search Section */}
         <div className="bg-gray-800 rounded-lg border border-gray-700 mb-6">
-          <div className="p-4 border-b border-gray-700">
-            <h2 className="text-lg font-semibold text-white">Start Collection</h2>
-            <p className="text-gray-400 text-sm">Search for a customer to begin collection</p>
+          <div className="p-3 sm:p-4 border-b border-gray-700">
+            <h2 className="text-base sm:text-lg font-semibold text-white">Start Collection</h2>
+            <p className="text-gray-400 text-xs sm:text-sm">Search for a customer to begin collection</p>
           </div>
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             {/* Search Input */}
             <div className="space-y-4">
               <div className="relative">
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                   placeholder="Search by name or email address..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-700/50 border-gray-600/50 text-white placeholder-gray-400 focus:border-green-500/50"
+                  className="pl-10 bg-gray-700/50 border-gray-600/50 text-white placeholder-gray-400 focus:border-green-500/50 text-sm"
                 />
               </div>
 
@@ -404,22 +404,22 @@ export default function DashboardPage() {
               {!searchLoading && searchTerm.length >= 2 && searchUsers.length === 0 && (
                 <div className="text-center py-4">
                   <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-400">No customers found</p>
-                  <p className="text-sm text-gray-500">Try a different search term</p>
+                  <p className="text-gray-400 text-sm">No customers found</p>
+                  <p className="text-xs text-gray-500">Try a different search term</p>
                 </div>
               )}
 
               {!searchLoading && searchTerm.length < 2 && (
                 <div className="text-center py-4">
                   <Search className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-400">Start typing to search customers</p>
-                  <p className="text-sm text-gray-500">Enter at least 2 characters</p>
+                  <p className="text-gray-400 text-sm">Start typing to search customers</p>
+                  <p className="text-xs text-gray-500">Enter at least 2 characters</p>
                 </div>
               )}
 
               {searchUsers.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-400">
                     Found {searchUsers.length} customer{searchUsers.length !== 1 ? 's' : ''}
                   </p>
                   {searchUsers.map((user) => (
@@ -428,23 +428,23 @@ export default function DashboardPage() {
                       className="cursor-pointer transition-all duration-200 bg-gray-700/50 border-gray-600/50 hover:bg-gray-600/50 hover:border-green-500/50"
                       onClick={() => handleUserSelect(user)}
                     >
-                      <CardContent className="p-4">
+                      <CardContent className="p-3 sm:p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="p-2 bg-green-500/20 rounded-lg">
-                              <User className="h-5 w-5 text-green-400" />
+                              <User className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
                             </div>
                             <div className="flex-1">
-                              <h3 className="font-semibold text-white">{user.full_name}</h3>
+                              <h3 className="font-semibold text-white text-sm sm:text-base">{user.full_name}</h3>
                               <div className="space-y-1 text-sm text-gray-400">
                                 <div className="flex items-center space-x-1">
                                   <Mail className="h-3 w-3" />
-                                  <span>{user.email}</span>
+                                  <span className="text-xs sm:text-sm">{user.email}</span>
                                 </div>
                                 {user.phone && (
                                   <div className="flex items-center space-x-1">
                                     <Phone className="h-3 w-3" />
-                                    <span>{user.phone}</span>
+                                    <span className="text-xs sm:text-sm">{user.phone}</span>
                                   </div>
                                 )}
                                 <div className="flex items-center space-x-1">
@@ -454,7 +454,7 @@ export default function DashboardPage() {
                               </div>
                             </div>
                           </div>
-                          <CheckCircle className="h-5 w-5 text-green-400" />
+                          <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
                         </div>
                       </CardContent>
                     </Card>
@@ -467,18 +467,18 @@ export default function DashboardPage() {
 
         {/* Recent Pickups */}
         <div className="bg-gray-800 rounded-lg border border-gray-700">
-          <div className="p-4 border-b border-gray-700">
-            <h2 className="text-lg font-semibold text-white">Recent Pickups</h2>
+          <div className="p-3 sm:p-4 border-b border-gray-700">
+            <h2 className="text-base sm:text-lg font-semibold text-white">Recent Pickups</h2>
           </div>
           <div className="divide-y divide-gray-700">
             {recentPickups.map((pickup) => (
-              <div key={pickup.id} className="p-4 flex items-center justify-between">
+              <div key={pickup.id} className="p-3 sm:p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-white font-medium">{pickup.customer}</p>
-                  <p className="text-gray-400 text-sm">{pickup.address}</p>
+                  <p className="text-white font-medium text-sm sm:text-base">{pickup.customer}</p>
+                  <p className="text-gray-400 text-xs sm:text-sm">{pickup.address}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-gray-300 text-sm">{pickup.time}</p>
+                  <p className="text-gray-300 text-xs sm:text-sm">{pickup.time}</p>
                   <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                     pickup.status.toLowerCase().includes('complete')
                       ? 'bg-green-100 text-green-800'
@@ -489,7 +489,7 @@ export default function DashboardPage() {
                     {pickup.status}
                   </span>
                   {typeof pickup.totalKg === 'number' && (
-                    <p className="text-blue-400 text-sm mt-1 font-medium">{pickup.totalKg.toFixed(2)} kg</p>
+                    <p className="text-blue-400 text-xs sm:text-sm mt-1 font-medium">{pickup.totalKg.toFixed(2)} kg</p>
                   )}
                 </div>
               </div>
