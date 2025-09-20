@@ -59,27 +59,28 @@ export default function Home() {
     
     // Also listen for page show/hide events for better mobile support
     window.addEventListener('pageshow', handleVisibilityChange);
-    window.addEventListener('pagehide', () => setIsAppVisible(false));
+    const handlePageHide = () => setIsAppVisible(false);
+    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       clearTimeout(simpleTimeout);
       clearTimeout(forceTimeout);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handleVisibilityChange);
-      window.removeEventListener('pagehide', () => setIsAppVisible(false));
+      window.removeEventListener('pagehide', handlePageHide);
     };
   }, []);
 
   useEffect(() => {
-    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'isLoading:', isLoading, 'bootGrace:', bootGrace, 'user:', user, 'isAppVisible:', isAppVisible);
-    
+    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'isLoading:', isLoading, 'bootGrace:', bootGrace, 'user:', user);
+
     // Only redirect if we're mounted, not loading, and definitely no user
-    // Use bootGrace to prevent redirect flicker during refresh
-    if (mounted && !loading && !isLoading && !bootGrace && user === null) {
+    // Avoid triggering redirects due to background/visibility toggles
+    if (mounted && document.visibilityState === 'visible' && !loading && !isLoading && !bootGrace && user === null) {
       console.log('Redirecting to sign-in...');
       router.push('/auth/sign-in');
     }
-  }, [user, loading, isLoading, bootGrace, router, mounted, isAppVisible]);
+  }, [user, loading, isLoading, bootGrace, router, mounted]);
 
   // Show loading while authentication is being determined
   if (!forceShow && (simpleLoading || !mounted || loading || isLoading)) {

@@ -243,14 +243,15 @@ const Dashboard = memo(() => {
     
     // Also listen for page show/hide events for better mobile support
     window.addEventListener('pageshow', handleVisibilityChange);
-    window.addEventListener('pagehide', () => setIsAppVisible(false));
+    const handlePageHide = () => setIsAppVisible(false);
+    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handleVisibilityChange);
-      window.removeEventListener('pagehide', () => setIsAppVisible(false));
+      window.removeEventListener('pagehide', handlePageHide);
     };
-  }, [user?.id]); // Only depend on user?.id to prevent infinite loops
+  }, [user?.id, isInitialLoadComplete, loadDashboardData]);
 
   // Simple loading timeout that always completes
   useEffect(() => {
