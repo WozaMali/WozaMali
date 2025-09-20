@@ -240,51 +240,51 @@ export default function UsersPage() {
 
       <div className="p-4 space-y-6">
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Statistics Cards (2x2 layout) */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total Users</p>
-                <p className="text-2xl font-bold text-white">{users.length}</p>
+                <p className="text-gray-400 text-xs sm:text-sm">Total Users</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{users.length}</p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
             </div>
           </div>
 
           <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Members</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-gray-400 text-xs sm:text-sm">Members</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">
                   {users.filter(u => u.role_id === 'member').length}
                 </p>
               </div>
-              <UserCheck className="h-8 w-8 text-green-500" />
+              <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
             </div>
           </div>
 
           <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Collectors</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-gray-400 text-xs sm:text-sm">Collectors</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">
                   {users.filter(u => u.role_id === 'collector').length}
                 </p>
               </div>
-              <Package className="h-8 w-8 text-yellow-500" />
+              <Package className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
             </div>
           </div>
 
           <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Active Users</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-gray-400 text-xs sm:text-sm">Active Users</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">
                   {users.filter(u => u.status === 'active').length}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-orange-500" />
+              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
             </div>
           </div>
         </div>
