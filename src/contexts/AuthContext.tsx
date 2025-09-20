@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [bootGrace, setBootGrace] = useState(true);
   const [roleLoading, setRoleLoading] = useState(false);
+  const [forceComplete, setForceComplete] = useState(false);
   const initRef = useRef(false);
 
   // Define fetchUserRole function before using it
@@ -69,6 +70,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('AuthContext: Boot grace period ended');
       setBootGrace(false);
     }, 500);
+
+    // Force completion timer to prevent infinite loading
+    const forceTimer = setTimeout(() => {
+      if (loading) {
+        console.warn('AuthContext: Force completing loading state after timeout');
+        setForceComplete(true);
+        setLoading(false);
+      }
+    }, 8000); // 8 second timeout
+
+    // Handle app visibility changes to prevent loading loops
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      console.log('AuthContext: App visibility changed:', isVisible);
+      
+      if (isVisible && !loading) {
+        // App became visible and we're not loading, ensure we're in a good state
+        console.log('AuthContext: App became visible, checking session...');
+        // Don't reload session unnecessarily, just ensure loading state is correct
+        if (user && !session) {
+          console.log('AuthContext: User exists but no session, reloading...');
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+              setSession(session);
+              setUser(session.user);
+            }
+          });
+        }
+      }
+    };
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handleVisibilityChange);
     
     // Only run auth logic in the browser
     if (typeof window === 'undefined') {
@@ -139,6 +174,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       try { subscription.unsubscribe(); } catch {}
       clearTimeout(graceTimer);
+      clearTimeout(forceTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handleVisibilityChange);
     };
   }, []);
 
@@ -368,10 +406,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     session,
-    loading,
+    loading: loading && !forceComplete,
     userRole,
     isAuthenticated: !!user,
-    isLoading: loading || roleLoading,
+    isLoading: (loading && !forceComplete) || roleLoading,
     signUp,
     signIn,
     signOut,

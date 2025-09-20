@@ -217,11 +217,20 @@ const Dashboard = memo(() => {
       const isVisible = !document.hidden;
       setIsAppVisible(isVisible);
       
-      if (isVisible && user?.id && !isInitialLoadComplete) {
-        // App became visible and we have a user but initial load isn't complete
-        // This can happen after phone unlock - trigger data reload
-        console.log('App became visible, reloading dashboard data...');
-        loadDashboardData();
+      if (isVisible) {
+        console.log('App became visible, checking dashboard state...');
+        // Always reset loading timeout when app becomes visible
+        setLoadingTimeout(false);
+        
+        if (user?.id && !isInitialLoadComplete) {
+          // App became visible and we have a user but initial load isn't complete
+          // This can happen after phone unlock - trigger data reload
+          console.log('App became visible, reloading dashboard data...');
+          loadDashboardData();
+        } else if (user?.id && isInitialLoadComplete) {
+          // App became visible and we're already loaded, just ensure we're not stuck
+          console.log('App became visible, dashboard already loaded');
+        }
       }
     };
 
@@ -249,9 +258,19 @@ const Dashboard = memo(() => {
         setLoadingTimeout(true);
         setIsInitialLoadComplete(true);
       }
-    }, 10000); // 10 second timeout
+    }, 8000); // 8 second timeout
     
-    return () => clearTimeout(timeout);
+    // Additional aggressive timeout for stuck states
+    const aggressiveTimeout = setTimeout(() => {
+      console.warn('Dashboard aggressive timeout - forcing all states to complete');
+      setLoadingTimeout(false);
+      setIsInitialLoadComplete(true);
+    }, 15000); // 15 second aggressive timeout
+    
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(aggressiveTimeout);
+    };
   }, [loadDashboardData, isInitialLoadComplete]);
 
   // Lazy load transactions after initial render

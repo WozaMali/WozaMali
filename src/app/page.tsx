@@ -54,7 +54,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'isLoading:', isLoading, 'bootGrace:', bootGrace, 'user:', user);
+    console.log('Page useEffect - mounted:', mounted, 'loading:', loading, 'isLoading:', isLoading, 'bootGrace:', bootGrace, 'user:', user, 'isAppVisible:', isAppVisible);
     
     // Only redirect if we're mounted, not loading, and definitely no user
     // Use bootGrace to prevent redirect flicker during refresh
@@ -62,7 +62,7 @@ export default function Home() {
       console.log('Redirecting to sign-in...');
       router.push('/auth/sign-in');
     }
-  }, [user, loading, isLoading, bootGrace, router, mounted]);
+  }, [user, loading, isLoading, bootGrace, router, mounted, isAppVisible]);
 
   // Show loading while authentication is being determined
   if (!mounted || loading || isLoading) {
