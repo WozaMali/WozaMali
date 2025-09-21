@@ -78,14 +78,41 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await UsersService.getAllUsers();
+      // Prefer registered users view if available, fall back to all users
+      const reg = await UsersService.getRegisteredUsers();
+      const useRegistered = !reg.error && Array.isArray(reg.data);
+      const { data, error } = useRegistered ? { data: reg.data as any, error: null } : await UsersService.getAllUsers();
 
       if (error) {
         console.error('Error loading users:', error);
         return;
       }
 
-      setUsers(data || []);
+      // If using registered view, map to User shape
+      const mapped = useRegistered
+        ? (data as any[]).map((row) => ({
+            id: row.id,
+            email: row.email,
+            full_name: row.email?.split('@')[0] || row.email,
+            first_name: undefined,
+            last_name: undefined,
+            phone: undefined,
+            role_id: row.role_name || row.role_id || 'member',
+            status: row.app_status || 'active',
+            created_at: row.registered_at,
+            updated_at: row.registered_at,
+            street_addr: undefined,
+            township_id: undefined,
+            subdivision: undefined,
+            suburb: undefined,
+            city: undefined,
+            postal_code: undefined,
+            area_id: undefined,
+            role: row.role_name ? { name: row.role_name } : undefined
+          }))
+        : (data || []);
+
+      setUsers(mapped as any);
     } catch (error) {
       console.error('Error loading users:', error);
     } finally {

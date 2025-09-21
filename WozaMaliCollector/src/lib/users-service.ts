@@ -24,6 +24,27 @@ export interface User {
 
 export class UsersService {
   /**
+   * Get registered users using auth-backed view (registered_users_with_roles)
+   */
+  static async getRegisteredUsers(): Promise<{ data: any[] | null; error: string | null }> {
+    try {
+      const { data, error } = await supabase
+        .from('registered_users_with_roles')
+        .select('*')
+        .order('registered_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching registered users:', error);
+        return { data: null, error: error.message };
+      }
+
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Exception fetching registered users:', error);
+      return { data: null, error: 'An unexpected error occurred' };
+    }
+  }
+  /**
    * Get all users from the database
    */
   static async getAllUsers(): Promise<{ data: User[] | null; error: string | null }> {
