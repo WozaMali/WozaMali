@@ -107,7 +107,10 @@ export class UsersService {
    */
   static async getActiveCustomers(): Promise<{ data: User[] | null; error: string | null }> {
     try {
-      const { data, error } = await supabase
+      const allowedRoleNames = ['resident', 'customer', 'member', 'user'];
+
+      // Primary approach: filter via related roles.name to avoid UUID casting issues
+      let { data, error } = await supabase
         .from('users')
         .select(`
           id,
@@ -126,15 +129,62 @@ export class UsersService {
           suburb,
           city,
           postal_code,
-          area_id
+          area_id,
+          roles!role_id(name)
         `)
         .eq('status', 'active')
-        .in('role_id', ['resident', 'customer', 'member', 'user'])
+        .in('roles.name', allowedRoleNames)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching active customers:', error);
-        return { data: null, error: error.message };
+        console.warn('Primary active customers query failed, attempting fallback via roles table:', error);
+        // Fallback: resolve role IDs by name, then filter users by role_id IN ids
+        const { data: roleRows, error: roleErr } = await supabase
+          .from('roles')
+          .select('id, name')
+          .in('name', allowedRoleNames);
+
+        if (!roleErr && roleRows && roleRows.length > 0) {
+          const allowedRoleIds = roleRows.map(r => r.id);
+          const { data: usersByIds, error: usersErr } = await supabase
+            .from('users')
+            .select(`
+              id,
+              email,
+              full_name,
+              first_name,
+              last_name,
+              phone,
+              role_id,
+              status,
+              created_at,
+              updated_at,
+              street_addr,
+              township_id,
+              subdivision,
+              suburb,
+              city,
+              postal_code,
+              area_id
+            `)
+            .eq('status', 'active')
+            .in('role_id', allowedRoleIds)
+            .order('created_at', { ascending: false });
+
+          if (usersErr) {
+            console.error('Fallback users by role IDs failed:', usersErr);
+            return { data: null, error: usersErr.message };
+          }
+
+          return { data: usersByIds || [], error: null };
+        }
+
+        // Final fallback: return active users without role filtering
+        const { data: activeOnly, error: activeErr } = await this.getActiveUsers();
+        if (activeErr) {
+          return { data: null, error: activeErr };
+        }
+        return { data: activeOnly || [], error: null };
       }
 
       return { data: data || [], error: null };
