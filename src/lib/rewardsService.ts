@@ -13,6 +13,9 @@ export interface Reward {
   points_required: number;
   category: 'cash' | 'service' | 'product' | 'voucher';
   is_active: boolean;
+  logo_url?: string;
+  redeem_url?: string;
+  order_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +26,9 @@ export interface CreateRewardData {
   points_required: number;
   category: 'cash' | 'service' | 'product' | 'voucher';
   is_active?: boolean;
+  logo_url?: string;
+  redeem_url?: string;
+  order_url?: string;
 }
 
 export interface UpdateRewardData {
@@ -31,6 +37,9 @@ export interface UpdateRewardData {
   points_required?: number;
   category?: 'cash' | 'service' | 'product' | 'voucher';
   is_active?: boolean;
+  logo_url?: string;
+  redeem_url?: string;
+  order_url?: string;
 }
 
 /**

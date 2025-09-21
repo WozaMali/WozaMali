@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import PWAInstallPrompt, { IOSInstallInstructions } from "@/components/PWAInstallPrompt";
+import NewRewardModal from "@/components/NewRewardModal";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
 
@@ -45,6 +46,7 @@ export default function Home() {
       </ErrorBoundary>
       <PWAInstallPrompt />
       <IOSInstallInstructions />
+      <NewRewardModal />
     </>
   );
 }

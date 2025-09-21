@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, ArrowDownRight, Gift, Heart, Star, Calendar, Clock, MapPin } from "lucide-react";
+import { Wallet, Recycle, Leaf, TrendingUp, ArrowUpRight, ArrowDownRight, Gift, Heart, Star, Calendar, Clock, MapPin, GraduationCap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -16,6 +16,8 @@ import { AddressService } from "@/lib/addressService";
 import { WorkingWalletService } from "@/lib/workingWalletService";
 import VirtualizedTransactionList from "./VirtualizedTransactionList";
 import OfflineBanner from "./OfflineBanner";
+import { usePush } from "@/hooks/usePush";
+import { getPreferredSchool } from "@/lib/schoolsService";
 
 const Dashboard = memo(() => {
   const navigate = useRouter();
@@ -31,6 +33,7 @@ const Dashboard = memo(() => {
   }
 
   const { user } = authContext;
+  const { enablePush } = usePush();
   
   // Use the enhanced wallet hook to get comprehensive data
   const { 
@@ -46,6 +49,12 @@ const Dashboard = memo(() => {
     nextTierRequirements,
     totalWeightKg
   } = useWallet(user?.id);
+
+  // Attempt to enable push once when user is available
+  useEffect(() => {
+    if (!user?.id) return;
+    try { enablePush(); } catch {}
+  }, [user?.id, enablePush]);
 
   // Memoize safe values to prevent unnecessary re-renders
   const safeWalletBalance = useMemo(() => walletBalance || 0, [walletBalance]);
@@ -76,6 +85,7 @@ const Dashboard = memo(() => {
 
   // Track if initial load is complete
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+  const [preferredSchool, setPreferredSchool] = useState<any>(null);
   
   // Track app visibility state to handle lock/unlock scenarios
   const [isAppVisible, setIsAppVisible] = useState(true);
@@ -192,9 +202,10 @@ const Dashboard = memo(() => {
          .catch(() => { if (!settled) { settled = true; clearTimeout(t); resolve(fallback); } });
       });
 
-      const [nonPetData, addressData] = await Promise.allSettled([
+      const [nonPetData, addressData, schoolData] = await Promise.allSettled([
         softTimeout(WorkingWalletService.getNonPetApprovedTotal(user.id), 1500, 0),
-        loadUserAddress(user.id)
+        loadUserAddress(user.id),
+        getPreferredSchool()
       ]);
 
       // Process non-PET balance
@@ -207,6 +218,11 @@ const Dashboard = memo(() => {
         setDashboardData(prev => ({ ...prev, userAddress: addressData.value, addressLoading: false }));
       } else {
         setDashboardData(prev => ({ ...prev, userAddress: null, addressLoading: false }));
+      }
+
+      // Preferred school
+      if (schoolData.status === 'fulfilled' && (schoolData.value as any)?.data) {
+        setPreferredSchool((schoolData.value as any).data);
       }
 
       // Initial load already marked complete; UI will update as data arrives
@@ -610,6 +626,28 @@ const Dashboard = memo(() => {
       {/* Quick Actions - Mobile Optimized */}
       <div className="space-y-3">
         <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Quick Actions</h3>
+
+        {preferredSchool && (
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+            <CardContent className="p-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <GraduationCap className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-green-700 font-medium">Beneficiary School</p>
+                  <p className="text-sm font-bold text-green-900 dark:text-green-200 truncate">{preferredSchool.name}</p>
+                  <p className="text-xs text-green-800 dark:text-green-300 truncate">
+                    {[preferredSchool.address_line1, preferredSchool.township, preferredSchool.city].filter(Boolean).join(', ') || '—'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" className="h-7 text-xs" onClick={() => navigate.push('/fund')}>Change</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         <div className="grid grid-cols-2 gap-3">
           <Button 

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Coffee, ShoppingBag, Fuel, Clock, Star, Gift, ChefHat, TrendingUp, Heart, DollarSign, Wrench, Package, Ticket } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWallet } from "@/hooks/useWallet";
@@ -72,6 +71,36 @@ const Rewards = () => {
       default:
         return 'Rewards';
     }
+  };
+
+  const renderActionButtons = (reward: Reward) => {
+    const hasRedeem = typeof (reward as any).redeem_url === 'string' && (reward as any).redeem_url.trim().length > 0;
+    const hasOrder = typeof (reward as any).order_url === 'string' && (reward as any).order_url.trim().length > 0;
+    if (!hasRedeem && !hasOrder) return null;
+    return (
+      <div className="mt-4 flex flex-wrap gap-3">
+        {hasRedeem && (
+          <a
+            href={(reward as any).redeem_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-2 rounded-md bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-medium shadow hover:from-emerald-700 hover:to-emerald-800"
+          >
+            Redeem Now
+          </a>
+        )}
+        {hasOrder && (
+          <a
+            href={(reward as any).order_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-2 rounded-md bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium shadow hover:from-blue-700 hover:to-blue-800"
+          >
+            Order Now
+          </a>
+        )}
+      </div>
+    );
   };
 
 
@@ -201,13 +230,20 @@ const Rewards = () => {
               <Card key={reward.id} className="card-modern hover:scale-105 transition-all duration-300">
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div className={`p-2 rounded-lg ${canRedeem ? 'bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/40 dark:to-yellow-800/40' : 'bg-gray-100 dark:bg-gray-700'}`}>
-                        <Icon className={`h-4 w-4 ${canRedeem ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}`} />
-                      </div>
+                  <div className="flex items-center space-x-2">
+                      {((reward as any).logo_url) ? (
+                        <img
+                          src={(reward as any).logo_url as unknown as string}
+                          alt={reward.name}
+                          className="h-8 w-8 rounded object-contain bg-white"
+                        />
+                      ) : (
+                        <div className={`p-2 rounded-lg ${canRedeem ? 'bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/40 dark:to-yellow-800/40' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                          <Icon className={`h-4 w-4 ${canRedeem ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}`} />
+                        </div>
+                      )}
                       <div className="flex-1">
                         <h4 className="text-sm font-bold text-gray-900 dark:text-white">{reward.name}</h4>
-                        <p className="text-xs text-gray-600 dark:text-gray-300">{getCategoryDisplayName(reward.category)}</p>
                       </div>
                     </div>
                     
@@ -226,37 +262,37 @@ const Rewards = () => {
                       {reward.description || 'No description available'}
                     </p>
                     
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center space-x-1">
-                        <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-xs font-medium">
-                          {getCategoryDisplayName(reward.category)}
-                        </span>
-                        <div className="flex items-center space-x-1 text-amber-600 dark:text-amber-400">
-                          <Star className="h-2 w-2" />
-                          <span className="text-xs">Active</span>
-                        </div>
-                      </div>
-                      
-                      {!canRedeem && (
-                        <span className="text-amber-600 dark:text-amber-400 font-medium text-xs">
-                          Need {pointsNeeded} more pts
-                        </span>
-                      )}
-                    </div>
-                    
-                    <Button 
-                      className={canRedeem ? 'btn-primary-yellow w-full h-8' : 'btn-outline-modern w-full h-8 opacity-50 cursor-not-allowed'}
-                      onClick={() => {
-                        if (canRedeem) {
-                          // TODO: Implement reward redemption
-                          alert('Reward redemption coming soon!');
-                        }
-                      }}
-                      disabled={!canRedeem}
-                    >
-                      <Gift className="h-3 w-3 mr-1" />
-                      <span className="text-xs">{canRedeem ? 'Redeem Now' : `Need ${pointsNeeded} more points`}</span>
-                    </Button>
+                    {(() => {
+                      const hasRedeem = typeof (reward as any).redeem_url === 'string' && (reward as any).redeem_url.trim().length > 0;
+                      const hasOrder = typeof (reward as any).order_url === 'string' && (reward as any).order_url.trim().length > 0;
+                      if (hasRedeem || hasOrder) {
+                        return (
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            {hasRedeem && (
+                              <a
+                                href={(reward as any).redeem_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center px-3 py-2 rounded-md bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-xs font-semibold shadow hover:from-emerald-700 hover:to-emerald-800"
+                              >
+                                Redeem Now
+                              </a>
+                            )}
+                            {hasOrder && (
+                              <a
+                                href={(reward as any).order_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center px-3 py-2 rounded-md bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-semibold shadow hover:from-blue-700 hover:to-blue-800"
+                              >
+                                Order Now
+                              </a>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </CardContent>
               </Card>

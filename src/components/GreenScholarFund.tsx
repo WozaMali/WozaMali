@@ -15,6 +15,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGreenScholarFund } from "@/hooks/useGreenScholarFund";
 import { BottleCollection } from "@/lib/greenScholarFundService";
 import { PetBottlesGreenScholarIntegration } from "@/lib/petBottlesGreenScholarIntegration";
+import SchoolSearch from "@/components/SchoolSearch";
+import type { School } from "@/lib/schoolsService";
+import { savePreferredSchool, getPreferredSchool, clearPreferredSchool } from "@/lib/schoolsService";
 
 interface ApplicationData {
   // Personal Information
@@ -55,6 +58,8 @@ interface ApplicationData {
 
 const GreenScholarFund = () => {
   const { user } = useAuth();
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [preferredSchool, setPreferredSchool] = useState<School | null>(null);
   const {
     fundStats,
     userBottleContributions,
@@ -88,6 +93,16 @@ const GreenScholarFund = () => {
     };
 
     fetchPetBottlesSummary();
+  }, [user?.id]);
+  
+  // Load current preferred school for display
+  useEffect(() => {
+    const loadPreferred = async () => {
+      if (!user?.id) return;
+      const res = await getPreferredSchool();
+      if (res.data) setPreferredSchool(res.data);
+    };
+    loadPreferred();
   }, [user?.id]);
   
   const [donationAmount, setDonationAmount] = useState<number>(0);
@@ -769,7 +784,7 @@ const GreenScholarFund = () => {
         </CardContent>
       </Card>
 
-      {/* Your Contribution Overview - Ultra Mobile Optimized */}
+      {/* Your Contribution Overview - Compact single-line items */}
       <Card className="card-modern">
         <CardHeader className="card-modern-header p-3">
           <CardTitle className="text-sm font-bold text-white flex items-center">
@@ -778,45 +793,51 @@ const GreenScholarFund = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="text-center p-2 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-lg border border-green-200 dark:border-green-700">
-              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-1">
-                <Target className="h-3 w-3 text-white" />
+          <div className="space-y-2">
+            {/* Row 1: Total Weight and PET Contribution */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center justify-between p-2 rounded-lg border bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 border-green-200 dark:border-green-700">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <Target className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-xs text-green-700 dark:text-green-300 font-medium truncate">Total Weight</span>
+                </div>
+                <span className="text-sm font-bold text-green-700 dark:text-green-300 ml-2 flex-shrink-0">{petBottlesSummary.totalWeight.toFixed(1)}kg</span>
               </div>
-              <p className="text-sm font-bold text-green-600 dark:text-green-400">
-                {petBottlesSummary.totalWeight.toFixed(1)}kg
-              </p>
-              <p className="text-xs text-green-700 dark:text-green-300 font-medium">Total Weight</p>
+
+              <div className="flex items-center justify-between p-2 rounded-lg border bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-200 dark:border-blue-700">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                    <Wallet className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-xs text-blue-700 dark:text-blue-300 font-medium truncate">PET Contribution</span>
+                </div>
+                <span className="text-sm font-bold text-blue-700 dark:text-blue-300 ml-2 flex-shrink-0">R{petBottlesSummary.totalValue.toFixed(2)}</span>
+              </div>
             </div>
-            
-            <div className="text-center p-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg border border-blue-200 dark:border-blue-700">
-              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-1">
-                <Wallet className="h-3 w-3 text-white" />
+
+            {/* Row 2: Cash Donations and Total Impact */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center justify-between p-2 rounded-lg border bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 border-purple-200 dark:border-purple-700">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                    <CreditCard className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-xs text-purple-700 dark:text-purple-300 font-medium truncate">Cash Donations</span>
+                </div>
+                <span className="text-sm font-bold text-purple-700 dark:text-purple-300 ml-2 flex-shrink-0">R{cashDonations.toFixed(2)}</span>
               </div>
-              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                R{petBottlesSummary.totalValue.toFixed(2)}
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">PET Contribution</p>
-            </div>
-            
-            <div className="text-center p-2 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg border border-purple-200 dark:border-purple-700">
-              <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-1">
-                <CreditCard className="h-3 w-3 text-white" />
+
+              <div className="flex items-center justify-between p-2 rounded-lg border bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 border-yellow-200 dark:border-yellow-700">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <TrendingUp className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-xs text-yellow-700 dark:text-yellow-300 font-medium truncate">Total Impact</span>
+                </div>
+                <span className="text-sm font-bold text-yellow-700 dark:text-yellow-300 ml-2 flex-shrink-0">R{totalDonation.toFixed(2)}</span>
               </div>
-              <p className="text-sm font-bold text-purple-600 dark:text-purple-400">
-                R{cashDonations.toFixed(2)}
-              </p>
-              <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">Cash Donations</p>
-            </div>
-            
-            <div className="text-center p-2 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 rounded-lg border border-yellow-200 dark:border-yellow-700">
-              <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-1">
-                <TrendingUp className="h-3 w-3 text-white" />
-              </div>
-              <p className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
-                R{totalDonation.toFixed(2)}
-              </p>
-              <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium">Total Impact</p>
             </div>
           </div>
         </CardContent>
@@ -834,19 +855,80 @@ const GreenScholarFund = () => {
           </CardHeader>
           <CardContent className="p-3">
             <div className="space-y-3">
+              {preferredSchool && (
+                <div className="p-3 rounded-lg border border-green-200 bg-green-50 text-xs text-green-800">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-green-900">Your Beneficiary School</div>
+                      <div className="mt-1">
+                        <div className="font-medium">{preferredSchool.name}</div>
+                        <div className="text-[11px] text-green-700">
+                          {[preferredSchool.address_line1, preferredSchool.township, preferredSchool.city].filter(Boolean).join(', ') || '—'}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[11px] text-white"
+                      onClick={async () => {
+                        const res = await clearPreferredSchool();
+                        if (res.ok) {
+                          setPreferredSchool(null);
+                          setSelectedSchool(null);
+                          toast({ title: 'Removed', description: 'Your beneficiary school has been cleared.' });
+                        } else {
+                          const errMsg = (res.error && (res.error.message || String(res.error))) || '';
+                          toast({ title: 'Error', description: `Could not remove school. ${errMsg || 'Please try again.'}` });
+                        }
+                      }}
+                    >
+                      Remove School
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className="form-group-modern">
-                <Label htmlFor="preferredSchool" className="form-label-modern text-xs">Primary School</Label>
-                <Select onValueChange={() => {}}>
-                  <SelectTrigger id="preferredSchool" className="form-input-modern h-8 text-xs">
-                    <SelectValue placeholder="Select a school" />
-                  </SelectTrigger>
-                  <SelectContent>
-                  </SelectContent>
-                </Select>
+                <Label className="form-label-modern text-xs">Primary School</Label>
+                <SchoolSearch onSelect={setSelectedSchool} placeholder="Search for school name..." />
+                {selectedSchool && (
+                  <div className="mt-2 text-xs text-gray-300">
+                    <div>
+                      Selected: <span className="font-medium text-white">{selectedSchool.name}</span>
+                    </div>
+                    <div className="text-[11px] text-gray-400">
+                      {[selectedSchool.address_line1, selectedSchool.township, selectedSchool.city]
+                        .filter(Boolean)
+                        .join(', ') || '—'}
+                    </div>
+                  </div>
+                )}
               </div>
-              <Button className="btn-primary-yellow w-full h-8 text-xs">
+              <Button
+                className="btn-primary-yellow w-full h-8 text-xs"
+                disabled={!selectedSchool || !user}
+                onClick={async () => {
+                  if (!selectedSchool) return;
+                  const res = await savePreferredSchool(user?.id as any, selectedSchool.id);
+                  if (res.ok) {
+                    toast({ title: 'Saved', description: 'Your school has been saved.' });
+                    // Refresh preferred card
+                    try {
+                      const ref = await getPreferredSchool();
+                      if (ref.data) setPreferredSchool(ref.data);
+                    } catch {}
+                  } else {
+                    const errMsg = (res.error && (res.error.message || String(res.error))) || '';
+                    const friendly = errMsg.includes('NO_SESSION') || errMsg.includes('Auth session missing') || errMsg.includes('Unauthorized')
+                      ? 'Please sign in again to continue.'
+                      : `Could not save your school. ${errMsg || 'Please try again.'}`;
+                    toast({ title: 'Error', description: friendly });
+                    console.error('Save preferred school failed:', res.error);
+                  }
+                }}
+              >
                 <GraduationCap className="h-3 w-3 mr-1" />
-                Save Preference
+                Save School
               </Button>
             </div>
           </CardContent>

@@ -83,7 +83,6 @@ self.addEventListener('fetch', (event) => {
       .then((cachedResponse) => {
         // Return cached version if available
         if (cachedResponse) {
-          console.log('Serving from cache:', request.url);
           return cachedResponse;
         }
 
@@ -104,19 +103,15 @@ self.addEventListener('fetch', (event) => {
             caches.open(cacheName)
               .then((cache) => {
                 cache.put(request, responseToCache);
-                console.log('Cached new resource:', request.url);
               });
 
             return response;
           })
           .catch((error) => {
-            console.error('Fetch failed:', error);
-            
             // Return offline page for navigation requests
             if (request.mode === 'navigate') {
               return caches.match('/') || new Response('Offline', { status: 503 });
             }
-            
             throw error;
           });
       })
@@ -134,22 +129,16 @@ function isAPIRequest(request) {
 // Background sync for offline actions
 self.addEventListener('sync', (event) => {
   if (event.tag === 'background-sync') {
-    console.log('Background sync triggered');
     event.waitUntil(doBackgroundSync());
   }
 });
 
 async function doBackgroundSync() {
-  // Handle offline actions when connection is restored
   try {
-    // Get pending actions from IndexedDB
     const pendingActions = await getPendingActions();
-    
     for (const action of pendingActions) {
       await processPendingAction(action);
     }
-    
-    console.log('Background sync completed');
   } catch (error) {
     console.error('Background sync failed:', error);
   }
@@ -157,53 +146,36 @@ async function doBackgroundSync() {
 
 // Push notification handling
 self.addEventListener('push', (event) => {
-  if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
-      vibrate: [100, 50, 100],
-      data: data.data,
-      actions: [
-        {
-          action: 'open',
-          title: 'Open App',
-          icon: '/icons/icon-72x72.png'
-        },
-        {
-          action: 'close',
-          title: 'Close',
-          icon: '/icons/icon-72x72.png'
-        }
-      ]
-    };
-
-    event.waitUntil(
-      self.registration.showNotification(data.title, options)
-    );
-  }
+  if (!event.data) return;
+  const data = event.data.json();
+  const options = {
+    body: data.body,
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-72x72.png',
+    vibrate: [100, 50, 100],
+    data: data.data,
+    actions: [
+      { action: 'open', title: 'Open', icon: '/icons/icon-72x72.png' },
+      { action: 'close', title: 'Dismiss', icon: '/icons/icon-72x72.png' }
+    ]
+  };
+  event.waitUntil(self.registration.showNotification(data.title || 'Woza Mali', options));
 });
 
 // Notification click handling
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
-  if (event.action === 'open' || !event.action) {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
-  }
+  const targetUrl = (event.notification && event.notification.data && event.notification.data.url) || '/';
+  if (event.action === 'close') return;
+  event.waitUntil(clients.openWindow(targetUrl));
 });
 
 // Helper functions for background sync
 async function getPendingActions() {
-  // This would typically read from IndexedDB
-  // For now, return empty array
+  // Placeholder for IndexedDB reads
   return [];
 }
 
 async function processPendingAction(action) {
-  // Process individual pending actions
-  console.log('Processing pending action:', action);
+  // Placeholder for processing queued actions
 }
