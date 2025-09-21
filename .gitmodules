@@ -1,0 +1,3 @@
+[submodule "WozaMaliOffice"]
+	path = WozaMaliOffice
+	url = https://github.com/WozaMali/WozaMaliOffice.git
