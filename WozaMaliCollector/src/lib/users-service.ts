@@ -103,6 +103,48 @@ export class UsersService {
   }
 
   /**
+   * Get active customers (customer-facing roles only), status = active
+   */
+  static async getActiveCustomers(): Promise<{ data: User[] | null; error: string | null }> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          email,
+          full_name,
+          first_name,
+          last_name,
+          phone,
+          role_id,
+          status,
+          created_at,
+          updated_at,
+          street_addr,
+          township_id,
+          subdivision,
+          suburb,
+          city,
+          postal_code,
+          area_id
+        `)
+        .eq('status', 'active')
+        .in('role_id', ['resident', 'customer', 'member', 'user'])
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching active customers:', error);
+        return { data: null, error: error.message };
+      }
+
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Exception fetching active customers:', error);
+      return { data: null, error: 'An unexpected error occurred' };
+    }
+  }
+
+  /**
    * Get users by role
    */
   static async getUsersByRole(roleId: string): Promise<{ data: User[] | null; error: string | null }> {

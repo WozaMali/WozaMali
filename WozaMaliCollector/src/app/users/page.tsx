@@ -75,7 +75,7 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await UsersService.getActiveUsers();
+      const { data, error } = await UsersService.getActiveCustomers();
 
       if (error) {
         console.error('Error loading users:', error);
