@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const rawAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+// Trim to remove stray whitespace/CRLF that can break websocket apikey param
+const supabaseUrl = rawUrl?.trim()
+const supabaseAnonKey = rawAnonKey?.trim()
 
 // Debug logging
 console.log('🔌 Creating Supabase client with:')
