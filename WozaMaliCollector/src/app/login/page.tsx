@@ -75,6 +75,9 @@ export default function CollectorAuthPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSignUpLoading, setIsSignUpLoading] = useState(false);
   const [signUpErrors, setSignUpErrors] = useState<Record<string, string>>({});
+  // Local action loading states (avoid showing global auth loading as "Signing in…")
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isGoogleSigningIn, setIsGoogleSigningIn] = useState(false);
 
   // Debug logging
   useEffect(() => {
@@ -235,7 +238,7 @@ export default function CollectorAuthPage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-
+    setIsSigningIn(true);
     const response = await login(signInData.email, signInData.password);
     
     if (response.success) {
@@ -245,6 +248,7 @@ export default function CollectorAuthPage() {
     } else {
       setError(response.error || 'Login failed');
     }
+    setIsSigningIn(false);
   };
 
 
@@ -455,6 +459,7 @@ export default function CollectorAuthPage() {
     setSuccess(null);
 
     try {
+      setIsGoogleSigningIn(true);
       const result = await signInWithGoogle();
       if (!result.success) {
         setError(result.error || 'Google sign-in failed');
@@ -462,6 +467,9 @@ export default function CollectorAuthPage() {
     } catch (error) {
       console.error('Google sign-in error:', error);
       setError('An unexpected error occurred during Google sign-in.');
+    } finally {
+      // The OAuth flow may redirect away, but if it doesn't, clear the local state
+      setIsGoogleSigningIn(false);
     }
   };
 
@@ -567,9 +575,9 @@ export default function CollectorAuthPage() {
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-orange-500 to-green-500 hover:from-orange-400 hover:to-green-400 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-orange-500/25 transition-all duration-200 transform hover:scale-[1.02] border border-orange-400/20"
-                  disabled={isLoading}
+                  disabled={isSigningIn}
                 >
-                  {isLoading ? (
+                  {isSigningIn ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Signing in...
@@ -600,7 +608,7 @@ export default function CollectorAuthPage() {
                   variant="outline"
                   onClick={handleGoogleSignIn}
                   className="w-full border-2 border-gray-600 hover:border-gray-500 hover:bg-gray-800 text-gray-300 hover:text-white transition-all duration-200"
-                  disabled={isLoading}
+                  disabled={isGoogleSigningIn}
                 >
                   <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                     <path
