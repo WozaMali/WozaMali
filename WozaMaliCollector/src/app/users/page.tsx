@@ -35,7 +35,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('active');
+  const [statusFilter, setStatusFilter] = useState('all');
   
   // Collection modal state
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
@@ -45,6 +45,9 @@ export default function UsersPage() {
   useEffect(() => {
     loadUsers();
   }, []);
+
+  // Derive normalized role name from user (handles UUID role_id by using joined role)
+  const getRoleName = (user: any) => String((user.role?.name || user.role_id || '')).toLowerCase();
 
   // Filter users based on search and filters
   useEffect(() => {
@@ -61,7 +64,7 @@ export default function UsersPage() {
 
     // Role filter
     if (roleFilter !== 'all') {
-      filtered = filtered.filter(user => user.role_id === roleFilter);
+      filtered = filtered.filter(user => getRoleName(user) === roleFilter);
     }
 
     // Status filter
@@ -75,7 +78,7 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await UsersService.getActiveCustomers();
+      const { data, error } = await UsersService.getAllUsers();
 
       if (error) {
         console.error('Error loading users:', error);
@@ -170,9 +173,9 @@ export default function UsersPage() {
     return addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
   };
 
-  const canCollectFrom = (user: User) => {
+  const canCollectFrom = (user: any) => {
     const disallowedRoles = new Set(['collector', 'admin', 'super_admin', 'office_staff']);
-    const role = (user.role_id || '').toLowerCase();
+    const role = getRoleName(user);
     const isActive = (user.status || '').toLowerCase() === 'active';
     return isActive && !disallowedRoles.has(role);
   };
@@ -192,8 +195,10 @@ export default function UsersPage() {
     setSelectedUser(null);
   };
 
-  // Get unique roles for filter (filter out null/undefined values)
-  const uniqueRoles = Array.from(new Set(users.map(user => user.role_id).filter(role => role != null)));
+  // Get unique roles for filter based on normalized role names
+  const uniqueRoles = Array.from(
+    new Set(users.map((user) => getRoleName(user)).filter((role) => role && role !== ''))
+  );
 
 
   if (loading) {
@@ -264,7 +269,10 @@ export default function UsersPage() {
               <div>
                 <p className="text-gray-400 text-xs sm:text-sm">Residents</p>
                 <p className="text-xl sm:text-2xl font-bold text-white">
-                  {users.filter(u => u.role_id === 'member').length}
+                  {users.filter(u => {
+                    const r = getRoleName(u);
+                    return r === 'resident' || r === 'member';
+                  }).length}
                 </p>
               </div>
               <UserCheck className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
@@ -276,7 +284,7 @@ export default function UsersPage() {
               <div>
                 <p className="text-gray-400 text-xs sm:text-sm">Collectors</p>
                 <p className="text-xl sm:text-2xl font-bold text-white">
-                  {users.filter(u => u.role_id === 'collector').length}
+                  {users.filter(u => getRoleName(u) === 'collector').length}
                 </p>
               </div>
               <Package className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
@@ -381,7 +389,7 @@ export default function UsersPage() {
                 <div key={user.id} className="p-3 sm:p-4 flex items-center justify-between hover:bg-gray-700/60 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-                      {getRoleIcon(user.role_id)}
+                      {getRoleIcon(getRoleName(user))}
                     </div>
                     <div className="min-w-0">
                       <div className="font-medium text-white text-sm sm:text-base truncate">
