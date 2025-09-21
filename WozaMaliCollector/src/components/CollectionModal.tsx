@@ -674,18 +674,18 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 z-[60]">
       <div className="bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800 border border-gray-600/50 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden">
         {/* Modern Header */}
-        <div className="relative bg-gradient-to-r from-gray-700/50 to-gray-600/50 border-b border-gray-600/50 p-6">
+        <div className="relative bg-gradient-to-r from-gray-700/50 to-gray-600/50 border-b border-gray-600/50 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-orange-500/20 rounded-lg">
-                <Package className="h-6 w-6 text-orange-400" />
+                <Package className="h-5 w-5 text-orange-400" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">Create Collection</h2>
-                <p className="text-gray-300 text-sm">Record a collection for this user</p>
+                <h2 className="text-xl font-bold text-white">Create Collection</h2>
+                <p className="text-gray-300 text-xs">Record a collection for this user</p>
               </div>
             </div>
             <Button 
@@ -694,65 +694,40 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
               onClick={onClose} 
               className="text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(95vh-120px)] p-6 space-y-6">
+        <div className="overflow-y-auto max-h-[calc(95vh-120px)] p-4 space-y-4">
           {/* User Info */}
           <Card className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600/50 backdrop-blur-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-3 text-white">
-                <div className="p-2 bg-orange-500/20 rounded-lg">
-                  <User className="h-5 w-5 text-orange-400" />
-                </div>
-                <span className="text-lg font-semibold">Customer Information</span>
-              </CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-base">Customer Information</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 bg-gray-800/30 rounded-lg">
-                    <div className="p-2 bg-blue-500/20 rounded-lg">
-                      <User className="h-5 w-5 text-blue-400" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-300">Full Name</span>
-                      <p className="text-white font-semibold">{user.full_name || `${user.first_name} ${user.last_name}`}</p>
-                    </div>
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 bg-gray-800/30 rounded-lg">
+                    <span className="block text-xs font-medium text-gray-300">Full Name</span>
+                    <p className="text-white text-sm font-semibold truncate">{user.full_name || `${user.first_name} ${user.last_name}`}</p>
                   </div>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-800/30 rounded-lg">
-                    <div className="p-2 bg-green-500/20 rounded-lg">
-                      <Mail className="h-5 w-5 text-green-400" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-300">Email Address</span>
-                      <p className="text-white font-semibold">{user.email}</p>
-                    </div>
+                  <div className="p-2 bg-gray-800/30 rounded-lg">
+                    <span className="block text-xs font-medium text-gray-300">Phone Number</span>
+                    <p className="text-white text-sm font-semibold truncate">{user.phone || 'Not provided'}</p>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 bg-gray-800/30 rounded-lg">
-                    <div className="p-2 bg-purple-500/20 rounded-lg">
-                      <Phone className="h-5 w-5 text-purple-400" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-300">Phone Number</span>
-                      <p className="text-white font-semibold">{user.phone || 'Not provided'}</p>
-                    </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 bg-gray-800/30 rounded-lg">
+                    <span className="block text-xs font-medium text-gray-300">Email Address</span>
+                    <p className="text-white text-sm font-semibold truncate">{user.email}</p>
                   </div>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-800/30 rounded-lg">
-                    <div className="p-2 bg-orange-500/20 rounded-lg">
-                      <MapPin className="h-5 w-5 text-orange-400" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-300">Location</span>
-                      <p className="text-white font-semibold">
-                        {formatAddress(user)}
-                      </p>
-                    </div>
+                  <div className="p-2 bg-gray-800/30 rounded-lg">
+                    <span className="block text-xs font-medium text-gray-300">Location</span>
+                    <p className="text-white text-sm font-semibold truncate" title={formatAddress(user)}>
+                      {formatAddress(user)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -761,14 +736,9 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
 
           {/* Materials */}
           <Card className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600/50 backdrop-blur-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center justify-between text-white">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-500/20 rounded-lg">
-                    <Package className="h-5 w-5 text-green-400" />
-                  </div>
-                  <span className="text-lg font-semibold">Materials Collected</span>
-                </div>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center justify-between text-white text-base">
+                <span className="font-semibold">Materials Collected</span>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -781,20 +751,16 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {collectionMaterials.map((material, index) => (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-5 border border-gray-600/50 rounded-xl bg-gradient-to-r from-gray-800/30 to-gray-700/30 backdrop-blur-sm hover:border-gray-500/50 transition-all duration-200">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-300 flex items-center space-x-2">
-                        <Package className="h-4 w-4" />
-                        <span>Material</span>
-                        <span className="text-xs text-gray-400">({materials.length} available)</span>
-                      </Label>
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 border border-gray-600/50 rounded-xl bg-gradient-to-r from-gray-800/30 to-gray-700/30 backdrop-blur-sm hover:border-gray-500/50 transition-all duration-200">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-gray-300">Material <span className="text-[10px] text-gray-400">({materials.length} available)</span></Label>
                       <Select 
                         value={material.materialName} 
                         onValueChange={(value) => updateMaterial(index, 'materialName', value)}
                       >
-                        <SelectTrigger className="bg-gray-900/50 border-gray-600/50 text-white hover:border-gray-500/50 focus:border-orange-500/50 transition-all duration-200">
+                        <SelectTrigger className="bg-gray-900/50 border-gray-600/50 text-white text-sm hover:border-gray-500/50 focus:border-orange-500/50 transition-all duration-200">
                           <SelectValue placeholder="Select material" />
                         </SelectTrigger>
                         <SelectContent 
@@ -809,12 +775,9 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
                               <SelectItem 
                                 key={mat.id} 
                                 value={mat.name} 
-                                className="text-white hover:bg-gray-700/50 focus:bg-gray-700/50 transition-all duration-200"
+                                className="text-white text-sm hover:bg-gray-700/50 focus:bg-gray-700/50 transition-all duration-200"
                               >
-                                <div className="flex items-center space-x-2">
-                                  <Package className="h-4 w-4 text-green-400" />
-                                  <span>{mat.name}</span>
-                                </div>
+                                <span>{mat.name}</span>
                               </SelectItem>
                             ))
                           ) : (
@@ -825,11 +788,8 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-300 flex items-center space-x-2">
-                        <Scale className="h-4 w-4" />
-                        <span>Weight (kg)</span>
-                      </Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-gray-300">Weight (kg)</Label>
                       <Input
                         type="number"
                         min="0"
@@ -837,14 +797,11 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
                         placeholder="0.0"
                         value={material.kilograms || ''}
                         onChange={(e) => updateMaterial(index, 'kilograms', parseFloat(e.target.value) || 0)}
-                        className="bg-gray-900/50 border-gray-600/50 text-white placeholder-gray-400 focus:border-orange-500/50 transition-all duration-200"
+                        className="bg-gray-900/50 border-gray-600/50 text-white placeholder-gray-400 text-sm focus:border-orange-500/50 transition-all duration-200"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-300 flex items-center space-x-2">
-                        <TrendingUp className="h-4 w-4" />
-                        <span>Unit Price (R/kg)</span>
-                      </Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-gray-300">Unit Price (R/kg)</Label>
                       <Input
                         type="number"
                         min="0"
@@ -852,11 +809,11 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
                         placeholder="0.00"
                         value={material.unitPrice || ''}
                         onChange={(e) => updateMaterial(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                        className="bg-gray-900/50 border-gray-600/50 text-white placeholder-gray-400 focus:border-orange-500/50 transition-all duration-200"
+                        className="bg-gray-900/50 border-gray-600/50 text-white placeholder-gray-400 text-sm focus:border-orange-500/50 transition-all duration-200"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-300">Actions</Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-gray-300">Actions</Label>
                       <div className="flex items-center space-x-2">
                         <div className="flex items-center space-x-2 p-2 bg-green-500/10 rounded-lg flex-1">
                           <span className="text-sm text-green-400 font-medium">
@@ -879,35 +836,25 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
               </div>
 
               {/* Summary */}
-              <div className="mt-6 p-4 bg-gray-800/40 rounded-xl border border-gray-600/30">
-                <div className="flex items-center justify-between text-lg font-semibold text-white mb-3">
-                  <span>Collection Summary</span>
-                  <Badge variant="secondary" className="bg-orange-500/20 text-orange-300 border-orange-500/30">
+              <div className="mt-4 p-3 bg-gray-800/40 rounded-xl border border-gray-600/30">
+                <div className="flex items-center justify-between text-white mb-2">
+                  <span className="text-sm font-semibold">Collection Summary</span>
+                  <Badge variant="secondary" className="bg-orange-500/20 text-orange-300 border-orange-500/30 text-xs">
                     {collectionMaterials.length} Material{collectionMaterials.length !== 1 ? 's' : ''}
                   </Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-3 p-3 bg-gray-800/30 rounded-lg">
-                    <div className="p-2 bg-blue-500/20 rounded-lg">
-                      <Scale className="h-5 w-5 text-blue-400" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-300">Total Weight</span>
-                      <Badge variant="secondary" className="ml-2 bg-blue-500/20 text-blue-300 border-blue-500/30">
-                        {getTotalWeight().toFixed(2)} kg
-                      </Badge>
-                    </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2 bg-gray-800/30 rounded-lg">
+                    <span className="block text-xs font-medium text-gray-300">Total Weight</span>
+                    <span className="inline-block mt-1 text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded px-2 py-0.5">
+                      {getTotalWeight().toFixed(2)} kg
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-800/30 rounded-lg">
-                    <div className="p-2 bg-green-500/20 rounded-lg">
-                      <Package className="h-5 w-5 text-green-400" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-300">Total Value</span>
-                      <Badge variant="secondary" className="ml-2 bg-green-500/20 text-green-300 border-green-500/30">
-                        R {getTotalValue().toFixed(2)}
-                      </Badge>
-                    </div>
+                  <div className="p-2 bg-gray-800/30 rounded-lg">
+                    <span className="block text-xs font-medium text-gray-300">Total Value</span>
+                    <span className="inline-block mt-1 text-xs bg-green-500/20 text-green-300 border border-green-500/30 rounded px-2 py-0.5">
+                      R {getTotalValue().toFixed(2)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -916,13 +863,8 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
 
           {/* Photo Capture Section */}
           <Card className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600/50 backdrop-blur-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-3 text-white">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <Camera className="h-5 w-5 text-purple-400" />
-                </div>
-                <span className="text-lg font-semibold">Collection Photos</span>
-              </CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-base">Collection Photos</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 space-y-4">
               {error && error.includes('Photo storage is not available') && (
@@ -990,7 +932,7 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
           )}
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-600/50">
+          <div className="flex justify-end space-x-3 pt-3 border-t border-gray-600/50">
             <Button
               variant="outline"
               onClick={onClose}
