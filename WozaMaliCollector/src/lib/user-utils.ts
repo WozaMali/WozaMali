@@ -111,7 +111,7 @@ export function getUserRoleDisplayName(roleName: string | null | undefined): str
     'admin': 'Administrator',
     'super_admin': 'Super Administrator',
     'collector': 'Collector',
-    'member': 'Member/Resident',
+    'member': 'Resident',
     'resident': 'Resident',
     'office_staff': 'Office Staff'
   };
