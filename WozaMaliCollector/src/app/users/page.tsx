@@ -170,6 +170,13 @@ export default function UsersPage() {
     return addressParts.length > 0 ? addressParts.join(', ') : 'Address not provided';
   };
 
+  const canCollectFrom = (user: User) => {
+    const disallowedRoles = new Set(['collector', 'admin', 'super_admin', 'office_staff']);
+    const role = (user.role_id || '').toLowerCase();
+    const isActive = (user.status || '').toLowerCase() === 'active';
+    return isActive && !disallowedRoles.has(role);
+  };
+
   const handleCreateCollection = (user: User) => {
     setSelectedUser(user);
     setIsCollectionModalOpen(true);
@@ -390,7 +397,7 @@ export default function UsersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {(['resident','member','customer'].includes(user.role_id)) && (
+                    {canCollectFrom(user) && (
                       <Button 
                         size="sm"
                         onClick={() => handleCreateCollection(user)}
