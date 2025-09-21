@@ -35,7 +35,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
   
   // Collection modal state
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
@@ -75,7 +75,7 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await UsersService.getAllUsers();
+      const { data, error } = await UsersService.getActiveUsers();
 
       if (error) {
         console.error('Error loading users:', error);
