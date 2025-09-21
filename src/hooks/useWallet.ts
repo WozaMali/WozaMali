@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
 import { WorkingWalletService, WorkingWalletInfo } from '@/lib/workingWalletService';
 import { getWalletCache, saveWalletCache, clearWalletCache } from '@/lib/session-utils';
 
@@ -173,6 +174,68 @@ export const useWallet = (userId?: string) => {
       setLoading(false);
     }
   }, [userId]);
+
+  // Realtime updates: refresh when collections or withdrawals affecting this user change
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`wallet_updates_${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'unified_collections', filter: `customer_id=eq.${userId}` }, () => {
+        if (!fetchInProgress.current) {
+          refreshWallet();
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawal_requests', filter: `user_id=eq.${userId}` }, () => {
+        if (!fetchInProgress.current) {
+          refreshWallet();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [userId, refreshWallet]);
+
+  // Background refresh when app regains focus or becomes visible
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const maybeRefresh = () => {
+      if (document.hidden) return;
+      // Throttle using lastFetchTime
+      const now = Date.now();
+      if (!fetchInProgress.current && now - lastFetchTime > 3000) {
+        refreshWallet();
+      }
+    };
+    const onVisibility = () => { if (!document.hidden) maybeRefresh(); };
+    window.addEventListener('focus', maybeRefresh);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', maybeRefresh);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [lastFetchTime, refreshWallet]);
+
+  // Listen for Service Worker messages that hint wallet changed (e.g., after push)
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    const handler = (event: MessageEvent) => {
+      const type = (event && (event as any).data && (event as any).data.type) || undefined;
+      if (type === 'wallet-maybe-updated') {
+        if (!fetchInProgress.current) {
+          refreshWallet();
+        }
+      }
+    };
+    try {
+      navigator.serviceWorker.addEventListener('message', handler as any);
+    } catch {}
+    return () => {
+      try { navigator.serviceWorker.removeEventListener('message', handler as any); } catch {}
+    };
+  }, [refreshWallet]);
 
   const syncWalletBalances = useCallback(async () => {
     if (!userId) return;

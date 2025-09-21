@@ -294,16 +294,15 @@ const Dashboard = memo(() => {
 
   // Lazy load transactions after initial render
   useEffect(() => {
+    let aborted = false;
     const loadTransactions = async () => {
-      if (!user?.id) return;
-      
+      if (!user?.id || aborted) return;
       setDashboardData(prev => ({ ...prev, recentLoading: true }));
-      
       try {
         const txData = await WorkingWalletService.getTransactionHistory(user.id, 5);
+        if (aborted) return;
         const safeTx = Array.isArray(txData) ? txData : [];
         const sum = safeTx.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
-        
         setDashboardData(prev => ({
           ...prev,
           allTransactions: safeTx,
@@ -312,6 +311,7 @@ const Dashboard = memo(() => {
           recentError: null
         }));
       } catch (error) {
+        if (aborted) return;
         console.error('Error loading transactions:', error);
         setDashboardData(prev => ({
           ...prev,
@@ -322,10 +322,9 @@ const Dashboard = memo(() => {
         }));
       }
     };
-
-    // Load transactions after a short delay to prioritize critical data
+    // initial load once
     const timer = setTimeout(loadTransactions, 100);
-    return () => clearTimeout(timer);
+    return () => { aborted = true; clearTimeout(timer); };
   }, [user?.id]);
 
   // Optimized wallet refresh effect

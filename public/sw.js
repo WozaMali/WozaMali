@@ -160,6 +160,13 @@ self.addEventListener('push', (event) => {
     ]
   };
   event.waitUntil(self.registration.showNotification(data.title || 'Woza Mali', options));
+  // Inform clients that something might have changed (e.g., wallet)
+  event.waitUntil((async () => {
+    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientList) {
+      try { client.postMessage({ type: 'wallet-maybe-updated' }); } catch (e) {}
+    }
+  })());
 });
 
 // Notification click handling
