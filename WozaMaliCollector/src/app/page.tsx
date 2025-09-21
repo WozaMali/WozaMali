@@ -6,18 +6,19 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 export default function LandingPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    if (isLoading) return;
     if (user) {
       // If user is authenticated, redirect to dashboard
-      router.push('/dashboard');
+      router.replace('/dashboard');
     } else {
       // If user is not authenticated, redirect to login
-      router.push('/login');
+      router.replace('/login');
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
   // Show loading while redirecting
   return (

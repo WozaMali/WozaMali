@@ -199,25 +199,26 @@ export default function CollectorAuthPage() {
     }
   };
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (avoid loops until auth resolves)
   useEffect(() => {
+    if (isLoading) return;
     if (user && user.role) {
       console.log('🔍 Debug - User authenticated with role:', user.role);
       if (user.role === 'collector') {
         console.log('🔍 Debug - Redirecting to dashboard');
-        router.push('/');
+        router.replace('/dashboard');
       } else if (user.role === 'admin') {
         console.log('🔍 Debug - Redirecting to admin dashboard');
-        router.push('/admin');
+        router.replace('/admin');
       } else {
         console.log('🔍 Debug - Unknown role, redirecting to dashboard');
-        router.push('/');
+        router.replace('/dashboard');
       }
     } else if (user && !user.role) {
       console.log('🔍 Debug - User authenticated but no role, redirecting to dashboard for dev mode');
-      router.push('/');
+      router.replace('/dashboard');
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
   // Sign-in handlers
   const handleSignInInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,25 +239,9 @@ export default function CollectorAuthPage() {
     const response = await login(signInData.email, signInData.password);
     
     if (response.success) {
-      setSuccess('Login successful! Loading profile...');
-      const checkUserLoaded = () => {
-        if (user && user.role) {
-          console.log('🔍 Debug - User loaded with role:', user.role);
-          if (user.role === 'collector') {
-            router.push('/');
-          } else if (user.role === 'admin') {
-            router.push('/admin');
-          } else {
-            router.push('/');
-          }
-        } else if (user && !user.role) {
-          console.log('🔍 Debug - User loaded without role, redirecting to dashboard for dev mode');
-          router.push('/');
-        } else {
-          setTimeout(checkUserLoaded, 100);
-        }
-      };
-      setTimeout(checkUserLoaded, 500);
+      setSuccess('Login successful! Redirecting...');
+      // Navigate immediately; auth effect will stabilize destination
+      router.replace('/dashboard');
     } else {
       setError(response.error || 'Login failed');
     }
@@ -504,7 +489,7 @@ export default function CollectorAuthPage() {
         </CardHeader>
         
         <CardContent className="px-8 pb-8">
-          <Tabs defaultValue="signup" className="w-full">
+          <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-800 border border-gray-700">
               <TabsTrigger value="signin" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300">
                 <LogIn className="w-4 h-4 mr-2" />
