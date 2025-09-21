@@ -27,6 +27,7 @@ import { formatUserDisplayName, getUserRoleDisplayName, getUserStatusDisplay } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { UsersService, type User } from '@/lib/users-service';
 import Navigation from '@/components/Navigation';
+import { supabase } from '@/lib/supabase';
 import CollectionModal from '@/components/CollectionModal';
 
 export default function UsersPage() {
@@ -89,7 +90,7 @@ export default function UsersPage() {
       }
 
       // If using registered view, map to User shape
-      const mapped = useRegistered
+      let mapped = useRegistered
         ? (data as any[]).map((row) => ({
             id: row.id,
             email: row.email,
@@ -111,6 +112,63 @@ export default function UsersPage() {
             role: row.role_name ? { name: row.role_name } : undefined
           }))
         : (data || []);
+
+      // Enrich with details from public.users (names and address fields)
+      if (useRegistered && Array.isArray(mapped) && mapped.length > 0) {
+        const emails = (mapped as any[]).map(u => u.email).filter(Boolean);
+        try {
+          const { data: details } = await supabase
+            .from('users')
+            .select('email, first_name, last_name, full_name, street_addr, township_id, subdivision, suburb, city, postal_code, area_id')
+            .in('email', emails);
+
+          const emailToDetails = new Map<string, any>((details || []).map(d => [String(d.email).toLowerCase(), d]));
+          mapped = (mapped as any[]).map(u => {
+            const d = emailToDetails.get(String(u.email || '').toLowerCase());
+            if (!d) return u;
+            return {
+              ...u,
+              first_name: d.first_name ?? u.first_name,
+              last_name: d.last_name ?? u.last_name,
+              full_name: d.full_name ?? u.full_name,
+              street_addr: d.street_addr ?? u.street_addr,
+              township_id: d.township_id ?? u.township_id,
+              subdivision: d.subdivision ?? u.subdivision,
+              suburb: d.suburb ?? u.suburb,
+              city: d.city ?? u.city,
+              postal_code: d.postal_code ?? u.postal_code,
+              area_id: d.area_id ?? u.area_id
+            };
+          });
+        } catch (_e) {}
+
+        // Fallback address from recent unified collections pickup_address
+        const ids = (mapped as any[]).map(u => u.id).filter(Boolean);
+        try {
+          const { data: recentCollections } = await supabase
+            .from('unified_collections')
+            .select('customer_id, pickup_address, created_at')
+            .in('customer_id', ids)
+            .order('created_at', { ascending: false });
+
+          const addressByUser = new Map<string, string>();
+          (recentCollections || []).forEach(row => {
+            const key = String(row.customer_id);
+            if (!addressByUser.has(key) && row.pickup_address) {
+              addressByUser.set(key, String(row.pickup_address));
+            }
+          });
+
+          mapped = (mapped as any[]).map(u => {
+            const hasAddress = u.street_addr || u.subdivision || u.suburb || u.city || u.postal_code;
+            if (hasAddress) return u;
+            const fallback = addressByUser.get(String(u.id));
+            if (!fallback) return u;
+            // Place fallback string into street_addr for display formatting
+            return { ...u, street_addr: fallback };
+          });
+        } catch (_e) {}
+      }
 
       setUsers(mapped as any);
     } catch (error) {
