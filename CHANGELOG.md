@@ -1,3 +1,7 @@
+## Unreleased
+
+- Placeholder for upcoming changes.
+
 ## 2025-09-22
 
 ### Added
