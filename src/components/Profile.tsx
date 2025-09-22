@@ -4,12 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, ChevronRight, Bell, BookOpen, TrendingUp, MapPin } from "lucide-react";
 import { useWallet } from "@/hooks/useWallet";
+import { usePWA } from "@/hooks/usePWA";
+import { ensurePushSubscription, disablePushSubscription, requestPushPermission } from "@/lib/pushClient";
 
 const Profile = () => {
   const navigate = useRouter();
@@ -34,6 +38,9 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState<boolean>(false);
+  const { showNotification } = usePWA();
 
   // Use the same wallet hook as Dashboard for tier and progress
   const {
@@ -132,6 +139,44 @@ const Profile = () => {
 
     fetchUserData();
   }, [user?.id]);
+
+  // Initialize push toggle state from current permission
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        setPushEnabled(Notification.permission === 'granted');
+      }
+    } catch {}
+  }, []);
+
+  const handleTogglePush = async (value: boolean) => {
+    setPushEnabled(value);
+    try {
+      if (value) {
+        const granted = await requestPushPermission();
+        if (!granted) {
+          setPushEnabled(false);
+          return;
+        }
+        await ensurePushSubscription(user?.id || 'anonymous');
+      } else {
+        await disablePushSubscription(user?.id);
+      }
+    } catch (err) {
+      console.warn('Profile: failed to toggle push notifications', err);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      // Use Service Worker to show a native notification
+      await showNotification('Woza Mali', {
+        body: 'This is a test notification. Alerts & updates are working.',
+      });
+    } catch (err) {
+      console.warn('Profile: failed to show test notification', err);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -435,7 +480,7 @@ const Profile = () => {
           
           <Button 
               className="h-12 justify-start bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500 transition-all duration-200"
-            onClick={() => navigate.push('/notifications')}
+            onClick={() => setNotificationsOpen(true)}
           >
               <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg mr-2">
                 <Bell className="h-3 w-3 text-green-600 dark:text-green-400" />
@@ -490,6 +535,30 @@ const Profile = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Notifications Pop-out */}
+      <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Notifications</DialogTitle>
+            <DialogDescription>Use your phone's notification bar and sound for alerts.</DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <p className="text-sm font-medium">Push Notifications</p>
+              <p className="text-xs text-muted-foreground">Enable alerts & updates</p>
+            </div>
+            <Switch checked={pushEnabled} onCheckedChange={handleTogglePush} />
+          </div>
+
+          <div className="pt-2">
+            <Button className="w-full" onClick={handleTestNotification}>
+              Send Test Notification
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Settings - Ultra Mobile Optimized */}
       <Card className="card-modern">
