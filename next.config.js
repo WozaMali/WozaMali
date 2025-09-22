@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static export for Capacitor
-  output: 'export',
+  // Disable static export to enable API routes
+  // output: 'export', // Commented out to enable API routes
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
   assetPrefix: '',

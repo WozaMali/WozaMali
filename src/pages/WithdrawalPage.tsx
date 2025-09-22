@@ -39,6 +39,7 @@ const ACCOUNT_TYPES = [
 ];
 
 const WithdrawalPage = () => {
+  const [payoutMethod, setPayoutMethod] = useState<'bank_transfer' | 'cash'>('bank_transfer');
   const [ownerName, setOwnerName] = useState("");
   const [accountType, setAccountType] = useState("");
   const [selectedBank, setSelectedBank] = useState(""); // format: `${code}:${name}` to ensure uniqueness
@@ -86,16 +87,23 @@ const WithdrawalPage = () => {
       return;
     }
     
-    // Validation
-    if (!ownerName || !accountType || !selectedBank || !branchCode || !accountNumber || !amount) {
-      setError("Please fill in all required fields");
-      return;
-    }
+    // Validation based on payout method
+    if (payoutMethod === 'bank_transfer') {
+      if (!ownerName || !accountType || !selectedBank || !branchCode || !accountNumber || !amount) {
+        setError("Please fill in all required fields for bank transfer");
+        return;
+      }
 
-    // Additional validation for bank selection
-    if (!selectedBank.includes(":")) {
-      setError("Please select a valid bank");
-      return;
+      // Additional validation for bank selection
+      if (!selectedBank.includes(":")) {
+        setError("Please select a valid bank");
+        return;
+      }
+    } else if (payoutMethod === 'cash') {
+      if (!amount) {
+        setError("Please enter the withdrawal amount");
+        return;
+      }
     }
 
     const withdrawalAmount = parseFloat(amount);
@@ -112,14 +120,18 @@ const WithdrawalPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Extract bank name from selectedBank format: "code:name"
-      console.log("Selected bank:", selectedBank);
-      const [code, name] = selectedBank.split(":");
-      console.log("Extracted code:", code, "name:", name);
-      const bankName = name || SOUTH_AFRICAN_BANKS.find(b => b.code === code)?.name;
-      console.log("Final bank name:", bankName);
-      if (!bankName) {
-        throw new Error("Invalid bank selection");
+      let bankName = null;
+      
+      if (payoutMethod === 'bank_transfer') {
+        // Extract bank name from selectedBank format: "code:name"
+        console.log("Selected bank:", selectedBank);
+        const [code, name] = selectedBank.split(":");
+        console.log("Extracted code:", code, "name:", name);
+        bankName = name || SOUTH_AFRICAN_BANKS.find(b => b.code === code)?.name;
+        console.log("Final bank name:", bankName);
+        if (!bankName) {
+          throw new Error("Invalid bank selection");
+        }
       }
 
       // Create withdrawal request using the service
@@ -127,11 +139,11 @@ const WithdrawalPage = () => {
         userId: user.id,
         amount: withdrawalAmount,
         bankName: bankName,
-        accountNumber: accountNumber,
-        accountHolderName: ownerName,
-        accountType: accountType,
-        branchCode: branchCode,
-        payoutMethod: 'bank_transfer'
+        accountNumber: payoutMethod === 'bank_transfer' ? accountNumber : undefined,
+        accountHolderName: payoutMethod === 'bank_transfer' ? ownerName : undefined,
+        accountType: payoutMethod === 'bank_transfer' ? accountType : undefined,
+        branchCode: payoutMethod === 'bank_transfer' ? branchCode : undefined,
+        payoutMethod: payoutMethod
       });
 
       console.log("Withdrawal request created successfully:", withdrawalRequest);
@@ -172,12 +184,29 @@ const WithdrawalPage = () => {
               </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Account Owner Name */}
+              {/* Payout Method Selection */}
               <div>
-                <Label htmlFor="ownerName" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Name of Owner *
-                </Label>
+                <Label htmlFor="payoutMethod">Payment Method *</Label>
+                <Select value={payoutMethod} onValueChange={(value: 'bank_transfer' | 'cash') => setPayoutMethod(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="cash">Cash Payment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Bank Transfer Fields - Only show if bank_transfer is selected */}
+              {payoutMethod === 'bank_transfer' && (
+                <>
+                  {/* Account Owner Name */}
+                  <div>
+                    <Label htmlFor="ownerName" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Name of Owner *
+                    </Label>
                 <Input
                   id="ownerName"
                   value={ownerName}
@@ -256,9 +285,11 @@ const WithdrawalPage = () => {
                   placeholder="Enter your account number"
                   required
                 />
-              </div>
+                  </div>
+                </>
+              )}
 
-              {/* Amount */}
+              {/* Amount - Always shown */}
               <div>
                 <Label htmlFor="amount">Amount (R) *</Label>
                 <Input
@@ -285,8 +316,9 @@ const WithdrawalPage = () => {
           <CardContent className="p-4">
             <h3 className="font-medium mb-2">Important Information</h3>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Withdrawals are processed within 2-3 business days</li>
-              <li>• Ensure all banking details are correct</li>
+              <li>• Bank transfers are processed within 2-3 business days</li>
+              <li>• Cash payments are processed within 24 hours</li>
+              <li>• Ensure all banking details are correct for bank transfers</li>
               <li>• Branch codes are automatically filled for major banks</li>
               <li>• Minimum withdrawal amount: R50</li>
             </ul>

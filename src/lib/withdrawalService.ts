@@ -33,95 +33,60 @@ export class WithdrawalService {
   static async createWithdrawalRequest(request: {
     userId: string;
     amount: number;
-    bankName: string;
-    accountNumber: string;
-    accountHolderName: string;
-    accountType: string;
-    branchCode: string;
-    payoutMethod?: 'wallet' | 'cash' | 'bank_transfer' | 'mobile_money';
+    bankName?: string;
+    accountNumber?: string;
+    accountHolderName?: string;
+    accountType?: string;
+    branchCode?: string;
+    payoutMethod?: 'bank_transfer' | 'cash';
   }): Promise<WithdrawalRequest> {
     try {
-      console.log('WithdrawalService: Creating withdrawal request:', request);
+      console.log('WithdrawalService: Creating withdrawal request via API:', request);
 
-      // Check if user has sufficient balance
-      const { data: wallet, error: walletError } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('user_id', request.userId)
-        .single();
-
-      if (walletError) {
-        console.error('Error fetching user wallet:', walletError);
-        throw walletError;
-      }
-
-      if (!wallet || wallet.balance < request.amount) {
-        throw new Error('Insufficient balance for withdrawal');
-      }
-
-      // Check minimum withdrawal amount
-      const minWithdrawalAmount = 50.00; // R50 minimum
-      if (request.amount < minWithdrawalAmount) {
-        throw new Error(`Minimum withdrawal amount is R${minWithdrawalAmount}`);
-      }
-
-      // Create withdrawal request
-      const { data: withdrawal, error: withdrawalError } = await supabase
-        .from('withdrawal_requests')
-        .insert({
-          user_id: request.userId,
+      // Use the API endpoint instead of direct Supabase calls
+      const response = await fetch('/api/withdrawals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: request.userId,
           amount: request.amount,
-          bank_name: request.bankName,
-          account_number: request.accountNumber,
-          owner_name: request.accountHolderName,
-          account_type: request.accountType,
-          branch_code: request.branchCode,
-          status: 'pending',
-          payout_method: request.payoutMethod || 'wallet'
+          bankName: request.bankName,
+          accountNumber: request.accountNumber,
+          accountHolderName: request.accountHolderName,
+          accountType: request.accountType,
+          branchCode: request.branchCode,
+          payoutMethod: request.payoutMethod || 'bank_transfer'
         })
-        .select()
-        .single();
+      });
 
-      if (withdrawalError) {
-        console.error('Error creating withdrawal request:', withdrawalError);
-        throw withdrawalError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
-      const result: WithdrawalRequest = {
-        id: withdrawal.id,
-        userId: withdrawal.user_id,
-        amount: withdrawal.amount,
-        bankName: withdrawal.bank_name,
-        accountNumber: withdrawal.account_number,
-        accountHolderName: withdrawal.owner_name,
-        branchCode: withdrawal.branch_code,
-        status: withdrawal.status,
-        processedBy: withdrawal.processed_by,
-        processedAt: withdrawal.processed_at,
-        notes: withdrawal.notes,
-        createdAt: withdrawal.created_at,
-        updatedAt: withdrawal.updated_at
+      const result = await response.json();
+      console.log('WithdrawalService: Withdrawal request created successfully via API:', result);
+
+      // Convert API response to WithdrawalRequest format
+      const withdrawalRequest: WithdrawalRequest = {
+        id: result.withdrawal.id,
+        userId: request.userId,
+        amount: result.withdrawal.amount,
+        bankName: request.bankName || '',
+        accountNumber: request.accountNumber || '',
+        accountHolderName: request.accountHolderName || '',
+        branchCode: request.branchCode || '',
+        status: result.withdrawal.status,
+        processedBy: undefined,
+        processedAt: undefined,
+        notes: undefined,
+        createdAt: result.withdrawal.createdAt,
+        updatedAt: result.withdrawal.createdAt
       };
 
-      console.log('WithdrawalService: Withdrawal request created successfully:', result);
-
-      // Record a pending transaction so History shows it immediately
-      try {
-        await supabase
-          .from('wallet_transactions')
-          .insert({
-            user_id: request.userId,
-            source_type: 'payout',
-            source_id: result.id,
-            amount: 0,
-            points: 0,
-            description: `Withdrawal requested (${request.payoutMethod || 'wallet'})`
-          });
-      } catch (e) {
-        console.warn('Warning: could not insert pending withdrawal transaction', e);
-      }
-
-      return result;
+      return withdrawalRequest;
 
     } catch (error) {
       console.error('WithdrawalService: Error creating withdrawal request:', error);
@@ -134,25 +99,23 @@ export class WithdrawalService {
    */
   static async getUserWithdrawals(userId: string): Promise<WithdrawalRequest[]> {
     try {
-      const { data, error } = await supabase
-        .from('withdrawal_requests')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      const response = await fetch(`/api/withdrawals?userId=${userId}`);
 
-      if (error) {
-        console.error('Error fetching user withdrawals:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
-      return data?.map(withdrawal => ({
+      const result = await response.json();
+      
+      return result.withdrawals?.map((withdrawal: any) => ({
         id: withdrawal.id,
         userId: withdrawal.user_id,
         amount: withdrawal.amount,
-        bankName: withdrawal.bank_name,
-        accountNumber: withdrawal.account_number,
-        accountHolderName: withdrawal.owner_name,
-        branchCode: withdrawal.branch_code,
+        bankName: withdrawal.bank_name || '',
+        accountNumber: withdrawal.account_number || '',
+        accountHolderName: withdrawal.owner_name || '',
+        branchCode: withdrawal.branch_code || '',
         status: withdrawal.status,
         processedBy: withdrawal.processed_by,
         processedAt: withdrawal.processed_at,
