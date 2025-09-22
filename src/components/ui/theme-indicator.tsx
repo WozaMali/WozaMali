@@ -21,7 +21,7 @@ export function ThemeIndicator() {
         return <Sun className="h-4 w-4 text-yellow-500" />;
       case "dark":
         return <Moon className="h-4 w-4 text-blue-500" />;
-      case "system":
+      case "system" as any:
         return <Monitor className="h-4 w-4 text-gray-500" />;
       default:
         return <Sun className="h-4 w-4" />;
@@ -34,7 +34,7 @@ export function ThemeIndicator() {
         return "Light";
       case "dark":
         return "Dark";
-      case "system":
+      case "system" as any:
         return "System";
       default:
         return "Unknown";

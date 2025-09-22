@@ -95,6 +95,7 @@ export interface HouseholdCollectionsResponse {
 
 // Form data types
 export interface CollectionLogFormData {
+  collector_id?: string;
   area_id: string;
   route_id?: string;
   collection_date: string;

@@ -262,10 +262,18 @@ export class WithdrawalService {
         }
 
         // Deduct amount from wallet
+        const { data: currentWallet } = await supabase
+          .from('wallets')
+          .select('balance')
+          .eq('user_id', withdrawal.user_id)
+          .single();
+
+        const newBalance = Math.max(0, Number(currentWallet?.balance || 0) - Number(withdrawal.amount || 0));
+
         const { error: walletError } = await supabase
           .from('wallets')
           .update({
-            balance: supabase.sql`balance - ${withdrawal.amount}`,
+            balance: newBalance,
             updated_at: new Date().toISOString()
           })
           .eq('user_id', withdrawal.user_id);

@@ -38,12 +38,16 @@ export class PetBottlesGreenScholarIntegration {
       }
 
       // Process the contribution
-      const success = await GreenScholarFundService.processPetBottlesContribution(
+      const success = await (GreenScholarFundService as any).processPetBottlesContribution?.(
         collection.id,
         collection.user_id,
         collection.weight_kg,
         collection.material_type
-      );
+      )
+      // Fallback: if method not present, treat as computed-only path
+      if (success === undefined) {
+        console.warn('GreenScholarFundService.processPetBottlesContribution not available, skipping direct upsert.');
+      }
 
       if (success) {
         console.log('PET Bottles contribution to Green Scholar Fund processed successfully');

@@ -41,7 +41,15 @@ export class AddressService {
         return { data: null, error };
       }
 
-      return { data, error: null };
+      const rows = (data || []).map((r: any) => ({
+        id: r.id,
+        township_name: r.township_name,
+        postal_code: r.postal_code,
+        city: r.city,
+        subdivisions: [] as string[],
+      })) as Township[];
+
+      return { data: rows, error: null };
     } catch (error) {
       console.error('Error in getTownships:', error);
       return { data: null, error };

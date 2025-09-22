@@ -179,7 +179,7 @@ export const useUnifiedWallet = (userId?: string): UseUnifiedWalletReturn => {
 
   // Computed values
   const tierBenefits = walletData ? UnifiedWalletService.getTierBenefits(walletData.tier) : [];
-  const nextTierRequirements = walletData ? UnifiedWalletService.getNextTierRequirements(walletData.total_points) : {
+  const nextTierRequirements = walletData ? UnifiedWalletService.getNextTierRequirementsByWeight(walletData.total_weight_kg) : {
     nextTier: null,
     pointsNeeded: 0,
     progressPercentage: 0

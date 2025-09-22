@@ -95,7 +95,11 @@ export const useOptimizedWallet = (userId?: string): UseOptimizedWalletReturn =>
         totalEarnings: workingData.balance,
         environmentalImpact: workingData.environmentalImpact,
         tierBenefits: getTierBenefits(workingData.tier),
-        nextTierRequirements: workingData.nextTierRequirements,
+        nextTierRequirements: {
+          nextTier: workingData.nextTierRequirements?.nextTier || '',
+          weightNeeded: workingData.nextTierRequirements?.weightNeeded || 0,
+          progressPercentage: workingData.nextTierRequirements?.progressPercentage || 0,
+        },
         totalPickups: workingData.collectionSummary.total_pickups,
         approvedPickups: workingData.collectionSummary.total_pickups,
         pendingPickups: 0,

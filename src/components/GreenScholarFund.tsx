@@ -13,7 +13,6 @@ import { toast } from "@/hooks/use-toast";
 import Logo from "./Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGreenScholarFund } from "@/hooks/useGreenScholarFund";
-import { BottleCollection } from "@/lib/greenScholarFundService";
 import { PetBottlesGreenScholarIntegration } from "@/lib/petBottlesGreenScholarIntegration";
 import SchoolSearch from "@/components/SchoolSearch";
 import type { School } from "@/lib/schoolsService";
@@ -304,6 +303,8 @@ const GreenScholarFund = () => {
       // Submit donation to database
       const result = await submitDonation({
         amount: donationAmount,
+        beneficiaryType: 'general',
+        isAnonymous: false,
         payment_method: paymentMethod,
         transaction_reference: `GSF_${Date.now()}`
       });

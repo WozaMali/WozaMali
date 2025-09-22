@@ -36,7 +36,7 @@ export async function ensurePushSubscription(userId: string): Promise<boolean> {
 
     const subscription = existing || await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(applicationServerKey)
+      applicationServerKey: Uint8Array.from(urlBase64ToUint8Array(applicationServerKey)) as unknown as BufferSource
     })
 
     // Extract keys

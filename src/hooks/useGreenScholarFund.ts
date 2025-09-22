@@ -92,11 +92,23 @@ export const useGreenScholarFund = () => {
       });
 
       // Fetch user donations and PET contributions
-      const [userDonations, userTotals] = await Promise.all([
+      const [userDonationsList, userTotals] = await Promise.all([
         GreenScholarFundService.getUserDonations(user.id),
         GreenScholarFundService.getUserContributionTotals(user.id)
       ]);
-      setUserDonations(userDonations);
+      // Normalize to Donation[] shape
+      const normalized: Donation[] = (userDonationsList || []).map((d: any) => ({
+        id: d.id,
+        user_id: d.userId,
+        amount: d.amount,
+        beneficiary_type: d.beneficiaryType,
+        beneficiary_id: d.beneficiaryId,
+        is_anonymous: !!d.isAnonymous,
+        message: d.message,
+        status: d.status,
+        created_at: d.createdAt,
+      })) as any;
+      setUserDonations(normalized);
       setUserBottleContributions({
         total_bottles: 0,
         total_weight: 0,
@@ -116,20 +128,33 @@ export const useGreenScholarFund = () => {
     amount: number;
     beneficiaryType: 'school' | 'child_headed_home' | 'general';
     beneficiaryId?: string;
-    isAnonymous: boolean;
+    isAnonymous?: boolean;
     message?: string;
+    payment_method?: string;
+    transaction_reference?: string;
   }) => {
     if (!user?.id) return { success: false, error: 'User not authenticated' };
 
     try {
       const result = await GreenScholarFundService.makeDonation({
         userId: user.id,
-        ...donation
+        ...donation,
+        isAnonymous: donation.isAnonymous ?? false,
       });
 
       if (result) {
         // Update local state
-        setUserDonations(prev => [result, ...prev]);
+        setUserDonations(prev => [{
+          id: result.id,
+          user_id: result.userId,
+          amount: result.amount,
+          beneficiary_type: result.beneficiaryType as any,
+          beneficiary_id: result.beneficiaryId,
+          is_anonymous: !!result.isAnonymous,
+          message: result.message,
+          status: 'completed',
+          created_at: result.createdAt,
+        } as unknown as Donation, ...prev]);
         return { success: true, data: result };
       }
 
@@ -139,6 +164,38 @@ export const useGreenScholarFund = () => {
       return { success: false, error: 'Failed to submit donation' };
     }
   }, [user?.id]);
+
+  // Submit bottle collection (manual PET contribution entry)
+  const submitBottleCollection = useCallback(async (collection: {
+    bottle_count: number;
+    weight_kg: number;
+    bottle_type: string;
+    collection_date: string;
+    notes?: string;
+  }) => {
+    if (!user?.id) return { success: false, error: 'User not authenticated' };
+    try {
+      const petRate = 1.5;
+      const amount = Number((Number(collection.weight_kg || 0) * petRate).toFixed(2));
+      const { error } = await supabase
+        .from('green_scholar_transactions')
+        .insert({
+          transaction_type: 'pet_contribution',
+          amount,
+          source_type: 'manual_entry',
+          source_id: user.id,
+          description: collection.notes || `Manual PET bottles: ${collection.weight_kg}kg (${collection.bottle_type})`,
+          created_by: user.id,
+        });
+      if (error) throw error;
+      // Refresh totals best-effort
+      fetchInitialData();
+      return { success: true };
+    } catch (e: any) {
+      console.error('submitBottleCollection failed:', e);
+      return { success: false, error: e.message || 'Failed to submit bottle collection' };
+    }
+  }, [user?.id, fetchInitialData]);
 
   // Submit application (Save to green_scholar_applications)
   const submitApplication = useCallback(async (app: any) => {
@@ -214,6 +271,7 @@ export const useGreenScholarFund = () => {
     
     // Actions
     submitDonation,
+    submitBottleCollection,
     submitApplication,
     fetchInitialData,
     
