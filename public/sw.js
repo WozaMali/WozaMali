@@ -152,8 +152,12 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-72x72.png',
-    vibrate: [100, 50, 100],
+    vibrate: [200, 100, 200],
     data: data.data,
+    renotify: true,
+    requireInteraction: false,
+    silent: false,
+    tag: (data && data.data && data.data.tag) || 'woza-mali-general',
     actions: [
       { action: 'open', title: 'Open', icon: '/icons/icon-72x72.png' },
       { action: 'close', title: 'Dismiss', icon: '/icons/icon-72x72.png' }

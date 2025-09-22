@@ -60,3 +60,54 @@ export async function ensurePushSubscription(userId: string): Promise<boolean> {
 }
 
 
+
+export async function disablePushSubscription(userId?: string): Promise<boolean> {
+  try {
+    if (typeof window === 'undefined') return false
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+
+    const registration = await navigator.serviceWorker.getRegistration()
+    if (!registration) return true
+
+    const existing = await registration.pushManager.getSubscription()
+    if (!existing) return true
+
+    // Keep endpoint before unsubscribe so we can remove it server-side
+    const endpoint = existing.endpoint
+
+    // Unsubscribe from browser
+    const unsubscribed = await existing.unsubscribe()
+
+    // Best-effort cleanup in Supabase
+    try {
+      if (endpoint) {
+        await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+      } else if (userId) {
+        await supabase.from('push_subscriptions').delete().eq('user_id', userId)
+      }
+    } catch (innerError) {
+      console.warn('disablePushSubscription cleanup warning:', innerError)
+    }
+
+    return unsubscribed
+  } catch (error) {
+    console.error('disablePushSubscription error:', error)
+    return false
+  }
+}
+
+export function getPushPermissionStatus(): NotificationPermission | 'unsupported' {
+  if (typeof window === 'undefined') return 'unsupported'
+  if (!('Notification' in window)) return 'unsupported'
+  return Notification.permission
+}
+
+export async function requestPushPermission(): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  if (!('Notification' in window)) return false
+  if (Notification.permission === 'granted') return true
+  if (Notification.permission === 'denied') return false
+  const permission = await Notification.requestPermission()
+  return permission === 'granted'
+}

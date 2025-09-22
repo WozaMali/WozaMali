@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Settings, Bell, Shield, HelpCircle, LogOut, User, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { ensurePushSubscription, disablePushSubscription, requestPushPermission } from "@/lib/pushClient";
 
 const SettingsPage = () => {
   const router = useRouter();
@@ -29,7 +30,7 @@ const SettingsPage = () => {
     );
   }
 
-  const { signOut } = authContext;
+  const { signOut, user } = authContext;
   const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState("en");
@@ -81,7 +82,27 @@ const SettingsPage = () => {
           description: "Receive notifications about collections and rewards",
           type: "toggle",
           value: notifications,
-          onChange: setNotifications
+          onChange: async (value: boolean) => {
+            setNotifications(value);
+            try {
+              if (value) {
+                const granted = await requestPushPermission();
+                if (!granted) {
+                  setNotifications(false);
+                  return;
+                }
+                if (user?.id) {
+                  await ensurePushSubscription(user.id);
+                } else {
+                  await ensurePushSubscription('anonymous');
+                }
+              } else {
+                await disablePushSubscription(user?.id);
+              }
+            } catch (err) {
+              console.warn('Failed to toggle push notifications:', err);
+            }
+          }
         }
       ]
     },
