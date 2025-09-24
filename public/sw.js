@@ -1,6 +1,6 @@
-const CACHE_NAME = 'woza-mali-v1.1.0';
-const STATIC_CACHE = 'woza-mali-static-v1.1.0';
-const DYNAMIC_CACHE = 'woza-mali-dynamic-v1.1.0';
+const CACHE_NAME = 'woza-mali-v1.2.0';
+const STATIC_CACHE = 'woza-mali-static-v1.2.0';
+const DYNAMIC_CACHE = 'woza-mali-dynamic-v1.2.0';
 
 // Static assets to cache
 const STATIC_ASSETS = [
@@ -15,19 +15,12 @@ const STATIC_ASSETS = [
   '/WozaMali-uploads/w yellow.png'
 ];
 
-// API routes to cache with shorter TTL
+// API routes to cache
 const API_ROUTES = [
   '/api/wallet',
   '/api/collections',
   '/api/rewards'
 ];
-
-// Cache TTL settings (in milliseconds)
-const CACHE_TTL = {
-  STATIC: 24 * 60 * 60 * 1000, // 24 hours
-  DYNAMIC: 5 * 60 * 1000, // 5 minutes
-  API: 2 * 60 * 1000 // 2 minutes for API calls
-};
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
@@ -70,7 +63,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - serve from cache or network with improved strategy
+// Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -86,84 +79,44 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    handleRequest(request)
-  );
-});
-
-async function handleRequest(request) {
-  const url = new URL(request.url);
-  
-  // For API requests, use network-first strategy with cache fallback
-  if (isAPIRequest(request)) {
-    try {
-      // Try network first for API calls
-      const networkResponse = await fetch(request);
-      
-      if (networkResponse.ok) {
-        // Cache successful API responses with timestamp
-        const responseToCache = networkResponse.clone();
-        const cache = await caches.open(DYNAMIC_CACHE);
-        
-        // Add timestamp to response headers for TTL checking
-        const headers = new Headers(responseToCache.headers);
-        headers.set('sw-cached-at', Date.now().toString());
-        
-        const cachedResponse = new Response(responseToCache.body, {
-          status: responseToCache.status,
-          statusText: responseToCache.statusText,
-          headers: headers
-        });
-        
-        await cache.put(request, cachedResponse);
-        return networkResponse;
-      }
-    } catch (error) {
-      console.log('Network failed for API request, trying cache:', request.url);
-    }
-    
-    // Fallback to cache for API requests
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      // Check if cache is still valid (within TTL)
-      const cachedAt = cachedResponse.headers.get('sw-cached-at');
-      if (cachedAt) {
-        const age = Date.now() - parseInt(cachedAt);
-        if (age < CACHE_TTL.API) {
+    caches.match(request)
+      .then((cachedResponse) => {
+        // Return cached version if available
+        if (cachedResponse) {
           return cachedResponse;
         }
-      }
-    }
-    
-    // Return stale cache if available, otherwise error
-    return cachedResponse || new Response('Offline - API unavailable', { status: 503 });
-  }
-  
-  // For static assets, use cache-first strategy
-  const cachedResponse = await caches.match(request);
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-  
-  // Fetch from network for static assets
-  try {
-    const networkResponse = await fetch(request);
-    
-    if (networkResponse.ok) {
-      // Cache static assets
-      const responseToCache = networkResponse.clone();
-      const cache = await caches.open(STATIC_CACHE);
-      await cache.put(request, responseToCache);
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    // Return offline page for navigation requests
-    if (request.mode === 'navigate') {
-      return caches.match('/') || new Response('Offline', { status: 503 });
-    }
-    throw error;
-  }
-}
+
+        // Otherwise fetch from network
+        return fetch(request)
+          .then((response) => {
+            // Don't cache non-successful responses
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            // Clone the response for caching
+            const responseToCache = response.clone();
+
+            // Determine which cache to use
+            const cacheName = isAPIRequest(request) ? DYNAMIC_CACHE : STATIC_CACHE;
+
+            caches.open(cacheName)
+              .then((cache) => {
+                cache.put(request, responseToCache);
+              });
+
+            return response;
+          })
+          .catch((error) => {
+            // Return offline page for navigation requests
+            if (request.mode === 'navigate') {
+              return caches.match('/') || new Response('Offline', { status: 503 });
+            }
+            throw error;
+          });
+      })
+  );
+});
 
 // Helper function to check if request is for API
 function isAPIRequest(request) {

@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import Logo from "./Logo";
 import LoadingSpinner from "./LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useResponsiveWallet } from "@/hooks/useResponsiveWallet";
+import { useWallet } from "@/hooks/useWallet";
+import { useBackgroundRefresh } from "@/hooks/useBackgroundRefresh";
 import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
 import { supabase } from "@/lib/supabase";
 import { AddressService } from "@/lib/addressService";
@@ -35,7 +36,7 @@ const Dashboard = memo(() => {
   const { user } = authContext;
   const { enablePush } = usePush();
   
-  // Use the responsive wallet hook to get comprehensive data
+  // Use the enhanced wallet hook to get comprehensive data
   const { 
     balance: walletBalance, 
     points: totalPoints,
@@ -44,13 +45,14 @@ const Dashboard = memo(() => {
     loading: walletLoading,
     error: walletError,
     refreshWallet,
-    forceRefresh,
-    isInitialized,
     // Enhanced properties
     environmentalImpact,
     nextTierRequirements,
     totalWeightKg
-  } = useResponsiveWallet(user?.id);
+  } = useWallet(user?.id);
+
+  // Start background refresh for quick updates
+  const { forceRefresh, isRefreshing } = useBackgroundRefresh(user?.id);
 
   // Attempt to enable push once when user is available
   useEffect(() => {
