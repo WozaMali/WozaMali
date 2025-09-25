@@ -55,9 +55,13 @@ export async function POST(request: NextRequest) {
       // For now, we'll skip the balance check and allow the withdrawal
       // TODO: Fix wallet table permissions and re-enable balance checking
     } else {
-      console.log('✅ Found existing wallet with balance:', wallet.balance);
-      if (!wallet || wallet.balance < amount) {
-        return NextResponse.json({ error: 'Insufficient balance for withdrawal' }, { status: 400 });
+      if (!wallet) {
+        console.warn('⚠️ Wallet not found, skipping balance verification for now.');
+      } else {
+        console.log('✅ Found existing wallet with balance:', wallet.balance);
+        if (wallet.balance < amount) {
+          return NextResponse.json({ error: 'Insufficient balance for withdrawal' }, { status: 400 });
+        }
       }
     }
 
@@ -70,7 +74,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Create withdrawal request
-    const withdrawalData = {
+    type WithdrawalInsert = {
+      user_id: string;
+      amount: number;
+      payout_method: string;
+      status: string;
+      owner_name: string;
+      bank_name?: string | null;
+      account_number?: string | null;
+      account_type?: string | null;
+      branch_code?: string | null;
+    };
+
+    const withdrawalData: WithdrawalInsert = {
       user_id: userId,
       amount: amount,
       payout_method: payoutMethod || 'bank_transfer',

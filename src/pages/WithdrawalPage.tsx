@@ -120,14 +120,14 @@ const WithdrawalPage = () => {
     setIsSubmitting(true);
 
     try {
-      let bankName = null;
+      let bankName: string | undefined = undefined;
       
       if (payoutMethod === 'bank_transfer') {
         // Extract bank name from selectedBank format: "code:name"
         console.log("Selected bank:", selectedBank);
         const [code, name] = selectedBank.split(":");
         console.log("Extracted code:", code, "name:", name);
-        bankName = name || SOUTH_AFRICAN_BANKS.find(b => b.code === code)?.name;
+        bankName = name || SOUTH_AFRICAN_BANKS.find(b => b.code === code)?.name || undefined;
         console.log("Final bank name:", bankName);
         if (!bankName) {
           throw new Error("Invalid bank selection");
