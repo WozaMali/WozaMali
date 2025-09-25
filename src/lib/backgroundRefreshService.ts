@@ -98,6 +98,9 @@ class BackgroundRefreshService {
 
       // Save to cache
       saveWalletCache(userId, walletData)
+
+      // Clear transaction cache so history reload gets fresh data
+      try { WorkingWalletService.clearTransactionCache(userId) } catch {}
       
       // Dispatch event to notify components
       window.dispatchEvent(new CustomEvent('wallet-data-refreshed', {

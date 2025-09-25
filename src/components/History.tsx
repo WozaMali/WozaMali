@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, ArrowDownRight, Recycle, Gift, Heart, Calendar, Filter } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { UnifiedWalletService } from "@/lib/unifiedWalletService";
 import { WorkingWalletService } from "@/lib/workingWalletService";
@@ -13,23 +13,34 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<any[]>([]);
 
-  useEffect(() => {
-    const load = async () => {
-      if (!user?.id) return;
-      setLoading(true);
-      try {
-        // Use the new WorkingWalletService to get transaction history from approved collections
-        const tx = await WorkingWalletService.getTransactionHistory(user.id);
-        setTransactions(tx || []);
-      } catch (error) {
-        console.error('Error loading transaction history:', error);
-        setTransactions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+  const load = useCallback(async () => {
+    if (!user?.id) return;
+    setLoading(true);
+    try {
+      const tx = await WorkingWalletService.getTransactionHistory(user.id);
+      setTransactions(tx || []);
+    } catch (error) {
+      console.error('Error loading transaction history:', error);
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Refresh when wallet background refresh completes
+  useEffect(() => {
+    const handler = (evt: Event) => {
+      try {
+        const detail = (evt as CustomEvent).detail;
+        if (!detail || !detail.userId) return;
+        if (detail.userId === user?.id) { load(); }
+      } catch {}
+    };
+    window.addEventListener('wallet-data-refreshed', handler as EventListener);
+    return () => { window.removeEventListener('wallet-data-refreshed', handler as EventListener); };
+  }, [user?.id, load]);
 
   const mapType = (t: any) => {
     const tt = (t.transaction_type || t.source_type || '').toLowerCase();
@@ -38,6 +49,23 @@ const History = () => {
     if (tt.includes('donation')) return 'donation';
     if (tt.includes('collection')) return 'earning';
     return (Number(t.amount) || 0) >= 0 ? 'earning' : 'withdrawal';
+  };
+
+  const getWithdrawalStatusBadge = (status?: string) => {
+    if (!status) return null;
+    const s = String(status).toLowerCase();
+    const cls =
+      s === 'pending'
+        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200'
+        : s === 'processing'
+        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200'
+        : s === 'approved' || s === 'completed' || s === 'processed'
+        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'
+        : s === 'rejected' || s === 'cancelled'
+        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
+        : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-200';
+    const text = s.charAt(0).toUpperCase() + s.slice(1);
+    return <Badge className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls}`}>{text}</Badge>;
   };
 
   const filteredTransactions = transactions.filter(t => {
@@ -238,6 +266,7 @@ const History = () => {
                          type === 'reward' ? 'Reward' :
                          type === 'donation' ? 'Donation' : 'Withdrawal'}
                       </Badge>
+                      {type === 'withdrawal' && getWithdrawalStatusBadge(transaction.status)}
                     </div>
                     
                     <div className="space-y-0.5">
@@ -267,7 +296,11 @@ const History = () => {
                 
                 <div className="text-right">
                   <p className={`text-sm font-bold ${
-                    (Number(transaction.amount) || 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                    (mapType(transaction) === 'withdrawal' && ['pending','processing'].includes(String(transaction.status || '').toLowerCase()))
+                      ? 'text-gray-700 dark:text-gray-300'
+                      : (Number(transaction.amount) || 0) > 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400'
                   }`}>
                     {(Number(transaction.amount) || 0) > 0 ? '+' : ''}R {Math.abs(Number(transaction.amount) || 0).toFixed(2)}
                   </p>

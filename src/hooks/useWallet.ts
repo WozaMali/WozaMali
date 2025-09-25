@@ -261,12 +261,20 @@ export const useWallet = (userId?: string) => {
   }, [userId, refreshWallet]);
 
   // Memoize return values to prevent unnecessary re-renders
+  // Preserve last known wallet snapshot to avoid UI dropping to 0 on transient errors
+  const lastSnapshotRef = useRef<WalletData | null>(null);
+  useEffect(() => {
+    if (walletData && !error) {
+      lastSnapshotRef.current = walletData;
+    }
+  }, [walletData, error]);
+
   return useMemo(() => ({
-    // Main data - show 0 if no data or if there's an error
-    balance: (walletData && !error) ? walletData.balance : 0,
-    points: (walletData && !error) ? walletData.points : 0,
-    tier: (walletData && !error) ? walletData.tier : 'bronze',
-    totalEarnings: (walletData && !error) ? walletData.totalEarnings : 0,
+    // Prefer fresh data; fallback to last snapshot; finally 0s
+    balance: (walletData && !error) ? walletData.balance : (lastSnapshotRef.current?.balance ?? 0),
+    points: (walletData && !error) ? walletData.points : (lastSnapshotRef.current?.points ?? 0),
+    tier: (walletData && !error) ? walletData.tier : (lastSnapshotRef.current?.tier ?? 'bronze'),
+    totalEarnings: (walletData && !error) ? walletData.totalEarnings : (lastSnapshotRef.current?.totalEarnings ?? 0),
     
     // Environmental impact
     environmentalImpact: walletData?.environmentalImpact || {
@@ -288,7 +296,7 @@ export const useWallet = (userId?: string) => {
     approvedPickups: walletData?.approvedPickups || 0,
     pendingPickups: walletData?.pendingPickups || 0,
     rejectedPickups: walletData?.rejectedPickups || 0,
-    totalWeightKg: walletData?.totalWeightKg || 0,
+    totalWeightKg: (walletData?.totalWeightKg ?? lastSnapshotRef.current?.totalWeightKg ?? 0),
     
     // State
     loading,

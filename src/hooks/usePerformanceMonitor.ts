@@ -19,8 +19,8 @@ export const usePerformanceMonitor = (componentName: string) => {
     return () => {
       const renderTime = performance.now() - renderStartTime.current;
       
-      // Only log in development and for slow renders
-      if (process.env.NODE_ENV === 'development' && renderTime > 16) {
+      // Only log in development and for slower renders (>250ms)
+      if (process.env.NODE_ENV === 'development' && renderTime > 250) {
         console.warn(`🐌 Slow render detected in ${componentName}:`, {
           renderTime: `${renderTime.toFixed(2)}ms`,
           renderCount: renderCount.current,

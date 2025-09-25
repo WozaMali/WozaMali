@@ -83,6 +83,7 @@ const Dashboard = memo(() => {
     recentError: null as string | null,
     computedBalance: null as number | null,
     nonPetBalance: null as number | null,
+    lastPositiveDisplayBalance: 0 as number,
     userAddress: null as any,
     addressLoading: false // Start with false to prevent initial loading state
   });
@@ -101,11 +102,19 @@ const Dashboard = memo(() => {
   const totalKgRecycled = useMemo(() => safeTotalWeightKg || safeTotalPoints, [safeTotalWeightKg, safeTotalPoints]);
   const co2Saved = useMemo(() => safeEnvironmentalImpact?.co2_saved_kg || (totalKgRecycled * 0.5), [safeEnvironmentalImpact?.co2_saved_kg, totalKgRecycled]);
 
-  // Prefer non-PET unified total; fallback to walletBalance
-  const displayBalance = useMemo(() => 
-    (typeof dashboardData.nonPetBalance === 'number') ? dashboardData.nonPetBalance : safeWalletBalance,
-    [dashboardData.nonPetBalance, safeWalletBalance]
-  );
+  // Prefer non-PET unified total when positive; otherwise fallback to walletBalance
+  const displayBalance = useMemo(() => {
+    const nonPet = dashboardData.nonPetBalance;
+    const candidate = (typeof nonPet === 'number' && nonPet > 0) ? nonPet : safeWalletBalance;
+    return candidate > 0 ? candidate : dashboardData.lastPositiveDisplayBalance || 0;
+  }, [dashboardData.nonPetBalance, safeWalletBalance, dashboardData.lastPositiveDisplayBalance]);
+
+  // Persist last positive balance to avoid flicker to 0 during async swaps
+  useEffect(() => {
+    if (displayBalance > 0 && displayBalance !== dashboardData.lastPositiveDisplayBalance) {
+      setDashboardData(prev => ({ ...prev, lastPositiveDisplayBalance: displayBalance }));
+    }
+  }, [displayBalance]);
 
   // Optimized address loading function
   const loadUserAddress = useCallback(async (userId: string) => {
@@ -207,24 +216,19 @@ const Dashboard = memo(() => {
       });
 
       const [nonPetData, addressData, schoolData] = await Promise.allSettled([
-        softTimeout(WorkingWalletService.getNonPetApprovedTotal(user.id), 1500, 0),
+        softTimeout(WorkingWalletService.getNonPetApprovedTotal(user.id), 1500, null as number | null),
         loadUserAddress(user.id),
         getPreferredSchool()
       ]);
 
-      // Process non-PET balance
-      if (nonPetData.status === 'fulfilled') {
-        setDashboardData(prev => ({ ...prev, nonPetBalance: nonPetData.value }));
-      }
+      // Batch updates to reduce re-renders
+      setDashboardData(prev => ({
+        ...prev,
+        nonPetBalance: (nonPetData.status === 'fulfilled' && nonPetData.value !== null) ? nonPetData.value as number : prev.nonPetBalance,
+        userAddress: (addressData.status === 'fulfilled') ? (addressData.value as any) : null,
+        addressLoading: false
+      }));
 
-      // Process address data
-      if (addressData.status === 'fulfilled') {
-        setDashboardData(prev => ({ ...prev, userAddress: addressData.value, addressLoading: false }));
-      } else {
-        setDashboardData(prev => ({ ...prev, userAddress: null, addressLoading: false }));
-      }
-
-      // Preferred school
       if (schoolData.status === 'fulfilled' && (schoolData.value as any)?.data) {
         setPreferredSchool((schoolData.value as any).data);
       }
@@ -439,7 +443,8 @@ const Dashboard = memo(() => {
   };
 
   // Debug logging to see what's happening (only in development)
-  if (process.env.NODE_ENV === 'development') {
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
     console.log('Dashboard Debug - Wallet Values:', {
       walletBalance: safeWalletBalance,
       displayBalance,
@@ -450,7 +455,7 @@ const Dashboard = memo(() => {
       error: walletError,
       isInitialLoadComplete
     });
-  }
+  }, [safeWalletBalance, displayBalance, safeTotalPoints, safeUserTier, safeTotalWeightKg, walletLoading, walletError, isInitialLoadComplete]);
 
   // Don't render early return - this violates hooks rules
   // Instead, we'll show loading state in the JSX

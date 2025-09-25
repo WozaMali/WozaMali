@@ -5,14 +5,18 @@ const DYNAMIC_CACHE = 'woza-mali-dynamic-v1.2.0';
 // Static assets to cache
 const STATIC_ASSETS = [
   '/',
-  '/dashboard',
-  '/collections',
-  '/rewards',
-  '/profile',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/WozaMali-uploads/w yellow.png'
+];
+
+// Dynamic routes to handle (not cached during install)
+const DYNAMIC_ROUTES = [
+  '/dashboard',
+  '/collections',
+  '/rewards',
+  '/profile'
 ];
 
 // API routes to cache
@@ -29,14 +33,23 @@ self.addEventListener('install', (event) => {
     caches.open(STATIC_CACHE)
       .then((cache) => {
         console.log('Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        // Cache assets one by one to avoid failures
+        return Promise.allSettled(
+          STATIC_ASSETS.map(url => 
+            cache.add(url).catch(err => {
+              console.warn(`Failed to cache ${url}:`, err);
+              return null;
+            })
+          )
+        );
       })
       .then(() => {
-        console.log('Static assets cached successfully');
+        console.log('Static assets caching completed');
         return self.skipWaiting();
       })
       .catch((error) => {
         console.error('Failed to cache static assets:', error);
+        return self.skipWaiting(); // Continue even if caching fails
       })
   );
 });
@@ -100,10 +113,15 @@ self.addEventListener('fetch', (event) => {
             // Determine which cache to use
             const cacheName = isAPIRequest(request) ? DYNAMIC_CACHE : STATIC_CACHE;
 
-            caches.open(cacheName)
-              .then((cache) => {
-                cache.put(request, responseToCache);
-              });
+            // Only cache if it's a successful response and not a navigation request to dynamic routes
+            if (response.status === 200 && !isDynamicRoute(request)) {
+              caches.open(cacheName)
+                .then((cache) => {
+                  cache.put(request, responseToCache).catch(err => {
+                    console.warn('Failed to cache response:', err);
+                  });
+                });
+            }
 
             return response;
           })
@@ -124,6 +142,12 @@ function isAPIRequest(request) {
   return url.pathname.startsWith('/api/') || 
          url.hostname.includes('supabase') ||
          url.hostname.includes('vercel');
+}
+
+// Helper function to check if request is for dynamic route
+function isDynamicRoute(request) {
+  const url = new URL(request.url);
+  return DYNAMIC_ROUTES.includes(url.pathname);
 }
 
 // Background sync for offline actions

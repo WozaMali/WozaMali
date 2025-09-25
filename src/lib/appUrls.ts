@@ -1,4 +1,4 @@
-export const MAIN_URL = process.env.NEXT_PUBLIC_MAIN_URL || 'http://localhost:8080'
+export const MAIN_URL = process.env.NEXT_PUBLIC_MAIN_URL || 'http://localhost:3000'
 export const OFFICE_URL = process.env.NEXT_PUBLIC_OFFICE_URL || 'http://localhost:8081'
 export const COLLECTOR_URL = process.env.NEXT_PUBLIC_COLLECTOR_URL || 'http://localhost:8082'
 

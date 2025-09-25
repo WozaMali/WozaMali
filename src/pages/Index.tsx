@@ -38,19 +38,28 @@ const Index = () => {
 
   // Handle tab change with optimized Next.js routing
   const handleTabChange = useCallback((tab: string) => {
+    console.log('Navigation: Tab change requested:', tab, 'Current tab:', activeTab);
+    
     // Debounce rapid toggles to avoid route churn/loops
     const now = Date.now();
-    if (now < navigateLockUntil.current) return;
+    if (now < navigateLockUntil.current) {
+      console.log('Navigation: Debounced, too soon');
+      return;
+    }
     navigateLockUntil.current = now + 250;
 
     // Only change when the tab actually changes
-    if (activeTab === tab) return;
+    if (activeTab === tab) {
+      console.log('Navigation: Same tab, ignoring');
+      return;
+    }
 
     // Use Next.js router for proper navigation
     const url = tab === 'dashboard' ? '/' : 
                 tab === 'scholar' ? '/fund' : 
                 `/${tab}`;
     
+    console.log('Navigation: Navigating to:', url);
     router.push(url);
   }, [activeTab, router]);
 

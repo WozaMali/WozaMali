@@ -9,8 +9,8 @@ function run(command, args = [], options = {}) {
 }
 
 function startMain() {
-  // Main app (root Next.js) on 8080 with faster compilation and external access
-  return run('npx', ['next', 'dev', '-p', '8080', '--turbo', '--hostname', '0.0.0.0']);
+  // Main app (root Next.js) on 3000 with faster compilation and external access
+  return run('npx', ['next', 'dev', '-p', '3000', '--turbo', '--hostname', '0.0.0.0']);
 }
 
 function startOffice() {

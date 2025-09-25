@@ -26,7 +26,10 @@ const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => 
           return (
             <button
               key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => {
+                console.log('BottomNavigation: Button clicked:', tab.id);
+                onTabChange(tab.id);
+              }}
               className={cn(
                 "flex flex-col items-center justify-center space-y-1 transition-all duration-300 relative group overflow-hidden px-1",
                 isActive 
