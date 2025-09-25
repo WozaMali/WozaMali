@@ -1,5 +1,4 @@
 import * as React from "react";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
@@ -50,29 +49,6 @@ function Calendar({
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
-      }}
-      components={{
-        Chevron: (props: {
-          className?: string;
-          size?: number;
-          disabled?: boolean;
-          orientation?: 'up' | 'right' | 'left' | 'down';
-        }) => {
-          const { orientation, className, size, disabled } = props;
-          const commonProps = { className, size, 'aria-disabled': disabled } as const;
-          switch (orientation) {
-            case 'left':
-              return <ChevronLeft {...commonProps} />;
-            case 'right':
-              return <ChevronRight {...commonProps} />;
-            case 'up':
-              return <ChevronUp {...commonProps} />;
-            case 'down':
-              return <ChevronDown {...commonProps} />;
-            default:
-              return <ChevronRight {...commonProps} />;
-          }
-        },
       }}
       {...props}
     />
