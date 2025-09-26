@@ -17,8 +17,55 @@ export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
+  const [updateAvailable, setUpdateAvailable] = useState(false)
 
   useEffect(() => {
+    // Register service worker and handle updates
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('SW registered:', registration)
+          
+          // Check for updates
+          registration.addEventListener('updatefound', () => {
+            console.log('Service worker update found')
+            setUpdateAvailable(true)
+            
+            const newWorker = registration.installing
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  setUpdateAvailable(true)
+                }
+              })
+            }
+          })
+          
+          // Handle service worker updates
+          registration.addEventListener('controllerchange', () => {
+            console.log('Service worker controller changed')
+            window.location.reload()
+          })
+        })
+        .catch((error) => {
+          console.log('SW registration failed:', error)
+        })
+
+      // Listen for service worker messages
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SW_UPDATE_AVAILABLE') {
+          setUpdateAvailable(true)
+        }
+      })
+
+      // Request notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then((permission) => {
+          console.log('Notification permission:', permission)
+        })
+      }
+    }
+
     // Check if app is already installed
     const checkIfInstalled = () => {
       if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -95,6 +142,37 @@ export default function PWAInstallPrompt() {
     setShowInstallPrompt(false)
     // Don't show again for this session
     sessionStorage.setItem('pwa-install-dismissed', 'true')
+  }
+
+  // Handle update installation
+  const handleUpdate = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then((registration) => {
+        if (registration && registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+        }
+      })
+    }
+  }
+
+  // Show update notification if available
+  if (updateAvailable) {
+    return (
+      <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white p-4 rounded-lg shadow-lg max-w-sm">
+        <div className="flex items-center space-x-3">
+          <div className="flex-1">
+            <h3 className="font-semibold">Update Available</h3>
+            <p className="text-sm opacity-90">A new version is ready to install.</p>
+          </div>
+          <button
+            onClick={handleUpdate}
+            className="bg-white text-blue-600 px-3 py-1 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
+          >
+            Update
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // Don't show if already installed or dismissed

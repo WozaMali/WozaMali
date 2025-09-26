@@ -1,4 +1,4 @@
-const CACHE_NAME = 'collector-pwa-v2';
+const CACHE_NAME = 'collector-pwa-v3';
 const urlsToCache = [
   '/',
   '/dashboard',
@@ -10,6 +10,10 @@ const urlsToCache = [
   '/Collector Icon.png',
   '/favicon.png'
 ];
+
+// Notification permission and registration
+const NOTIFICATION_PERMISSION_GRANTED = 'granted';
+const NOTIFICATION_PERMISSION_DENIED = 'denied';
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
@@ -59,7 +63,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -71,6 +75,113 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      // Immediately claim all clients for faster updates
+      return self.clients.claim();
+    })
   );
+});
+
+// Push notification event handler
+self.addEventListener('push', (event) => {
+  console.log('Push notification received:', event);
+  
+  if (event.data) {
+    const data = event.data.json();
+    const options = {
+      body: data.body || 'New notification from WozaMali Collector',
+      icon: '/Collector Icon.png',
+      badge: '/favicon.png',
+      tag: data.tag || 'wozamali-notification',
+      requireInteraction: data.requireInteraction || false,
+      actions: data.actions || [
+        {
+          action: 'view',
+          title: 'View',
+          icon: '/Collector Icon.png'
+        },
+        {
+          action: 'dismiss',
+          title: 'Dismiss'
+        }
+      ]
+    };
+    
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'WozaMali Collector', options)
+    );
+  }
+});
+
+// Notification click handler
+self.addEventListener('notificationclick', (event) => {
+  console.log('Notification clicked:', event);
+  
+  event.notification.close();
+  
+  if (event.action === 'view') {
+    event.waitUntil(
+      clients.openWindow('/dashboard')
+    );
+  } else if (event.action === 'dismiss') {
+    // Just close the notification
+    return;
+  } else {
+    // Default action - open the app
+    event.waitUntil(
+      clients.matchAll({ type: 'window' }).then((clientList) => {
+        if (clientList.length > 0) {
+          return clientList[0].focus();
+        }
+        return clients.openWindow('/');
+      })
+    );
+  }
+});
+
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+  console.log('Background sync:', event.tag);
+  
+  if (event.tag === 'background-sync') {
+    event.waitUntil(
+      // Handle background sync tasks
+      handleBackgroundSync()
+    );
+  }
+});
+
+// Handle background sync tasks
+async function handleBackgroundSync() {
+  try {
+    // Get pending actions from IndexedDB or cache
+    const pendingActions = await getPendingActions();
+    
+    for (const action of pendingActions) {
+      await processPendingAction(action);
+    }
+    
+    console.log('Background sync completed');
+  } catch (error) {
+    console.error('Background sync failed:', error);
+  }
+}
+
+// Get pending actions (placeholder - implement based on your needs)
+async function getPendingActions() {
+  // This would typically read from IndexedDB
+  return [];
+}
+
+// Process pending action (placeholder - implement based on your needs)
+async function processPendingAction(action) {
+  // This would typically send data to your API
+  console.log('Processing pending action:', action);
+}
+
+// Message handler for communication with main thread
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });

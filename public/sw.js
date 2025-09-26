@@ -1,6 +1,6 @@
-const CACHE_NAME = 'woza-mali-v1.2.0';
-const STATIC_CACHE = 'woza-mali-static-v1.2.0';
-const DYNAMIC_CACHE = 'woza-mali-dynamic-v1.2.0';
+const CACHE_NAME = 'woza-mali-v1.3.0';
+const STATIC_CACHE = 'woza-mali-static-v1.3.0';
+const DYNAMIC_CACHE = 'woza-mali-dynamic-v1.3.0';
 
 // Static assets to cache
 const STATIC_ASSETS = [
@@ -54,7 +54,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and claim clients immediately
 self.addEventListener('activate', (event) => {
   console.log('Service Worker activating...');
   event.waitUntil(
@@ -71,9 +71,17 @@ self.addEventListener('activate', (event) => {
       })
       .then(() => {
         console.log('Service Worker activated');
+        // Immediately claim all clients for faster updates
         return self.clients.claim();
       })
   );
+});
+
+// Message handler for communication with main thread
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Fetch event - serve from cache or network
