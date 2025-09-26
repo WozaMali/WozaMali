@@ -155,8 +155,18 @@ class PerformanceOptimizer {
       // Use requestIdleCallback for non-critical preloading
       if ('requestIdleCallback' in window) {
         requestIdleCallback(() => {
-          // Preload route components
-          import(`@/pages${route === '/dashboard' ? '/Index' : route.charAt(0).toUpperCase() + route.slice(1)}`);
+          // Preload route components - using static imports to avoid dynamic import issues
+          try {
+            if (route === '/dashboard') {
+              import('@/pages/Index');
+            } else if (route === '/profile') {
+              import('@/components/Profile');
+            } else if (route === '/withdrawal') {
+              import('@/pages/WithdrawalPage');
+            }
+          } catch (error) {
+            console.log('Route preloading failed for:', route, error);
+          }
         });
       }
     });

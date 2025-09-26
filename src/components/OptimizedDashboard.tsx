@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useRealtimeWallet } from '@/hooks/useRealtimeWallet';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 const OptimizedDashboard = memo(() => {
   const navigate = useRouter();
