@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import BottomNavigation from "@/components/BottomNavigation";
 import Dashboard from "@/components/Dashboard";
 import OptimizedDashboard from "@/components/OptimizedDashboard";
+import OptimizedDashboardV2 from "@/components/OptimizedDashboardV2";
 import Rewards from "@/components/Rewards";
 import GreenScholarFund from "@/components/GreenScholarFund";
 import History from "@/components/History";
@@ -79,7 +80,7 @@ const Index = () => {
         case "profile":
           return <Profile />;
         default:
-          return <OptimizedDashboard />;
+          return <OptimizedDashboardV2 />;
       }
     } catch (error) {
       console.error('Error rendering component:', error);
