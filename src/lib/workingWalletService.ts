@@ -229,7 +229,7 @@ export class WorkingWalletService {
         return cached.data.slice(0, limit);
       }
 
-      // Simplified query - only get recent collection transactions
+      // Get collections with material details from unified_collections
       const { data: collections, error: colError } = await supabase
         .from('unified_collections')
         .select(`
@@ -242,7 +242,8 @@ export class WorkingWalletService {
           updated_at,
           customer_id,
           customer_email,
-          material_type
+          material_count,
+          collection_type
         `)
         .eq('customer_id', userId)
         .in('status', ['approved', 'completed'])
@@ -295,61 +296,40 @@ export class WorkingWalletService {
 
       // Convert collections to transaction format (credits)
       console.log('WorkingWalletService: Processing collections:', collections?.length || 0);
-      const collectionList = await Promise.all((collections || []).map(async (tx: any) => {
-        // Use material_type from collection if available, otherwise try to fetch detailed materials
-        let materialNames = tx.material_type || 'Mixed Materials'; // Use existing material_type field first
+      const collectionList = (collections || []).map((tx: any) => {
+        // Use material information from unified_collections
+        let materialNames = 'Recyclable Materials'; // Default fallback
         
-        // If no material_type or it's generic, try to fetch detailed materials
-        if (!tx.material_type || tx.material_type === 'Mixed Materials' || tx.material_type === 'Unknown') {
-          try {
-            const { data: collectionMaterials, error: itemsError } = await supabase
-              .from('collection_materials')
-              .select(`
-                quantity,
-                material:materials(name)
-              `)
-              .eq('collection_id', tx.id);
-
-            console.log('WorkingWalletService: Collection materials for', tx.id, ':', collectionMaterials?.length || 0, 'items');
-            
-            if (!itemsError && collectionMaterials && collectionMaterials.length > 0) {
-              // Extract material names and create a summary
-              const materials = collectionMaterials
-                .filter((item: any) => item.material && item.material.name)
-                .map((item: any) => `${item.material.name} (${Number(item.quantity).toFixed(1)}kg)`)
-                .join(', ');
-              
-              console.log('WorkingWalletService: Extracted materials:', materials);
-              
-              if (materials) {
-                materialNames = materials;
-              }
-            } else {
-              console.log('WorkingWalletService: No materials found for collection:', tx.id, 'Error:', itemsError);
-            }
-          } catch (error) {
-            console.warn('WorkingWalletService: Could not fetch materials for collection:', tx.id, error);
-          }
-        } else {
-          console.log('WorkingWalletService: Using existing material_type:', tx.material_type);
+        // Use collection_type as the primary material identifier
+        if (tx.collection_type && tx.collection_type !== 'null' && tx.collection_type.trim() !== '') {
+          // Capitalize and format the collection type
+          materialNames = tx.collection_type.charAt(0).toUpperCase() + tx.collection_type.slice(1);
+        } else if (tx.material_count && tx.material_count > 0) {
+          materialNames = `${tx.material_count} Material${tx.material_count > 1 ? 's' : ''}`;
         }
+        
+        console.log('WorkingWalletService: Using material info for collection', tx.id, ':', {
+          collection_type: tx.collection_type,
+          material_count: tx.material_count,
+          final_material: materialNames
+        });
 
         return {
-        id: tx.id,
+          id: tx.id,
           type: 'credit', // earning
           transaction_type: 'collection', // Add transaction_type for History component
           source_type: 'collection_approval', // Add source_type for History component
-        amount: Number(tx.total_value || 0),
-        description: 'Collection approved',
+          amount: Number(tx.total_value || 0),
+          description: 'Collection approved',
           material_type: materialNames,
-        kgs: Number(tx.total_weight_kg || 0),
-        status: tx.status,
-        created_at: tx.created_at,
-        approved_at: tx.updated_at || tx.created_at,
-        updated_at: tx.updated_at || tx.created_at,
-        reference: tx.collection_code
+          kgs: Number(tx.total_weight_kg || 0),
+          status: tx.status,
+          created_at: tx.created_at,
+          approved_at: tx.updated_at || tx.created_at,
+          updated_at: tx.updated_at || tx.created_at,
+          reference: tx.collection_code
         };
-      }));
+      });
 
       // Convert withdrawals to transaction format (debits)
       console.log('WorkingWalletService: Processing withdrawals:', withdrawals?.length || 0);

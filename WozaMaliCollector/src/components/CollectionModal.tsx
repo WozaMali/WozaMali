@@ -123,43 +123,60 @@ export default function CollectionModal({ isOpen, onClose, user, onSuccess, isEm
     try {
       setLoading(true);
       setError(null);
-      
       console.log(`🔍 Loading materials... (attempt ${retryAttempt + 1})`);
       
-      const { data, error } = await supabase
+			// Attempt 1: modern columns with is_active filter
+			let query = supabase
         .from('materials')
         .select('id, name, rate_per_kg, is_active, category, unit, description')
         .eq('is_active', true)
         .order('name');
+			let { data, error } = await query;
+
+			// If column names differ, fall back to current_rate and relax filters
+			if (error && (String(error.message).includes('rate_per_kg') || String(error.message).includes('is_active') || error.code === '42703')) {
+				console.warn('↩️ Falling back to legacy/materials schema (current_rate/no is_active)');
+				const alt = await supabase
+					.from('materials')
+					.select('id, name, current_rate, category, unit, description')
+					.order('name');
+				data = alt.data as any[] | null;
+				error = alt.error as any;
+			}
 
       if (error) {
         console.error('❌ Error loading materials:', error);
         throw error;
       }
       
-      console.log('📦 Loaded materials:', data?.length || 0, 'materials');
-      console.log('📦 Materials data:', data);
-      setMaterials(data || []);
-      setRetryCount(0); // Reset retry count on success
-      
-      if (!data || data.length === 0) {
-        console.warn('⚠️ No active materials found in database');
+			// Normalize to Material[] with rate_per_kg populated
+			const normalized: Material[] = (data || []).map((m: any) => ({
+				id: m.id,
+				name: m.name,
+				rate_per_kg: typeof m.rate_per_kg === 'number' ? m.rate_per_kg : (typeof m.current_rate === 'number' ? m.current_rate : 0),
+				is_active: typeof m.is_active === 'boolean' ? m.is_active : true,
+				category: m.category,
+				unit: m.unit,
+				description: m.description,
+			}));
+
+			console.log('📦 Loaded materials (normalized):', normalized.length);
+			setMaterials(normalized);
+			setRetryCount(0);
+
+			if (normalized.length === 0) {
+				console.warn('⚠️ No materials found in database');
         setError('No materials available. Please contact administrator.');
       }
     } catch (error: any) {
       console.error('❌ Error loading materials:', error);
-      
-      // Check if it's a network error and we haven't exceeded retry limit
       if (retryAttempt < 2 && (error.message?.includes('Failed to fetch') || error.message?.includes('ERR_CONNECTION_CLOSED'))) {
-        console.log(`🔄 Retrying in 2 seconds... (attempt ${retryAttempt + 1}/3)`);
+				console.log(`🔄 Retrying in 1 second... (attempt ${retryAttempt + 1}/3)`);
         setRetryCount(retryAttempt + 1);
-        setTimeout(() => {
-          loadMaterials(retryAttempt + 1);
-        }, 2000);
+				setTimeout(() => { loadMaterials(retryAttempt + 1); }, 1000);
         return;
       }
-      
-      setError(`Failed to load materials: ${error.message || 'Network error. Please check your internet connection and try again.'}`);
+			setError(`Failed to load materials: ${error.message || 'Network error. Please try again.'}`);
     } finally {
       setLoading(false);
     }

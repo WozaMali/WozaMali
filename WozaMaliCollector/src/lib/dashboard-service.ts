@@ -25,10 +25,10 @@ export class DashboardService {
     try {
       console.log('📊 Fetching dashboard stats for collector:', collectorId);
 
-      // Get total collections
+      // Get total collections from unified_collections
       const { data: totalCollections, error: totalError } = await supabase
-        .from('collections')
-        .select('id, weight_kg, status, collection_date, created_at')
+        .from('unified_collections')
+        .select('id, total_weight_kg, status, created_at')
         .eq('collector_id', collectorId);
 
       if (totalError) {
@@ -41,12 +41,12 @@ export class DashboardService {
       // Calculate statistics
       const stats: DashboardStats = {
         totalCollections: collections.length,
-        totalWeight: collections.reduce((sum, c) => sum + (c.weight_kg || 0), 0),
-        totalValue: collections.reduce((sum, c) => sum + (c.weight_kg || 0) * 5, 0), // Assuming R5/kg average
+        totalWeight: collections.reduce((sum, c) => sum + (c.total_weight_kg || 0), 0),
+        totalValue: collections.reduce((sum, c) => sum + (c.total_weight_kg || 0) * 5, 0), // Assuming R5/kg average
         pendingCollections: collections.filter(c => c.status === 'pending').length,
         todayCollections: collections.filter(c => {
           const today = new Date().toISOString().split('T')[0];
-          return c.collection_date === today;
+          return c.created_at?.split('T')[0] === today;
         }).length,
         weeklyCollections: collections.filter(c => {
           const weekAgo = new Date();

@@ -49,7 +49,9 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     todayPickups: 0,
     totalCustomers: 0,
-    collectionRate: 0
+    collectionRate: 0,
+    walletBalance: 0,
+    totalWeight: 0
   });
 
   const [loading, setLoading] = useState(true);
@@ -113,17 +115,24 @@ export default function DashboardPage() {
       color: "text-blue-500"
     },
     {
-      title: "Active Users",
-      value: stats.totalCustomers.toString(),
+      title: "Wallet Balance",
+      value: `R${stats.walletBalance.toFixed(2)}`,
       change: "",
-      icon: Users,
+      icon: DollarSign,
       color: "text-green-500"
+    },
+    {
+      title: "Total Weight",
+      value: `${stats.totalWeight.toFixed(1)}kg`,
+      change: "",
+      icon: TrendingUp,
+      color: "text-orange-500"
     },
     {
       title: "Collection Rate",
       value: `${stats.collectionRate.toFixed(1)}%`,
       change: "",
-      icon: TrendingUp,
+      icon: BarChart3,
       color: "text-yellow-500"
     }
   ]), [stats]);
@@ -145,7 +154,8 @@ export default function DashboardPage() {
         const [
           { data: todayPickupsData, error: todayPickupsError },
           { data: totalCustomersData, error: totalCustomersError },
-          { data: recentPickupsData, error: recentPickupsError }
+          { data: recentPickupsData, error: recentPickupsError },
+          { data: walletData, error: walletError }
         ] = await Promise.all([
           // Today's pickups count
           supabase
@@ -168,7 +178,14 @@ export default function DashboardPage() {
             .select('id, customer_name, pickup_address, actual_time, status, total_weight_kg, created_at, collector_id, created_by')
             .eq('collector_id', user.id)
             .order('created_at', { ascending: false })
-            .limit(5)
+            .limit(5),
+          
+          // Wallet balance and total weight from approved/completed collections
+          supabase
+            .from('unified_collections')
+            .select('status, total_weight_kg, total_value')
+            .eq('collector_id', user.id)
+            .in('status', ['approved', 'completed'])
         ]);
 
         if (!isMounted) return;
@@ -176,6 +193,10 @@ export default function DashboardPage() {
         // Calculate stats
         const todayPickups = todayPickupsData?.length || 0;
         const totalCustomers = totalCustomersData?.length || 0;
+        
+        // Calculate wallet balance and total weight from approved/completed collections
+        const walletBalance = (walletData || []).reduce((sum, c) => sum + (Number(c.total_value) || 0), 0);
+        const totalWeight = (walletData || []).reduce((sum, c) => sum + (Number(c.total_weight_kg) || 0), 0);
         
         // Calculate collection rate based on recent activities (last 30 days)
         const thirtyDaysAgo = new Date();
@@ -194,7 +215,9 @@ export default function DashboardPage() {
         setStats({
           todayPickups,
           totalCustomers,
-          collectionRate
+          collectionRate,
+          walletBalance,
+          totalWeight
         });
 
         // Map recent pickups
@@ -350,7 +373,7 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="p-4">
-        <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
           {statsData.map((stat, index) => {
             const Icon = stat.icon;
             return (

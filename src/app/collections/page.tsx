@@ -14,6 +14,7 @@ type UnifiedCollection = {
   status: string | null;
   total_value: number | null;
   total_weight_kg: number | null;
+  weight_kg: number | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -35,7 +36,7 @@ export default function Collections() {
     try {
       const { data, error: err } = await supabase
         .from('unified_collections')
-        .select('id, collection_code, status, total_value, total_weight_kg, created_at, updated_at')
+        .select('id, collection_code, status, total_value, total_weight_kg, weight_kg, created_at, updated_at')
         .eq('customer_id', user.id)
         .in('status', ['approved','completed','pending'])
         .order('created_at', { ascending: false })
@@ -120,7 +121,7 @@ export default function Collections() {
               </div>
               <div className="flex items-center space-x-1">
                 <Weight className="h-4 w-4" />
-                <span>{nextItem ? `${Number(nextItem.total_weight_kg || 0).toFixed(1)} kg` : ''}</span>
+                <span>{nextItem ? `${Number((nextItem.total_weight_kg ?? nextItem.weight_kg ?? 0)).toFixed(1)} kg` : ''}</span>
               </div>
             </div>
           </CardContent>
@@ -155,7 +156,7 @@ export default function Collections() {
                         </div>
                         <div className="flex items-center space-x-1">
                           <Weight className="h-3 w-3" />
-                          <span>{Number(c.total_weight_kg || 0).toFixed(1)} kg</span>
+                          <span>{Number((c.total_weight_kg ?? c.weight_kg ?? 0)).toFixed(1)} kg</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <MapPin className="h-3 w-3" />

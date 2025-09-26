@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
 const nextConfig = {
 	// Production optimizations
 	eslint: {
@@ -7,7 +8,9 @@ const nextConfig = {
 	typescript: {
 		ignoreBuildErrors: true,
 	},
-	
+  
+  // Ensure correct monorepo root for resolving plugins and tracing
+  outputFileTracingRoot: path.join(__dirname, '..'),
 	// Image optimization
 	images: {
 		remotePatterns: [

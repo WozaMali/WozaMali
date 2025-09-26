@@ -71,7 +71,7 @@ export class CollectorDashboardService {
       }
 
       const todayPickups = todayCollections?.length || 0;
-      const totalWeight = allCollections?.reduce((sum, c) => sum + (c.weight_kg || 0), 0) || 0;
+      const totalWeight = allCollections?.reduce((sum, c) => sum + (c.total_weight_kg || 0), 0) || 0;
       const approvedCollections = allCollections?.filter(c => ['approved','completed'].includes(c.status)).length || 0;
       const totalCollections = allCollections?.length || 0;
       const collectionRate = totalCollections > 0 ? (approvedCollections / totalCollections) * 100 : 0;

@@ -76,6 +76,11 @@ const Dashboard = memo(() => {
     progressPercentage: 0
   }, [nextTierRequirements]);
 
+  // Memoize expensive calculations
+  const tierProgress = useMemo(() => {
+    return safeNextTierRequirements.progressPercentage;
+  }, [safeNextTierRequirements.progressPercentage]);
+
   // Consolidated state for better performance
   const [dashboardData, setDashboardData] = useState({
     allTransactions: [] as any[],
@@ -91,6 +96,11 @@ const Dashboard = memo(() => {
   // Track if initial load is complete
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const [preferredSchool, setPreferredSchool] = useState<any>(null);
+
+  // Batch state updates to reduce re-renders
+  const batchUpdateDashboardData = useCallback((updates: Partial<typeof dashboardData>) => {
+    setDashboardData(prev => ({ ...prev, ...updates }));
+  }, []);
   
   // Track app visibility state to handle lock/unlock scenarios
   const [isAppVisible, setIsAppVisible] = useState(true);
@@ -197,52 +207,86 @@ const Dashboard = memo(() => {
     }
   }, []);
 
-  // Optimized data loading with lazy loading for transactions
+  // Optimized data loading with debouncing and performance improvements
   const loadDashboardData = useCallback(async () => {
     if (!user?.id) return;
     
-    // Mark initial load complete immediately to render UI, then hydrate in background
+    // Mark initial load complete immediately to render UI
     setIsInitialLoadComplete(true);
-    // Load critical data in background (address and non-PET balance)
-    setDashboardData(prev => ({ ...prev, addressLoading: true }));
     
-    try {
-      // Add a soft timeout to non-PET total to avoid blocking UI
-      const softTimeout = <T,>(p: Promise<T>, ms: number, fallback: T) => new Promise<T>((resolve) => {
-        let settled = false;
-        const t = setTimeout(() => { if (!settled) { settled = true; resolve(fallback); } }, ms);
-        p.then(v => { if (!settled) { settled = true; clearTimeout(t); resolve(v); } })
-         .catch(() => { if (!settled) { settled = true; clearTimeout(t); resolve(fallback); } });
-      });
+    // Use requestIdleCallback for non-critical data loading to improve performance
+    const loadNonCriticalData = () => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(async () => {
+          try {
+            setDashboardData(prev => ({ ...prev, addressLoading: true }));
+            
+            // Load data with shorter timeouts to prevent blocking
+            const timeout = (ms: number) => new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout')), ms)
+            );
+            
+            const [nonPetData, addressData, schoolData] = await Promise.allSettled([
+              Promise.race([
+                WorkingWalletService.getNonPetApprovedTotal(user.id),
+                timeout(1000) // Reduced timeout
+              ]),
+              Promise.race([
+                loadUserAddress(user.id),
+                timeout(2000) // Reduced timeout
+              ]),
+              Promise.race([
+                getPreferredSchool(),
+                timeout(1000) // Reduced timeout
+              ])
+            ]);
 
-      const [nonPetData, addressData, schoolData] = await Promise.allSettled([
-        softTimeout(WorkingWalletService.getNonPetApprovedTotal(user.id), 1500, null as number | null),
-        loadUserAddress(user.id),
-        getPreferredSchool()
-      ]);
+            // Batch updates to reduce re-renders
+            batchUpdateDashboardData({
+              nonPetBalance: (nonPetData.status === 'fulfilled' && nonPetData.value !== null) ? nonPetData.value as number : dashboardData.nonPetBalance,
+              userAddress: (addressData.status === 'fulfilled') ? (addressData.value as any) : null,
+              addressLoading: false
+            });
 
-      // Batch updates to reduce re-renders
-      setDashboardData(prev => ({
-        ...prev,
-        nonPetBalance: (nonPetData.status === 'fulfilled' && nonPetData.value !== null) ? nonPetData.value as number : prev.nonPetBalance,
-        userAddress: (addressData.status === 'fulfilled') ? (addressData.value as any) : null,
-        addressLoading: false
-      }));
+            if (schoolData.status === 'fulfilled' && (schoolData.value as any)?.data) {
+              setPreferredSchool((schoolData.value as any).data);
+            }
+          } catch (error) {
+            console.error('Error loading dashboard data:', error);
+            setDashboardData(prev => ({ ...prev, addressLoading: false }));
+          }
+        });
+      } else {
+        // Fallback for browsers without requestIdleCallback
+        setTimeout(async () => {
+          try {
+            setDashboardData(prev => ({ ...prev, addressLoading: true }));
+            
+            const [nonPetData, addressData, schoolData] = await Promise.allSettled([
+              WorkingWalletService.getNonPetApprovedTotal(user.id),
+              loadUserAddress(user.id),
+              getPreferredSchool()
+            ]);
 
-      if (schoolData.status === 'fulfilled' && (schoolData.value as any)?.data) {
-        setPreferredSchool((schoolData.value as any).data);
+            setDashboardData(prev => ({
+              ...prev,
+              nonPetBalance: (nonPetData.status === 'fulfilled' && nonPetData.value !== null) ? nonPetData.value as number : prev.nonPetBalance,
+              userAddress: (addressData.status === 'fulfilled') ? (addressData.value as any) : null,
+              addressLoading: false
+            }));
+
+            if (schoolData.status === 'fulfilled' && (schoolData.value as any)?.data) {
+              setPreferredSchool((schoolData.value as any).data);
+            }
+          } catch (error) {
+            console.error('Error loading dashboard data:', error);
+            setDashboardData(prev => ({ ...prev, addressLoading: false }));
+          }
+        }, 50); // Reduced delay
       }
-
-      // Initial load already marked complete; UI will update as data arrives
-
-    } catch (error) {
-      console.error('Error loading critical dashboard data:', error);
-      setDashboardData(prev => ({
-        ...prev,
-        addressLoading: false
-      }));
-      // Keep UI responsive even on errors
-    }
+    };
+    
+    loadNonCriticalData();
   }, [user?.id, loadUserAddress]);
 
   // Handle app visibility changes (lock/unlock scenarios)
@@ -300,47 +344,92 @@ const Dashboard = memo(() => {
     };
   }, [user?.id]); // Only depend on user?.id to prevent infinite loops
 
-  // Lazy load transactions after initial render
+  // Optimized transaction loading with requestIdleCallback
   useEffect(() => {
+    if (!user?.id) return;
     let aborted = false;
+    
     const loadTransactions = async () => {
       if (!user?.id || aborted) return;
-      setDashboardData(prev => ({ ...prev, recentLoading: true }));
-      try {
-        const txData = await WorkingWalletService.getTransactionHistory(user.id, 5);
-        if (aborted) return;
-        const safeTx = Array.isArray(txData) ? txData : [];
-        const sum = safeTx.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
-        setDashboardData(prev => ({
-          ...prev,
-          allTransactions: safeTx,
-          computedBalance: Number(sum.toFixed(2)),
-          recentLoading: false,
-          recentError: null
-        }));
-      } catch (error) {
-        if (aborted) return;
-        console.error('Error loading transactions:', error);
-        setDashboardData(prev => ({
-          ...prev,
-          allTransactions: [],
-          computedBalance: null,
-          recentLoading: false,
-          recentError: 'Failed to load recent activity'
-        }));
-      }
+      
+      // Use requestIdleCallback for better performance
+      const loadInIdle = () => {
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(async () => {
+            if (aborted) return;
+            setDashboardData(prev => ({ ...prev, recentLoading: true }));
+            
+            try {
+              const txData = await WorkingWalletService.getTransactionHistory(user.id, 5);
+              if (aborted) return;
+              
+              const safeTx = Array.isArray(txData) ? txData : [];
+              const sum = safeTx.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+              
+              batchUpdateDashboardData({
+                allTransactions: safeTx,
+                computedBalance: Number(sum.toFixed(2)),
+                recentLoading: false,
+                recentError: null
+              });
+            } catch (error) {
+              if (aborted) return;
+              console.error('Error loading transactions:', error);
+              batchUpdateDashboardData({
+                allTransactions: [],
+                computedBalance: null,
+                recentLoading: false,
+                recentError: 'Failed to load recent activity'
+              });
+            }
+          });
+        } else {
+          // Fallback for browsers without requestIdleCallback
+          setTimeout(async () => {
+            if (aborted) return;
+            setDashboardData(prev => ({ ...prev, recentLoading: true }));
+            
+            try {
+              const txData = await WorkingWalletService.getTransactionHistory(user.id, 5);
+              if (aborted) return;
+              
+              const safeTx = Array.isArray(txData) ? txData : [];
+              const sum = safeTx.reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
+              
+              batchUpdateDashboardData({
+                allTransactions: safeTx,
+                computedBalance: Number(sum.toFixed(2)),
+                recentLoading: false,
+                recentError: null
+              });
+            } catch (error) {
+              if (aborted) return;
+              console.error('Error loading transactions:', error);
+              batchUpdateDashboardData({
+                allTransactions: [],
+                computedBalance: null,
+                recentLoading: false,
+                recentError: 'Failed to load recent activity'
+              });
+            }
+          }, 50);
+        }
+      };
+      
+      loadInIdle();
     };
-    // initial load once
-    const timer = setTimeout(loadTransactions, 100);
+    
+    // Initial load with reduced delay
+    const timer = setTimeout(loadTransactions, 50);
     return () => { aborted = true; clearTimeout(timer); };
   }, [user?.id]);
 
-  // Optimized wallet refresh effect
+  // Optimized wallet refresh effect with debouncing
   useEffect(() => {
     if (user?.id && refreshWallet && typeof refreshWallet === 'function') {
       const timer = setTimeout(() => {
         refreshWallet();
-      }, 100);
+      }, 50); // Reduced delay
       return () => clearTimeout(timer);
     }
   }, [user?.id, refreshWallet]);
@@ -395,11 +484,15 @@ const Dashboard = memo(() => {
     const { street_addr, subdivision, city, postal_code, township_name } = userAddress as any;
 
     if ((street_addr || subdivision || city || postal_code) && city) {
-      const townshipName = township_name || '';
-      return `${street_addr || ''}${subdivision ? ', ' + subdivision : ''}${townshipName ? ', ' + townshipName : ''}${city ? ', ' + city : ''}${postal_code ? ' ' + postal_code : ''}`
-        .replace(/^,\s*|,\s*,/g, ', ')
-        .trim()
-        .replace(/^,\s*/, '');
+      // Optimized string building with early returns
+      const parts = [];
+      if (street_addr) parts.push(street_addr);
+      if (subdivision) parts.push(subdivision);
+      if (township_name) parts.push(township_name);
+      if (city) parts.push(city);
+      if (postal_code) parts.push(postal_code);
+      
+      return parts.join(', ');
     }
 
     if (city) return `${city}`;
