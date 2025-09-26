@@ -191,7 +191,7 @@ const WithdrawalPage = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
                     <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                     <SelectItem value="cash">Cash Payment</SelectItem>
                   </SelectContent>
@@ -226,7 +226,7 @@ const WithdrawalPage = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select account type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
                     {ACCOUNT_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
@@ -246,7 +246,7 @@ const WithdrawalPage = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select your bank" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
                     {SOUTH_AFRICAN_BANKS.map((bank) => (
                       <SelectItem key={`${bank.code}-${bank.name}`} value={`${bank.code}:${bank.name}`}>
                         {bank.name}
