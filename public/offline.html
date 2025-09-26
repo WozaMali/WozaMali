@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WozaMali - Offline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 400px;
+            padding: 2rem;
+        }
+        
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .retry-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .status {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📱</div>
+        <h1>You're Offline</h1>
+        <p>Don't worry! Your data is safe and will sync when you're back online.</p>
+        
+        <button class="retry-btn" onclick="retryConnection()">
+            <span id="retry-text">Try Again</span>
+            <span id="retry-spinner" class="spinner hidden"></span>
+        </button>
+        
+        <div class="status" id="status">
+            Checking connection...
+        </div>
+    </div>
+
+    <script>
+        let isRetrying = false;
+        
+        function updateStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.color = isError ? '#ff6b6b' : 'rgba(255, 255, 255, 0.8)';
+        }
+        
+        function setRetrying(isRetrying) {
+            const retryText = document.getElementById('retry-text');
+            const retrySpinner = document.getElementById('retry-spinner');
+            const retryBtn = document.querySelector('.retry-btn');
+            
+            if (isRetrying) {
+                retryText.classList.add('hidden');
+                retrySpinner.classList.remove('hidden');
+                retryBtn.disabled = true;
+            } else {
+                retryText.classList.remove('hidden');
+                retrySpinner.classList.add('hidden');
+                retryBtn.disabled = false;
+            }
+        }
+        
+        async function retryConnection() {
+            if (isRetrying) return;
+            
+            isRetrying = true;
+            setRetrying(true);
+            updateStatus('Checking connection...');
+            
+            try {
+                const response = await fetch('/', { 
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                });
+                
+                if (response.ok) {
+                    updateStatus('Connected! Redirecting...');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    throw new Error('Server error');
+                }
+            } catch (error) {
+                updateStatus('Still offline. Check your internet connection.', true);
+            } finally {
+                isRetrying = false;
+                setRetrying(false);
+            }
+        }
+        
+        // Check connection status periodically
+        function checkConnection() {
+            if (navigator.onLine) {
+                updateStatus('Connection detected! Redirecting...');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            } else {
+                updateStatus('You are currently offline');
+            }
+        }
+        
+        // Listen for online event
+        window.addEventListener('online', () => {
+            updateStatus('Connection restored! Redirecting...');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        });
+        
+        // Initial check
+        checkConnection();
+        
+        // Check every 5 seconds
+        setInterval(checkConnection, 5000);
+    </script>
+</body>
+</html>

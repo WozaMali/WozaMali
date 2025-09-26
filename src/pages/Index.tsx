@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import BottomNavigation from "@/components/BottomNavigation";
 import Dashboard from "@/components/Dashboard";
+import OptimizedDashboard from "@/components/OptimizedDashboard";
 import Rewards from "@/components/Rewards";
 import GreenScholarFund from "@/components/GreenScholarFund";
 import History from "@/components/History";
@@ -78,7 +79,7 @@ const Index = () => {
         case "profile":
           return <Profile />;
         default:
-          return <Dashboard />;
+          return <OptimizedDashboard />;
       }
     } catch (error) {
       console.error('Error rendering component:', error);

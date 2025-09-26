@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import PerformanceInitializer from "@/components/PerformanceInitializer";
 import { useState, useEffect } from "react";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -90,6 +91,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       >
         <AuthProvider>
           <TooltipProvider>
+            <PerformanceInitializer />
             {children}
             <Toaster />
             <Sonner />
