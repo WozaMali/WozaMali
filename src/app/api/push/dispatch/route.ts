@@ -7,17 +7,24 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string
 
 const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY as string
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY as string
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY
 
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails('mailto:notifications@wozamali.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+// Only configure VAPID if both keys are available and valid
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && 
+    VAPID_PUBLIC_KEY.length > 0 && VAPID_PRIVATE_KEY.length > 0) {
+  try {
+    webpush.setVapidDetails('mailto:notifications@wozamali.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+  } catch (error) {
+    console.warn('Failed to set VAPID details:', error)
+  }
 }
 
 export async function POST(_req: NextRequest) {
   try {
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-      return NextResponse.json({ error: 'Missing VAPID keys' }, { status: 500 })
+      console.warn('VAPID keys not configured, skipping push notifications')
+      return NextResponse.json({ processed: 0, message: 'VAPID keys not configured' })
     }
 
     // Fetch a batch of unprocessed notifications
