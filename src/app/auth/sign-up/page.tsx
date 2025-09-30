@@ -120,16 +120,31 @@ const SignUp = () => {
     try {
       console.log('Starting Google OAuth sign-up...');
       
+      const { Capacitor } = await import('@capacitor/core');
+      const isNative = Capacitor.isNativePlatform();
+      const redirectTo = isNative
+        ? 'com.wozamali.app://auth/callback'
+        : `${window.location.origin}/auth/callback`;
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
+          redirectTo,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+          skipBrowserRedirect: isNative,
+        },
       });
+
+      if (isNative && data?.url) {
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url: data.url, presentationStyle: 'fullscreen' });
+          return;
+        } catch (e) {
+          // Do not navigate inside WebView to avoid Google disallowed_useragent
+          throw new Error('Secure browser unavailable. Please enable Chrome or Samsung Internet and try again.');
+        }
+      }
 
       if (error) {
         console.error('Google sign up error:', error);

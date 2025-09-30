@@ -254,12 +254,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('🔐 Starting Google sign-in...');
       
+      const { Capacitor } = await import('@capacitor/core');
+      const isNative = Capacitor.isNativePlatform();
+      const redirectTo = isNative
+        ? 'com.wozamali.app://auth/callback'
+        : `${window.location.origin}/login`;
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/login`
-        }
+          flowType: 'pkce',
+          redirectTo,
+          skipBrowserRedirect: isNative,
+        },
       });
+
+      if (isNative && data?.url) {
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url: data.url, presentationStyle: 'fullscreen' });
+          return { success: true };
+        } catch (e) {
+          window.location.href = data.url;
+          return { success: true };
+        }
+      }
 
       if (error) {
         console.error('❌ Google sign-in error:', error);

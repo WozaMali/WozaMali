@@ -84,16 +84,33 @@ export default function SignIn() {
       // Clear any existing errors
       setError("");
       
+      const { Capacitor } = await import('@capacitor/core');
+      const isNative = Capacitor.isNativePlatform();
+      const redirectTo = isNative
+        ? 'com.wozamali.app://auth/callback'
+        : `${window.location.origin}/auth/callback`;
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
+          redirectTo,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+          skipBrowserRedirect: isNative,
+        },
       });
+
+      if (isNative && data?.url) {
+        try {
+          const { Browser } = await import('@capacitor/browser');
+          await Browser.open({ url: data.url, presentationStyle: 'fullscreen' });
+          return;
+        } catch (e) {
+          // Do NOT navigate inside the WebView; this causes Google disallowed_useragent
+          console.error('System browser required for Google OAuth:', e);
+          setError('Google sign-in requires a secure system browser. Please enable/install Chrome or Samsung Internet and try again.');
+          return;
+        }
+      }
 
       if (error) {
         console.error('Google sign in error:', error);

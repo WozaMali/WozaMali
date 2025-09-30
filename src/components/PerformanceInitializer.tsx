@@ -20,30 +20,26 @@ export default function PerformanceInitializer({ userId }: PerformanceInitialize
       performanceOptimizer.preloadCriticalData(userId);
     }
 
-    // Register service worker
+    // Service worker registration completely disabled
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw-optimized.js')
-        .then((registration) => {
-          console.log('✅ Service Worker registered:', registration);
-          
-          // Handle service worker updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New service worker available, prompt user to refresh
-                  if (confirm('New version available! Refresh to update?')) {
-                    window.location.reload();
-                  }
-                }
-              });
+      (async () => {
+        try {
+          const { Capacitor } = await import('@capacitor/core');
+          if (Capacitor.isNativePlatform()) {
+            // Unregister any existing service workers on native platforms
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const registration of registrations) {
+              await registration.unregister();
+              console.log('🗑️ Service Worker unregistered on native:', registration.scope);
             }
-          });
-        })
-        .catch((error) => {
-          console.error('❌ Service Worker registration failed:', error);
-        });
+            return; // Avoid SW in native app to prevent intercepting asset requests
+          }
+        } catch {}
+        
+        // Also disable service worker on web for now to avoid asset issues
+        console.log('🚫 Service Worker registration completely disabled');
+        return;
+      })();
     }
 
     // Setup real-time connection monitoring

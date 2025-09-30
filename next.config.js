@@ -1,10 +1,12 @@
 /** @type {import('next').NextConfig} */
+const isProd = process.env.NODE_ENV === 'production';
 const nextConfig = {
-  // Disable static export to enable API routes
-  // output: 'export', // Commented out to enable API routes
+  // Use static export for Capacitor bundle
+  output: 'export',
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
-  assetPrefix: '',
+  // Use relative asset paths for Capacitor WebView in production/export
+  assetPrefix: isProd ? './' : undefined,
   basePath: '',
   
   // Image optimization
@@ -49,7 +51,7 @@ const nextConfig = {
   // External packages for server components
   serverExternalPackages: [],
   
-  // Webpack configuration for faster development
+  // Webpack configuration for faster development and static export
   webpack: (config, { isServer, dev }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -69,29 +71,15 @@ const nextConfig = {
       };
     }
     
+    // Keep Next.js default optimization in development; only adjust if truly needed in prod
+    if (!dev) {
+      // Leave defaults; static export is handled elsewhere
+    }
+    
     if (dev) {
-      // Faster development builds
       config.watchOptions = {
-        poll: false, // Disable polling for faster file watching
-        aggregateTimeout: 200, // Faster rebuilds
-      };
-      
-      // Optimize for development speed
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            // Bundle everything together for faster dev builds
-            bundle: {
-              name: 'bundle',
-              chunks: 'all',
-              enforce: true,
-            },
-          },
-        },
+        poll: false,
+        aggregateTimeout: 200,
       };
     }
     

@@ -6,13 +6,16 @@ const config: CapacitorConfig = {
   webDir: 'out',
   server: {
     androidScheme: 'https',
-    allowNavigation: ['*']
   },
+  // Configure plugins
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#000000',
       showSpinner: false
+    },
+    StatusBar: {
+      style: 'dark'
     }
   }
 };

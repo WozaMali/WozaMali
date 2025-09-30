@@ -13,16 +13,18 @@ export default function PWAInstaller() {
         .then((registration) => {
           console.log('SW registered: ', registration);
           
-          // Check for updates
+          // If there's already a waiting worker, an update is ready
+          if (registration.waiting && navigator.serviceWorker.controller) {
+            setUpdateAvailable(true);
+          }
+
+          // Check for updates - only show when installed and it's an update (not first install)
           registration.addEventListener('updatefound', () => {
             console.log('Service worker update found');
-            setUpdateAvailable(true);
-            
             const newWorker = registration.installing;
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New content is available, prompt user to refresh
                   setUpdateAvailable(true);
                 }
               });
@@ -30,7 +32,10 @@ export default function PWAInstaller() {
           });
           
           // Handle service worker updates
+          let hasReloaded = false;
           registration.addEventListener('controllerchange', () => {
+            if (hasReloaded) return;
+            hasReloaded = true;
             console.log('Service worker controller changed');
             window.location.reload();
           });
@@ -61,6 +66,8 @@ export default function PWAInstaller() {
       navigator.serviceWorker.getRegistration().then((registration) => {
         if (registration && registration.waiting) {
           registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          // Hide the banner while we switch
+          setUpdateAvailable(false);
         }
       });
     }

@@ -43,6 +43,14 @@ export function usePWA() {
       }
 
       try {
+        // Skip SW registration on native to avoid intercepting local assets
+        try {
+          const { Capacitor } = await import('@capacitor/core')
+          if (Capacitor.isNativePlatform()) {
+            return
+          }
+        } catch {}
+
         const registration = await navigator.serviceWorker.register('/sw.js')
         console.log('Service Worker registered successfully:', registration)
         

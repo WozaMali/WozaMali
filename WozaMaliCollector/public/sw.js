@@ -24,7 +24,7 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
   );
-  self.skipWaiting();
+  // Do not auto-activate here; wait until user confirms update
 });
 
 // Fetch event - serve from cache when offline
@@ -75,9 +75,6 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => {
-      // Immediately claim all clients for faster updates
-      return self.clients.claim();
     })
   );
 });
@@ -182,6 +179,8 @@ async function processPendingAction(action) {
 // Message handler for communication with main thread
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    // When app explicitly requests, activate immediately and take control
     self.skipWaiting();
+    self.clients.claim();
   }
 });

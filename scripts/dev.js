@@ -3,14 +3,33 @@ const { spawn } = require('child_process');
 
 const args = process.argv.slice(2);
 
+function parsePortArg(argumentsArray) {
+  // Accept forms like: "8080", "port=8080", "--port=8080", "-p", "--port", followed by value
+  for (let i = 0; i < argumentsArray.length; i += 1) {
+    const token = String(argumentsArray[i] || '').trim();
+    // Pure number
+    if (/^\d{2,5}$/.test(token)) return token;
+    // key=value
+    const match = token.match(/^(?:--?)?port\s*=\s*(\d{2,5})$/i);
+    if (match) return match[1];
+    // flag then value
+    if (/^(?:--?)?p(?:ort)?$/i.test(token)) {
+      const next = String(argumentsArray[i + 1] || '').trim();
+      if (/^\d{2,5}$/.test(next)) return next;
+    }
+  }
+  return undefined;
+}
+
 function run(command, args = [], options = {}) {
   const child = spawn(command, args, { stdio: 'inherit', shell: true, ...options });
   return child;
 }
 
-function startMain() {
-  // Main app (root Next.js) on 3000 with faster compilation and external access
-  return run('npx', ['next', 'dev', '-p', '3000', '--turbo', '--hostname', '0.0.0.0']);
+function startMain(port) {
+  // Main app (root Next.js) with faster compilation and external access
+  const resolvedPort = String(port || process.env.PORT || '3000');
+  return run('npx', ['next', 'dev', '-p', resolvedPort, '--turbo', '--hostname', '0.0.0.0']);
 }
 
 function startOffice() {
@@ -29,6 +48,7 @@ function startAll() {
 }
 
 const mode = args[0] || '';
+const portArg = parsePortArg(args);
 
 switch (mode) {
   case 'all':
@@ -41,7 +61,7 @@ switch (mode) {
     startCollector();
     break;
   default:
-    startMain();
+    startMain(portArg);
 }
 
 

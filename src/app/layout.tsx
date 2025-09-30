@@ -1,9 +1,7 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import '../index.css'
 import Providers from '@/components/Providers'
 
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Woza Mali - Recycling Rewards',
@@ -17,7 +15,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://localhost'),
   alternates: {
     canonical: '/',
   },
@@ -56,22 +54,22 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/icons/icon-72x72.png', sizes: '72x72', type: 'image/png' },
-      { url: '/icons/icon-96x96.png', sizes: '96x96', type: 'image/png' },
-      { url: '/icons/icon-128x128.png', sizes: '128x128', type: 'image/png' },
-      { url: '/icons/icon-144x144.png', sizes: '144x144', type: 'image/png' },
-      { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-384x384.png', sizes: '384x384', type: 'image/png' },
-      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+      { url: 'icons/icon-72x72.png', sizes: '72x72', type: 'image/png' },
+      { url: 'icons/icon-96x96.png', sizes: '96x96', type: 'image/png' },
+      { url: 'icons/icon-128x128.png', sizes: '128x128', type: 'image/png' },
+      { url: 'icons/icon-144x144.png', sizes: '144x144', type: 'image/png' },
+      { url: 'icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
+      { url: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: 'icons/icon-384x384.png', sizes: '384x384', type: 'image/png' },
+      { url: 'icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
-    shortcut: '/icons/icon-192x192.png',
+    shortcut: 'icons/icon-192x192.png',
     apple: [
-      { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: 'icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
+      { url: 'icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
     ],
   },
-  manifest: '/manifest.json',
+  manifest: './manifest.json',
   other: {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
@@ -101,13 +99,44 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#f59e0b" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#f59e0b" />
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-192x192.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-192x192.png" />
-        <link rel="shortcut icon" href="/icons/icon-192x192.png" />
+        <link rel="manifest" href="./manifest.json" />
+        <link rel="apple-touch-icon" href="icons/icon-192x192.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-192x192.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-192x192.png" />
+        <link rel="shortcut icon" href="icons/icon-192x192.png" />
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            // Immediate service worker cleanup (skip on native Capacitor)
+            (function(){
+              try {
+                var isNative = false;
+                try {
+                  var mod = undefined;
+                  if (typeof window !== 'undefined') {
+                    // dynamic import in runtime, guarded
+                    mod = window.Capacitor ? { Capacitor: window.Capacitor } : null;
+                  }
+                  if (mod && mod.Capacitor && typeof mod.Capacitor.isNativePlatform === 'function') {
+                    isNative = mod.Capacitor.isNativePlatform() === true;
+                  }
+                } catch (e) {}
+                if (isNative) return;
+                if (typeof window !== 'undefined' && window.isSecureContext && 'serviceWorker' in navigator) {
+                  (async function(){
+                    try {
+                      var regs = await navigator.serviceWorker.getRegistrations();
+                      for (var i=0;i<regs.length;i++){ await regs[i].unregister(); }
+                      var names = await caches.keys();
+                      for (var j=0;j<names.length;j++){ await caches.delete(names[j]); }
+                    } catch (err) { console.error(err); }
+                  })();
+                }
+              } catch (err) { console.error(err); }
+            })();
+          `
+        }} />
       </head>
-      <body className={inter.className}>
+      <body>
         <Providers>
           {children}
         </Providers>

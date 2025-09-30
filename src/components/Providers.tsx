@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PerformanceInitializer from "@/components/PerformanceInitializer";
+// Avoid top-level plugin imports; use dynamic import and availability checks at runtime
 import { useState, useEffect } from "react";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -43,6 +44,55 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         console.log('✅ Supabase environment variables are configured');
       }
     }
+  }, []);
+
+  // Temporary: surface uncaught errors to console for white-screen debugging
+  useEffect(() => {
+    const onErr = (msg: any, src?: any, line?: any, col?: any, err?: any) => {
+      try { console.error('GlobalError:', { msg, src, line, col, err }); } catch {}
+      return false;
+    };
+    const onRej = (e: PromiseRejectionEvent) => {
+      try { console.error('UnhandledRejection:', e.reason); } catch {}
+    };
+    window.addEventListener('error', onErr as any);
+    window.addEventListener('unhandledrejection', onRej);
+    return () => {
+      window.removeEventListener('error', onErr as any);
+      window.removeEventListener('unhandledrejection', onRej);
+    };
+  }, []);
+
+  // Handle OAuth deep link callbacks in native environment
+  useEffect(() => {
+    let remove: (() => void) | undefined;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { App } = await import('@capacitor/app');
+        const sub = await App.addListener('appUrlOpen', async ({ url }) => {
+          try {
+            if (!url) return;
+            const u = new URL(url);
+            if (u.host === 'auth' && u.pathname.startsWith('/callback')) {
+              const qs = u.search || '';
+              try {
+                const { Browser } = await import('@capacitor/browser');
+                await Browser.close();
+              } catch {}
+              window.location.href = `/auth/callback${qs}`;
+            }
+          } catch (e) {
+            console.warn('appUrlOpen parse error', e);
+          }
+        });
+        remove = () => { sub.remove(); };
+      } catch (e) {
+        console.warn('Capacitor App plugin not available', e);
+      }
+    })();
+    return () => { if (remove) remove(); };
   }, []);
 
   // Show environment warning if needed

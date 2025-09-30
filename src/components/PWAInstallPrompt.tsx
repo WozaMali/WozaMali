@@ -20,43 +20,28 @@ export default function PWAInstallPrompt() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
 
   useEffect(() => {
-    // Register service worker and handle updates
+    // Completely disable service worker registration
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          console.log('SW registered:', registration)
-          
-          // Check for updates
-          registration.addEventListener('updatefound', () => {
-            console.log('Service worker update found')
-            setUpdateAvailable(true)
-            
-            const newWorker = registration.installing
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  setUpdateAvailable(true)
-                }
-              })
+      (async () => {
+        try {
+          const { Capacitor } = await import('@capacitor/core')
+          if (Capacitor.isNativePlatform()) {
+            // Unregister any existing service workers on native platforms
+            const registrations = await navigator.serviceWorker.getRegistrations()
+            for (const registration of registrations) {
+              await registration.unregister()
+              console.log('🗑️ Service Worker unregistered on native:', registration.scope)
             }
-          })
-          
-          // Handle service worker updates
-          registration.addEventListener('controllerchange', () => {
-            console.log('Service worker controller changed')
-            window.location.reload()
-          })
-        })
-        .catch((error) => {
-          console.log('SW registration failed:', error)
-        })
+            return // Skip SW on native to prevent intercepting local asset requests
+          }
+        } catch {}
+        
+        // Also disable service worker on web for now to avoid asset issues
+        console.log('🚫 Service Worker registration completely disabled')
+        return
+      })()
 
-      // Listen for service worker messages
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'SW_UPDATE_AVAILABLE') {
-          setUpdateAvailable(true)
-        }
-      })
+      // Service worker registration completely disabled
 
       // Request notification permission
       if ('Notification' in window && Notification.permission === 'default') {
@@ -155,28 +140,22 @@ export default function PWAInstallPrompt() {
     }
   }
 
-  // Show update notification if available
+  // Show update notification if available (disabled completely)
+  // Ensure update popup only shows when truly updated and not already dismissed
   if (updateAvailable) {
-    return (
-      <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white p-4 rounded-lg shadow-lg max-w-sm">
-        <div className="flex items-center space-x-3">
-          <div className="flex-1">
-            <h3 className="font-semibold">Update Available</h3>
-            <p className="text-sm opacity-90">A new version is ready to install.</p>
-          </div>
-          <button
-            onClick={handleUpdate}
-            className="bg-white text-blue-600 px-3 py-1 rounded text-sm font-medium hover:bg-gray-100 transition-colors"
-          >
-            Update
-          </button>
-        </div>
-      </div>
-    )
+    return null
   }
 
-  // Don't show if already installed or dismissed
+  // Install prompt logic
   if (isInstalled || !showInstallPrompt) {
+    return null
+  }
+
+  // Don't show if already installed, dismissed, or on native platform
+  const isNative = typeof window !== 'undefined' && 
+    (window as any).Capacitor?.isNativePlatform?.() === true
+  
+  if (isInstalled || !showInstallPrompt || isNative) {
     return null
   }
 

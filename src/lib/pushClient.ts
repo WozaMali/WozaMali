@@ -23,10 +23,21 @@ export async function ensurePushSubscription(userId: string): Promise<boolean> {
       if (permission !== 'granted') return false
     }
 
-    // Ensure service worker is registered
-    const registration = (await navigator.serviceWorker.getRegistration())
-      || (await navigator.serviceWorker.register('/sw.js'))
+    // Ensure service worker is registered (skip for native)
+    let registration = await navigator.serviceWorker.getRegistration()
+    try {
+      const { Capacitor } = await import('@capacitor/core')
+      if (Capacitor.isNativePlatform()) {
+        // Do not register a SW in native app
+        registration = registration || undefined
+      } else {
+        registration = registration || (await navigator.serviceWorker.register('/sw.js'))
+      }
+    } catch {
+      registration = registration || (await navigator.serviceWorker.register('/sw.js'))
+    }
 
+    if (!registration) return false
     const existing = await registration.pushManager.getSubscription()
     const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     if (!applicationServerKey) {
