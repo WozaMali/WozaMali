@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const isProd = process.env.NODE_ENV === 'production';
 const nextConfig = {
-  // Use static export for Capacitor bundle
-  output: 'export',
+  // Dynamic server mode (not static export)
+  // output: 'export', // Commented out to enable dynamic server
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
   // Use relative asset paths for Capacitor WebView in production/export
