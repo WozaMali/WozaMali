@@ -87,17 +87,34 @@ const AuthCallback = () => {
             setStatus("success");
             setMessage("Authentication successful! Redirecting...");
             
-            // Wait a moment for the session to be fully established
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wait for session to be fully established and verify it's accessible
+            let sessionEstablished = false;
+            for (let attempt = 0; attempt < 5; attempt++) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              try {
+                const { data: { session: currentSession } } = await supabase.auth.getSession();
+                if (currentSession?.user?.id === data.session.user.id) {
+                  console.log('Session fully established, user ID:', currentSession.user.id);
+                  sessionEstablished = true;
+                  break;
+                }
+              } catch (error) {
+                console.log(`Session check attempt ${attempt + 1} failed:`, error);
+              }
+            }
+            
+            if (!sessionEstablished) {
+              console.log('Session not fully established, but proceeding with redirect');
+            }
             
             // For OAuth users, always redirect to profile completion first
-            // This ensures they complete their profile regardless of database state
             console.log('OAuth user detected, redirecting to profile completion');
             setMessage("Redirecting to complete your profile...");
             timeoutId = setTimeout(() => {
               console.log('Redirecting to /auth/profile-complete');
               router.push("/auth/profile-complete");
-            }, 1500);
+            }, 2000);
             return;
           }
         }

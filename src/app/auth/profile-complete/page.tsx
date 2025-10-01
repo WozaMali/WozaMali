@@ -42,30 +42,54 @@ const ProfileComplete = () => {
       try {
         console.log('ProfileComplete: Getting user...');
         
-        // Wait a moment for OAuth session to be fully established
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for OAuth session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Get current user with retry logic
+        // Get current user with more aggressive retry logic
         let user = null;
         let userError = null;
         
-        for (let attempt = 0; attempt < 3; attempt++) {
-          const { data: { user: currentUser }, error: currentError } = await supabase.auth.getUser();
-          if (currentUser && !currentError) {
-            user = currentUser;
-            userError = null;
-            break;
+        for (let attempt = 0; attempt < 10; attempt++) {
+          try {
+            const { data: { user: currentUser }, error: currentError } = await supabase.auth.getUser();
+            if (currentUser && !currentError) {
+              console.log(`ProfileComplete: User found on attempt ${attempt + 1}:`, currentUser.id);
+              user = currentUser;
+              userError = null;
+              break;
+            }
+            userError = currentError;
+            console.log(`ProfileComplete: Attempt ${attempt + 1} failed, retrying in 1 second...`, currentError?.message);
+          } catch (error) {
+            console.log(`ProfileComplete: Attempt ${attempt + 1} threw error:`, error);
+            userError = error;
           }
-          userError = currentError;
-          console.log(`ProfileComplete: Attempt ${attempt + 1} failed, retrying...`, currentError);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          if (attempt < 9) { // Don't wait after the last attempt
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
         
         if (userError || !user) {
           console.error('ProfileComplete: Error getting user after retries:', userError);
-          // Instead of redirecting to sign-in, show an error message
-          setError('Unable to verify your authentication. Please try signing in again.');
-          return;
+          
+          // Try one more time with getSession as fallback
+          console.log('ProfileComplete: Trying getSession as fallback...');
+          try {
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (session?.user && !sessionError) {
+              console.log('ProfileComplete: Found user via session fallback:', session.user.id);
+              user = session.user;
+            } else {
+              console.error('ProfileComplete: Session fallback also failed:', sessionError);
+              setError('Unable to verify your authentication. Please try signing in again.');
+              return;
+            }
+          } catch (sessionError) {
+            console.error('ProfileComplete: Session fallback threw error:', sessionError);
+            setError('Unable to verify your authentication. Please try signing in again.');
+            return;
+          }
         }
         
         console.log('ProfileComplete: User found:', user.id);
