@@ -1,6 +1,6 @@
 {
-  "name": "Woza Mali - Recycling Rewards",
-  "short_name": "Woza Mali",
+  "name": "WozaMali",
+  "short_name": "WozaMali",
   "description": "Earn rewards for recycling and contribute to a greener future",
   "start_url": "./",
   "display": "standalone",
