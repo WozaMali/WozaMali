@@ -18,10 +18,6 @@ const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => 
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/98 to-white/95 dark:from-gray-900 dark:via-gray-900/98 dark:to-gray-900/95 border-t border-gray-200 dark:border-gray-700 shadow-2xl backdrop-blur-md z-[9999] will-change-transform" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999 }}>
-      {/* Top Glow Effect - Elegant Light Beaming */}
-      <div className="absolute -top-8 left-0 right-0 h-8 bg-gradient-to-b from-yellow-200/60 via-yellow-100/40 to-transparent dark:from-yellow-600/40 dark:via-yellow-700/30 dark:to-transparent blur-sm"></div>
-      <div className="absolute -top-4 left-0 right-0 h-4 bg-gradient-to-b from-yellow-300/80 via-yellow-200/60 to-transparent dark:from-yellow-500/60 dark:via-yellow-600/40 dark:to-transparent blur-[2px]"></div>
-      
       <div className="grid grid-cols-5 h-20 relative">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -41,15 +37,10 @@ const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => 
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               )}
             >
-            {/* Active Tab Top Glow - Beautiful Light Beaming */}
-              {isActive && (
-              <>
-                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-16 h-6 bg-gradient-to-b from-yellow-400/90 via-yellow-300/70 to-transparent dark:from-yellow-500/70 dark:via-yellow-400/50 dark:to-transparent blur-md rounded-full animate-pulse"></div>
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-12 h-3 bg-gradient-to-b from-yellow-500/100 via-yellow-400/80 to-transparent dark:from-yellow-400/80 dark:via-yellow-300/60 dark:to-transparent blur-sm rounded-full"></div>
-                {/* Main Active Background */}
-                <div className="absolute inset-0 bg-gradient-to-t from-yellow-200/80 via-yellow-100/60 to-transparent dark:from-yellow-800/40 dark:via-yellow-700/30 dark:to-transparent rounded-t-3xl shadow-lg shadow-yellow-200/30 dark:shadow-yellow-800/20"></div>
-              </>
-              )}
+            {/* Active Tab Background */}
+            {isActive && (
+              <div className="absolute inset-0 bg-gradient-to-t from-yellow-200/80 via-yellow-100/60 to-transparent dark:from-yellow-800/40 dark:via-yellow-700/30 dark:to-transparent rounded-t-3xl shadow-lg shadow-yellow-200/30 dark:shadow-yellow-800/20"></div>
+            )}
               
               {/* Floating Icon Container */}
               <div className={cn(
@@ -109,9 +100,8 @@ const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => 
                 </>
               )}
               
-              {/* Hover Effect with Top Glow */}
+              {/* Hover Effect */}
               <div className="absolute inset-0 bg-gradient-to-t from-yellow-100/60 to-transparent dark:from-yellow-800/20 dark:to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-t-2xl shadow-sm shadow-yellow-200/30 dark:shadow-yellow-800/10"></div>
-              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-8 h-2 bg-gradient-to-b from-yellow-300/60 to-transparent dark:from-yellow-600/40 dark:to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 blur-sm rounded-full"></div>
             </button>
           );
         })}
