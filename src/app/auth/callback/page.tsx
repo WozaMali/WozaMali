@@ -108,8 +108,32 @@ const AuthCallback = () => {
               console.log('Session not fully established, but proceeding with redirect');
             }
             
-            // For OAuth users, always redirect to profile completion first
-            console.log('OAuth user detected, redirecting to profile completion');
+            // For OAuth users, try to create a basic user record first
+            console.log('OAuth user detected, creating user record...');
+            try {
+              // Create a minimal user record with default role
+              const { error: userError } = await supabase
+                .from('users')
+                .insert({
+                  id: data.session.user.id,
+                  email: data.session.user.email || '',
+                  full_name: data.session.user.user_metadata?.full_name || '',
+                  role_id: 'member', // Use string role instead of UUID
+                  status: 'active'
+                });
+
+              if (userError) {
+                console.log('User creation failed, but continuing to profile completion:', userError);
+                // Continue anyway - profile completion will handle it
+              } else {
+                console.log('User record created successfully');
+              }
+            } catch (error) {
+              console.log('User creation error, continuing to profile completion:', error);
+              // Continue anyway - profile completion will handle it
+            }
+
+            console.log('Redirecting to profile completion');
             setMessage("Redirecting to complete your profile...");
             timeoutId = setTimeout(() => {
               console.log('Redirecting to /auth/profile-complete');

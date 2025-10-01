@@ -178,33 +178,29 @@ const ProfileComplete = () => {
         updated_at: new Date().toISOString()
       } as any;
 
-      // Prefer text-based role assignments first to satisfy schemas where role_id FKs roles.name
-      const roleAssignments: any[] = [
-        { role: 'resident' },
-        { role_id: 'resident' },
-      ];
-      if (residentRoleId) {
-        roleAssignments.push({ role_id: residentRoleId });
-      }
-      // Legacy alias fallback
-      roleAssignments.push({ role: 'member' }, { role_id: 'member' });
+      // Use simple role assignment - just use 'member' as string
+      const roleAssignment = { role_id: 'member' };
 
       let lastError: any = null;
       let success = false;
 
-      for (const assignment of roleAssignments) {
-        if (existingUser) {
-          const { error } = await supabase
-            .from('users')
-            .update({ ...baseData, ...assignment })
-            .eq('id', user.id);
-          if (!error) { success = true; break; }
-          lastError = error;
+      if (existingUser) {
+        const { error } = await supabase
+          .from('users')
+          .update({ ...baseData, ...roleAssignment })
+          .eq('id', user.id);
+        if (!error) { 
+          success = true; 
         } else {
-          const { error } = await supabase
-            .from('users')
-            .insert({ ...baseData, ...assignment });
-          if (!error) { success = true; break; }
+          lastError = error;
+        }
+      } else {
+        const { error } = await supabase
+          .from('users')
+          .insert({ ...baseData, ...roleAssignment });
+        if (!error) { 
+          success = true; 
+        } else {
           lastError = error;
         }
       }
