@@ -154,11 +154,16 @@ const ProfileComplete = () => {
 
     try {
       // Check if user already exists in unified schema
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: userCheckError } = await supabase
         .from('users')
         .select('id')
         .eq('id', user.id)
         .single();
+      
+      // If there's an error checking for existing user, log it but continue
+      if (userCheckError) {
+        console.log('Error checking for existing user:', userCheckError);
+      }
 
       const baseData = {
         id: user.id,
@@ -191,8 +196,10 @@ const ProfileComplete = () => {
           .eq('id', user.id);
         if (!error) { 
           success = true; 
+          console.log('User profile updated successfully');
         } else {
           lastError = error;
+          console.log('Error updating user profile:', error);
         }
       } else {
         const { error } = await supabase
@@ -200,8 +207,10 @@ const ProfileComplete = () => {
           .insert({ ...baseData, ...roleAssignment });
         if (!error) { 
           success = true; 
+          console.log('User profile created successfully');
         } else {
           lastError = error;
+          console.log('Error creating user profile:', error);
         }
       }
 

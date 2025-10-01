@@ -46,8 +46,15 @@ const AuthCallback = () => {
           let errorMessage = errorDescription || errorParam || "Please try signing in again.";
           
           if (errorParam === 'server_error' && errorDescription?.includes('Database error')) {
-            errorTitle = "Database Error";
-            errorMessage = "There was an issue creating your account. This might be a temporary server issue. Please try again in a few moments.";
+            // For database errors, we can still proceed to profile completion
+            console.log('Database error detected, but proceeding to profile completion');
+            setStatus("loading");
+            setMessage("Setting up your account...");
+            timeoutId = setTimeout(() => {
+              console.log('Redirecting to /auth/profile-complete despite database error');
+              router.push("/auth/profile-complete");
+            }, 2000);
+            return;
           }
           
           toast({
