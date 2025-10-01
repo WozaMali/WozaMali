@@ -41,13 +41,22 @@ const AuthCallback = () => {
           setStatus("error");
           setMessage(`Authentication failed: ${errorDescription || errorParam}`);
           
+          // Show more specific error messages
+          let errorTitle = "Authentication Failed";
+          let errorDescription = errorDescription || errorParam || "Please try signing in again.";
+          
+          if (errorParam === 'server_error' && errorDescription?.includes('Database error')) {
+            errorTitle = "Database Error";
+            errorDescription = "There was an issue creating your account. This might be a temporary server issue. Please try again in a few moments.";
+          }
+          
           toast({
-            title: "Authentication Failed",
-            description: errorDescription || errorParam || "Please try signing in again.",
+            title: errorTitle,
+            description: errorDescription,
             variant: "destructive",
           });
           
-          timeoutId = setTimeout(() => router.push("/auth/sign-in"), 3000);
+          timeoutId = setTimeout(() => router.push("/auth/sign-in"), 5000);
           return;
         }
         
@@ -74,38 +83,21 @@ const AuthCallback = () => {
           }
           
           if (data.session) {
-            console.log("Code exchange successful");
+            console.log("Code exchange successful, user ID:", data.session.user.id);
             setStatus("success");
             setMessage("Authentication successful! Redirecting...");
             
             // Wait a moment for the session to be fully established
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Check if user profile exists in unified schema
-            try {
-              const { data: userProfile, error: profileError } = await supabase
-                .from('users')
-                .select('first_name, last_name, phone, street_addr, township_id, subdivision, city, postal_code')
-                .eq('id', data.session.user.id)
-                .single();
-
-              console.log('Profile check result:', { userProfile, profileError });
-
-              // If no profile exists or profile is incomplete, redirect to profile completion
-              if (profileError || !userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
-                console.log('Profile incomplete or missing, redirecting to profile completion');
-                setMessage("Redirecting to complete your profile...");
-                timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
-              } else {
-                console.log('Profile complete, redirecting to dashboard');
-                setMessage("Redirecting to dashboard...");
-                timeoutId = setTimeout(() => router.push("/"), 1500);
-              }
-            } catch (profileError) {
-              console.log('Profile check error, redirecting to profile completion:', profileError);
-              setMessage("Redirecting to complete your profile...");
-              timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
-            }
+            // For OAuth users, always redirect to profile completion first
+            // This ensures they complete their profile regardless of database state
+            console.log('OAuth user detected, redirecting to profile completion');
+            setMessage("Redirecting to complete your profile...");
+            timeoutId = setTimeout(() => {
+              console.log('Redirecting to /auth/profile-complete');
+              router.push("/auth/profile-complete");
+            }, 1500);
             return;
           }
         }
@@ -119,7 +111,7 @@ const AuthCallback = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          console.log("User authenticated:", session.user);
+          console.log("User authenticated via session:", session.user.id);
           setStatus("success");
           setMessage("Authentication successful! Redirecting...");
           
@@ -128,31 +120,13 @@ const AuthCallback = () => {
             description: "You have successfully signed in.",
           });
           
-          // Check user profile in unified schema
-          try {
-            const { data: userProfile, error: profileError } = await supabase
-              .from('users')
-              .select('first_name, last_name, phone, street_addr, township_id, subdivision, city, postal_code')
-              .eq('id', session.user.id)
-              .single();
-
-            console.log('Session profile check result:', { userProfile, profileError });
-
-            // If no profile exists or profile is incomplete, redirect to profile completion
-            if (profileError || !userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
-              console.log('Session profile incomplete or missing, redirecting to profile completion');
-              setMessage("Redirecting to complete your profile...");
-              timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
-            } else {
-              console.log('Session profile complete, redirecting to dashboard');
-              setMessage("Redirecting to dashboard...");
-              timeoutId = setTimeout(() => router.push("/"), 1500);
-            }
-          } catch (error) {
-            console.log('Session profile check error, redirecting to profile completion:', error);
-            setMessage("Redirecting to complete your profile...");
-            timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
-          }
+          // For OAuth users, always redirect to profile completion first
+          console.log('Session user detected, redirecting to profile completion');
+          setMessage("Redirecting to complete your profile...");
+          timeoutId = setTimeout(() => {
+            console.log('Session redirecting to /auth/profile-complete');
+            router.push("/auth/profile-complete");
+          }, 1500);
         } else {
           // No session found - this should rarely happen after OAuth
           console.log("No session found after OAuth");

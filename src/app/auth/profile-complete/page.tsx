@@ -30,6 +30,7 @@ const ProfileComplete = () => {
   const [error, setError] = useState("");
   const [user, setUser] = useState<any>(null);
   const [residentRoleId, setResidentRoleId] = useState<string | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
 
   // Address hooks
   const { townships, loading: townshipsLoading, error: townshipsError } = useTownships();
@@ -39,13 +40,35 @@ const ProfileComplete = () => {
   useEffect(() => {
     const getUserAndRole = async () => {
       try {
-        // Get current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        console.log('ProfileComplete: Getting user...');
+        
+        // Wait a moment for OAuth session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Get current user with retry logic
+        let user = null;
+        let userError = null;
+        
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const { data: { user: currentUser }, error: currentError } = await supabase.auth.getUser();
+          if (currentUser && !currentError) {
+            user = currentUser;
+            userError = null;
+            break;
+          }
+          userError = currentError;
+          console.log(`ProfileComplete: Attempt ${attempt + 1} failed, retrying...`, currentError);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         if (userError || !user) {
-          console.error('Error getting user:', userError);
-          navigate.push('/auth/sign-in');
+          console.error('ProfileComplete: Error getting user after retries:', userError);
+          // Instead of redirecting to sign-in, show an error message
+          setError('Unable to verify your authentication. Please try signing in again.');
           return;
         }
+        
+        console.log('ProfileComplete: User found:', user.id);
         setUser(user);
 
         const id = await getResidentRoleId();
@@ -54,8 +77,10 @@ const ProfileComplete = () => {
         }
         setResidentRoleId(id);
       } catch (error) {
-        console.error('Error in getUserAndRole:', error);
-        navigate.push('/auth/sign-in');
+        console.error('ProfileComplete: Error in getUserAndRole:', error);
+        setError('An error occurred while loading your profile. Please try again.');
+      } finally {
+        setUserLoading(false);
       }
     };
 
@@ -188,12 +213,35 @@ const ProfileComplete = () => {
     }
   };
 
-  if (!user) {
+  if (userLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
         <div className="text-center text-white">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading...</p>
+          <p>Verifying your authentication...</p>
+          <p className="text-sm text-white/80 mt-2">Please wait while we set up your profile</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="text-red-200 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold mb-4">Authentication Error</h2>
+          <p className="mb-4">{error || 'Unable to verify your authentication.'}</p>
+          <button 
+            onClick={() => window.location.href = '/auth/sign-in'}
+            className="bg-white text-orange-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );

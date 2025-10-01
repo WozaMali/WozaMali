@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Woza Mali</title>
+    <style>
+        /* Basic styles for loading state */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        }
+        .loading-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #f59e0b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            margin-top: 16px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="__next">
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading Woza Mali...</div>
+        </div>
+    </div>
+    
+    <!-- Only load the main bundle -->
+    <script src="/_next/static/chunks/bundle-1f45170e3abd1eab.js" defer></script>
+    
+    <!-- Next.js data -->
+    <script id="__NEXT_DATA__" type="application/json">
+        {"props":{"pageProps":{}},"page":"/Index","query":{},"buildId":"oc7fMbZTzdymL5BFq4wVE","nextExport":true,"autoExport":true,"isFallback":false,"scriptLoader":[]}
+    </script>
+</body>
+</html>
