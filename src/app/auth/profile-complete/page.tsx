@@ -30,7 +30,6 @@ const ProfileComplete = () => {
   const [error, setError] = useState("");
   const [user, setUser] = useState<any>(null);
   const [residentRoleId, setResidentRoleId] = useState<string | null>(null);
-  const [userLoading, setUserLoading] = useState(true);
 
   // Address hooks
   const { townships, loading: townshipsLoading, error: townshipsError } = useTownships();
@@ -40,81 +39,25 @@ const ProfileComplete = () => {
   useEffect(() => {
     const getUserAndRole = async () => {
       try {
-        console.log('ProfileComplete: Getting user...');
-        
-        // Wait for OAuth session to be fully established
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Get current user with more aggressive retry logic
-        let user = null;
-        let userError = null;
-        
-        for (let attempt = 0; attempt < 10; attempt++) {
-          try {
-            const { data: { user: currentUser }, error: currentError } = await supabase.auth.getUser();
-            if (currentUser && !currentError) {
-              console.log(`ProfileComplete: User found on attempt ${attempt + 1}:`, currentUser.id);
-              user = currentUser;
-              userError = null;
-              break;
-            }
-            userError = currentError;
-            console.log(`ProfileComplete: Attempt ${attempt + 1} failed, retrying in 1 second...`, currentError?.message);
-          } catch (error) {
-            console.log(`ProfileComplete: Attempt ${attempt + 1} threw error:`, error);
-            userError = error;
-          }
-          
-          if (attempt < 9) { // Don't wait after the last attempt
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-        
+        // Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
-          console.error('ProfileComplete: Error getting user after retries:', userError);
-          
-          // Try one more time with getSession as fallback
-          console.log('ProfileComplete: Trying getSession as fallback...');
-          try {
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-            if (session?.user && !sessionError) {
-              console.log('ProfileComplete: Found user via session fallback:', session.user.id);
-              user = session.user;
-            } else {
-              console.error('ProfileComplete: Session fallback also failed:', sessionError || 'No session found');
-              setError('No active session found. Please sign in to complete your profile.');
-              setUserLoading(false);
-              // Redirect to sign-in after a short delay
-              setTimeout(() => {
-                router.push('/auth/sign-in');
-              }, 3000);
-              return;
-            }
-          } catch (sessionError) {
-            console.error('ProfileComplete: Session fallback threw error:', sessionError);
-            setError('No active session found. Please sign in to complete your profile.');
-            setUserLoading(false);
-            // Redirect to sign-in after a short delay
-            setTimeout(() => {
-              router.push('/auth/sign-in');
-            }, 3000);
-            return;
-          }
+          console.error('Error getting user:', userError);
+          navigate.push('/auth/sign-in');
+          return;
         }
-        
-        console.log('ProfileComplete: User found:', user.id);
         setUser(user);
 
         const id = await getResidentRoleId();
+        console.log('Resident role ID:', id);
         if (!id) {
           console.error('Resident role not found. Ensure a role named "resident" or "member" exists, or set NEXT_PUBLIC_RESIDENT_ROLE_ID.');
+          setError('Resident role not found. Please contact support.');
         }
         setResidentRoleId(id);
       } catch (error) {
-        console.error('ProfileComplete: Error in getUserAndRole:', error);
-        setError('An error occurred while loading your profile. Please try again.');
-      } finally {
-        setUserLoading(false);
+        console.error('Error in getUserAndRole:', error);
+        navigate.push('/auth/sign-in');
       }
     };
 
@@ -151,7 +94,7 @@ const ProfileComplete = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !residentRoleId) {
+    if (!user) {
       toast({
         title: "Error",
         description: "User information not available. Please try again.",
@@ -160,21 +103,18 @@ const ProfileComplete = () => {
       return;
     }
 
+    if (!residentRoleId) {
+      toast({
+        title: "Error",
+        description: "Resident role not found. Please contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Check if user already exists in unified schema
-      const { data: existingUser, error: userCheckError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-      
-      // If there's an error checking for existing user, log it but continue
-      if (userCheckError) {
-        console.log('Error checking for existing user:', userCheckError);
-      }
-
       const baseData = {
         id: user.id,
         first_name: formData.firstName,
@@ -189,46 +129,42 @@ const ProfileComplete = () => {
         city: formData.city,
         postal_code: formData.postalCode || null,
         status: 'active',
-        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       } as any;
 
-      // Use the resident role ID (which should be a UUID)
-      const roleAssignment = { role_id: residentRoleId };
+      // Use the resident role ID we fetched earlier
+      const userData = {
+        ...baseData,
+        role_id: residentRoleId
+      };
 
-      let lastError: any = null;
-      let success = false;
+      console.log('User data to save:', userData);
 
-      if (existingUser) {
-        const { error } = await supabase
+      // Try to update first (in case user exists)
+      console.log('Attempting to update existing user...');
+      let result = await supabase
+        .from('users')
+        .update(userData)
+        .eq('id', user.id);
+
+      // If update fails with "not found" error, try to insert
+      if (result.error && result.error.code === 'PGRST116') {
+        console.log('User not found, attempting to insert...');
+        result = await supabase
           .from('users')
-          .update({ ...baseData, ...roleAssignment })
-          .eq('id', user.id);
-        if (!error) { 
-          success = true; 
-          console.log('User profile updated successfully');
-        } else {
-          lastError = error;
-          console.log('Error updating user profile:', error);
-        }
-      } else {
-        const { error } = await supabase
-          .from('users')
-          .insert({ ...baseData, ...roleAssignment });
-        if (!error) { 
-          success = true; 
-          console.log('User profile created successfully');
-        } else {
-          lastError = error;
-          console.log('Error creating user profile:', error);
-        }
+          .insert({
+            ...userData,
+            created_at: new Date().toISOString()
+          });
       }
 
-      if (!success) {
-        console.error('User update error:', lastError);
+      console.log('Database result:', result);
+
+      if (result.error) {
+        console.error('User update error:', result.error);
         toast({
           title: "Profile update failed",
-          description: "Please try again or contact support.",
+          description: `Database error: ${result.error.message}`,
           variant: "destructive",
         });
         return;
@@ -252,35 +188,12 @@ const ProfileComplete = () => {
     }
   };
 
-  if (userLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Verifying your authentication...</p>
-          <p className="text-sm text-white/80 mt-2">Please wait while we set up your profile</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-orange-600 flex items-center justify-center">
         <div className="text-center text-white">
-          <div className="text-red-200 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold mb-4">Authentication Error</h2>
-          <p className="mb-4">{error || 'Unable to verify your authentication.'}</p>
-          <button 
-            onClick={() => window.location.href = '/auth/sign-in'}
-            className="bg-white text-orange-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-          >
-            Try Again
-          </button>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading...</p>
         </div>
       </div>
     );

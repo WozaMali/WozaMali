@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, ChevronRight, Bell, BookOpen, TrendingUp, MapPin } from "lucide-react";
+import { User, Phone, Shield, Settings, LogOut, Edit3, Star, Recycle, Award, ChevronRight, Bell, BookOpen, TrendingUp, MapPin, Calendar } from "lucide-react";
 import { useWallet } from "@/hooks/useWallet";
 import { usePWA } from "@/hooks/usePWA";
 import { ensurePushSubscription, disablePushSubscription, requestPushPermission } from "@/lib/pushClient";
@@ -62,10 +62,15 @@ const Profile = () => {
   // Fetch user data from unified database
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        console.log('Profile: No user ID available');
+        return;
+      }
       
       try {
-        // Query all user fields including address information
+        console.log('Profile: Loading profile for user ID:', user.id);
+        
+        // Query all user fields including address information with township name
         const { data, error } = await supabase
           .from('users')
           .select(`
@@ -82,55 +87,55 @@ const Profile = () => {
             subdivision,
             city,
             postal_code,
+            date_of_birth,
             created_at
           `)
-          .eq('id', user.id)
+          .eq('id', user.id) // Use the actual authenticated user's ID
           .single();
 
         if (error) {
-          if (error.code === 'PGRST116') {
-            // User not found in users table - this is expected for new users
-            console.log('Profile: User not found in users table - using auth user data');
-            setUserData({
-              id: user.id,
-              email: user.email || '',
-              first_name: user.user_metadata?.first_name || '',
-              last_name: user.user_metadata?.last_name || '',
-              full_name: user.user_metadata?.full_name || '',
-              phone: user.user_metadata?.phone || '',
-              role_id: null,
-              status: 'active',
-              street_addr: user.user_metadata?.street_address || null,
-              township_id: user.user_metadata?.township_id || null,
-              subdivision: user.user_metadata?.subdivision || null,
-              city: user.user_metadata?.city || 'Soweto',
-              postal_code: user.user_metadata?.postal_code || null,
-              created_at: user.created_at
-            });
-          } else {
-            console.error('Error fetching user data:', error);
-          }
+          console.error('Profile: Error fetching user data for user:', error);
+          console.log('Profile: Error code:', error.code);
+          console.log('Profile: Error message:', error.message);
+          // Fallback to minimal user data if user not found in database
+          setUserData({
+            id: user?.id || '',
+            email: user?.email || '',
+            first_name: '',
+            last_name: '',
+            full_name: user?.email?.split('@')[0] || 'User',
+            phone: '',
+            role_id: null,
+            status: 'active',
+            street_addr: null,
+            township_id: null,
+            subdivision: null,
+            city: 'Soweto',
+            postal_code: null,
+            created_at: new Date().toISOString()
+          });
         } else {
+          console.log('Profile: Successfully fetched user data from database:', data);
           setUserData(data);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
-        // Fallback to auth user data
+        // Fallback to minimal user data
         setUserData({
-          id: user.id,
-          email: user.email || '',
-          first_name: user.user_metadata?.first_name || '',
-          last_name: user.user_metadata?.last_name || '',
-          full_name: user.user_metadata?.full_name || '',
-          phone: user.user_metadata?.phone || '',
+          id: user?.id || '',
+          email: user?.email || '',
+          first_name: '',
+          last_name: '',
+          full_name: user?.email?.split('@')[0] || 'User',
+          phone: '',
           role_id: null,
           status: 'active',
-          street_addr: user.user_metadata?.street_address || null,
-          township_id: user.user_metadata?.township_id || null,
-          subdivision: user.user_metadata?.subdivision || null,
-          city: user.user_metadata?.city || 'Soweto',
-          postal_code: user.user_metadata?.postal_code || null,
-          created_at: user.created_at
+          street_addr: null,
+          township_id: null,
+          subdivision: null,
+          city: 'Soweto',
+          postal_code: null,
+          created_at: new Date().toISOString()
         });
       } finally {
         setLoading(false);
@@ -208,10 +213,25 @@ const Profile = () => {
     }
   };
 
+  const formatDateOfBirth = (dateOfBirth: string | null) => {
+    if (!dateOfBirth) return "Not provided";
+    try {
+      const date = new Date(dateOfBirth);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      return "Not provided";
+    }
+  };
+
   const userProfile = {
     name: userData?.full_name || `${userData?.first_name || ''} ${userData?.last_name || ''}`.trim() || user?.user_metadata?.full_name || "User",
     phone: userData?.phone || user?.user_metadata?.phone || "No phone number",
     email: userData?.email || user?.email || "No email",
+    dateOfBirth: formatDateOfBirth(userData?.date_of_birth),
     streetAddress: userData?.street_addr || user?.user_metadata?.street_address || "No address provided",
     subdivision: userData?.subdivision || user?.user_metadata?.subdivision || "",
     township: userData?.township_name || user?.user_metadata?.township_name || "",
@@ -221,6 +241,10 @@ const Profile = () => {
     memberSince: formatMemberSince(userData?.created_at || user?.created_at),
     totalRecycled: safeTotalWeightKg,
   };
+
+  // Debug logging
+  console.log('Profile: userData:', userData);
+  console.log('Profile: userProfile:', userProfile);
 
 
   const achievements = [
@@ -274,7 +298,7 @@ const Profile = () => {
               </div>
             </div>
             <div className="flex-1">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-1">Sebenza Mngqi</h2>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{userProfile.name}</h2>
               <div className="space-y-1">
                 <div className="flex items-center space-x-1">
                   <Phone className="h-3 w-3 text-gray-500 dark:text-gray-400" />
@@ -283,6 +307,10 @@ const Profile = () => {
                 <div className="flex items-center space-x-1">
                   <User className="h-3 w-3 text-gray-500 dark:text-gray-400" />
                   <p className="text-xs text-gray-600 dark:text-gray-300">{userProfile.email}</p>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Calendar className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                  <p className="text-xs text-gray-600 dark:text-gray-300">{userProfile.dateOfBirth}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2 mt-2">

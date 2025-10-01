@@ -90,7 +90,8 @@ const Dashboard = memo(() => {
     nonPetBalance: null as number | null,
     lastPositiveDisplayBalance: 0 as number,
     userAddress: null as any,
-    addressLoading: false // Start with false to prevent initial loading state
+    addressLoading: false, // Start with false to prevent initial loading state
+    userProfile: null as any // Add user profile data
   });
 
   // Track if initial load is complete
@@ -129,6 +130,8 @@ const Dashboard = memo(() => {
   // Optimized address loading function
   const loadUserAddress = useCallback(async (userId: string) => {
     try {
+      console.log('Dashboard: Loading address for user ID:', userId);
+      
       // 1) Try unified users table first
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -140,6 +143,7 @@ const Dashboard = memo(() => {
         .maybeSingle();
 
       if (!userError && userData) {
+        console.log('Dashboard: Found user data in users table:', userData);
         return userData;
       }
 
@@ -153,6 +157,7 @@ const Dashboard = memo(() => {
         .maybeSingle();
 
       if (!addrErr && defaultAddr) {
+        console.log('Dashboard: Found address in user_addresses table:', defaultAddr);
         return {
           address_line1: defaultAddr.address_line1,
           address_line2: defaultAddr.address_line2,
@@ -171,6 +176,7 @@ const Dashboard = memo(() => {
         
         if (!rpcError && rpcData?.found && rpcData.address) {
           const a = rpcData.address;
+          console.log('Dashboard: Found address via RPC:', a);
           return {
             address_line1: a.address_line1,
             address_line2: a.address_line2,
@@ -186,6 +192,7 @@ const Dashboard = memo(() => {
       // 4) Fallback to auth metadata
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        console.log('Dashboard: Using auth user metadata as address fallback');
         return {
           id: user.id,
           email: user.email || '',
@@ -200,6 +207,7 @@ const Dashboard = memo(() => {
         };
       }
 
+      console.log('Dashboard: No address data found for user');
       return null;
     } catch (error) {
       console.error('Error fetching user address:', error);
@@ -207,9 +215,49 @@ const Dashboard = memo(() => {
     }
   }, []);
 
+  // Load user profile data - use the actual authenticated user's ID
+  const loadUserProfile = useCallback(async (userId: string) => {
+    try {
+      console.log('Dashboard: Loading profile for user ID:', userId);
+      
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select(`
+          id, email, first_name, last_name, full_name, phone, role_id, status
+        `)
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!userError && userData) {
+        console.log('Dashboard: Successfully fetched user profile:', userData);
+        return userData;
+      }
+
+      // Fallback to minimal user data if not found in users table
+      console.log('Dashboard: No user data found in users table, using minimal fallback');
+      return {
+        id: userId,
+        email: '',
+        first_name: '',
+        last_name: '',
+        full_name: 'User',
+        phone: '',
+        role_id: null,
+        status: 'active'
+      };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  }, []);
+
   // Optimized data loading with debouncing and performance improvements
   const loadDashboardData = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('Dashboard: No user ID available');
+      return;
+    }
+    console.log('Dashboard: Loading data for user ID:', user.id);
     
     // Mark initial load complete immediately to render UI
     setIsInitialLoadComplete(true);
@@ -226,7 +274,7 @@ const Dashboard = memo(() => {
               setTimeout(() => reject(new Error('Timeout')), ms)
             );
             
-            const [nonPetData, addressData, schoolData] = await Promise.allSettled([
+            const [nonPetData, addressData, schoolData, userProfileData] = await Promise.allSettled([
               Promise.race([
                 WorkingWalletService.getNonPetApprovedTotal(user.id),
                 timeout(1000) // Reduced timeout
@@ -238,13 +286,21 @@ const Dashboard = memo(() => {
               Promise.race([
                 getPreferredSchool(),
                 timeout(1000) // Reduced timeout
+              ]),
+              Promise.race([
+                loadUserProfile(user.id), // Use the actual authenticated user's ID
+                timeout(1000) // Reduced timeout
               ])
             ]);
 
             // Batch updates to reduce re-renders
+            const userProfileResult = (userProfileData.status === 'fulfilled') ? (userProfileData.value as any) : null;
+            console.log('Dashboard: User profile result:', userProfileResult);
+            
             batchUpdateDashboardData({
               nonPetBalance: (nonPetData.status === 'fulfilled' && nonPetData.value !== null) ? nonPetData.value as number : dashboardData.nonPetBalance,
               userAddress: (addressData.status === 'fulfilled') ? (addressData.value as any) : null,
+              userProfile: userProfileResult,
               addressLoading: false
             });
 
@@ -614,7 +670,9 @@ const Dashboard = memo(() => {
             
             <div className="space-y-1">
               <h1 className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
-                Welcome, Sebenza Mngqi!
+                Welcome, {(dashboardData.userProfile?.first_name && dashboardData.userProfile?.last_name 
+                  ? `${dashboardData.userProfile.first_name} ${dashboardData.userProfile.last_name}` 
+                  : dashboardData.userProfile?.full_name || dashboardData.userProfile?.first_name || 'User')}!
               </h1>
               <p className="text-xs text-gray-600 dark:text-gray-300 font-medium">Powered by Sebenza Nathi Waste</p>
             </div>

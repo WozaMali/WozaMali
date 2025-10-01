@@ -75,25 +75,39 @@ export class WorkingWalletService {
         return cached.data;
       }
 
-      // Get user data from auth.users
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      // Get user data from public.users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select(`
+          id, 
+          email, 
+          first_name, 
+          last_name, 
+          full_name, 
+          phone, 
+          role_id, 
+          status,
+          created_at
+        `)
+        .eq('id', userId)
+        .maybeSingle();
       
-      if (authError || !user || user.id !== userId) {
-        console.error('WorkingWalletService: Auth error or user mismatch:', authError);
+      if (userError || !userData) {
+        console.error('WorkingWalletService: Error fetching user data:', userError);
         return this.getEmptyWalletInfo();
       }
 
-      // Create profile from auth user data
+      // Create profile from public.users table data
       const profile: UserProfile = {
-        id: user.id,
-        user_id: user.id,
-        email: user.email || '',
-        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-        phone: user.user_metadata?.phone || null,
+        id: userData.id,
+        user_id: userData.id,
+        email: userData.email || '',
+        full_name: userData.full_name || `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.email?.split('@')[0] || 'User',
+        phone: userData.phone || null,
         role: 'member',
-        status: 'active',
-        created_at: user.created_at,
-        last_login: user.last_sign_in_at || null
+        status: userData.status || 'active',
+        created_at: userData.created_at,
+        last_login: null
       };
 
       // Get collections data with a single optimized query
@@ -146,7 +160,7 @@ export class WorkingWalletService {
 
       // Create wallet data
       const walletData: WorkingWalletData = {
-        id: user.id,
+        id: userData.id,
         user_id: userId,
         current_points: points,
         total_points_earned: points,

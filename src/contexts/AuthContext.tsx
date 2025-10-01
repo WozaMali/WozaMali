@@ -41,19 +41,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('AuthContext: Starting role fetch for user:', userId);
     setRoleLoading(true);
     try {
-      // Prefer unified user_profiles (user_id links to auth.users.id)
-      const unified = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('user_id', userId)
+      // Read from public.users table with role information
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select(`
+          id, 
+          email, 
+          first_name, 
+          last_name, 
+          full_name, 
+          phone, 
+          role_id, 
+          status,
+          roles!role_id(name)
+        `)
+        .eq('id', userId)
         .maybeSingle();
 
-      const role = (!unified.error && unified.data) ? (unified.data as any).role : null;
-      console.log('AuthContext: Role fetch result:', role || 'member');
-      setUserRole(role || 'member');
+      if (!userError && userData) {
+        // Get role name from the joined roles table
+        const rolesValue: any = (userData as any).roles;
+        const roleName = Array.isArray(rolesValue) ? rolesValue[0]?.name : rolesValue?.name;
+        const role = roleName || 'resident';
+        console.log('AuthContext: Role fetch result from users table:', role);
+        setUserRole(role);
+      } else {
+        console.log('AuthContext: No user data found, using default role');
+        setUserRole('resident'); // Default role
+      }
     } catch (error) {
       console.error('Error fetching user role:', error);
-      setUserRole('member'); // Default role
+      setUserRole('resident'); // Default role
     } finally {
       setRoleLoading(false);
       console.log('AuthContext: Role loading complete');

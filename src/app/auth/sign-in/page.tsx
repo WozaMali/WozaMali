@@ -63,15 +63,14 @@ export default function SignIn() {
     }
   }, [isSignUp]);
 
-  // Redirect if already authenticated (but only if user has a valid session)
+  // Redirect if already authenticated
   useEffect(() => {
-    if (user && user.id) {
+    if (user) {
       router.replace("/");
     }
   }, [user, router]);
 
-  // Only hide form if user has a valid session, not just any user state
-  if (user && user.id) {
+  if (user) {
     return null;
   }
 

@@ -41,53 +41,13 @@ const AuthCallback = () => {
           setStatus("error");
           setMessage(`Authentication failed: ${errorDescription || errorParam}`);
           
-          // Show more specific error messages
-          let errorTitle = "Authentication Failed";
-          let errorMessage = errorDescription || errorParam || "Please try signing in again.";
-          
-          if (errorParam === 'server_error' && errorDescription?.includes('Database error')) {
-            // For database errors, try to proceed anyway since we handle user creation in the app
-            console.log('Database error detected, but proceeding to profile completion');
-            setStatus("loading");
-            setMessage("Setting up your account...");
-            
-            // Wait a moment for the session to be established
-            timeoutId = setTimeout(async () => {
-              try {
-                // Try multiple times to get the session
-                let session = null;
-                for (let i = 0; i < 3; i++) {
-                  const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-                  if (currentSession?.user) {
-                    session = currentSession;
-                    break;
-                  }
-                  console.log(`Session attempt ${i + 1} failed:`, sessionError);
-                  await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between attempts
-                }
-                
-                if (session?.user) {
-                  console.log('Session found despite database error, redirecting to profile completion');
-                  router.push("/auth/profile-complete");
-                } else {
-                  console.log('No session found after multiple attempts, redirecting to sign-in');
-                  router.push("/auth/sign-in");
-                }
-              } catch (error) {
-                console.log('Error getting session, redirecting to sign-in:', error);
-                router.push("/auth/sign-in");
-              }
-            }, 3000);
-            return;
-          }
-          
           toast({
-            title: errorTitle,
-            description: errorMessage,
+            title: "Authentication Failed",
+            description: errorDescription || errorParam || "Please try signing in again.",
             variant: "destructive",
           });
           
-          timeoutId = setTimeout(() => router.push("/auth/sign-in"), 5000);
+          timeoutId = setTimeout(() => router.push("/auth/sign-in"), 3000);
           return;
         }
         
@@ -114,62 +74,33 @@ const AuthCallback = () => {
           }
           
           if (data.session) {
-            console.log("Code exchange successful, user ID:", data.session.user.id);
+            console.log("Code exchange successful");
             setStatus("success");
             setMessage("Authentication successful! Redirecting...");
             
-            // Wait for session to be fully established and verify it's accessible
-            let sessionEstablished = false;
-            for (let attempt = 0; attempt < 5; attempt++) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              try {
-                const { data: { session: currentSession } } = await supabase.auth.getSession();
-                if (currentSession?.user?.id === data.session.user.id) {
-                  console.log('Session fully established, user ID:', currentSession.user.id);
-                  sessionEstablished = true;
-                  break;
-                }
-              } catch (error) {
-                console.log(`Session check attempt ${attempt + 1} failed:`, error);
-              }
-            }
+            // Wait a moment for the session to be fully established
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            if (!sessionEstablished) {
-              console.log('Session not fully established, but proceeding with redirect');
-            }
-            
-            // For OAuth users, try to create a basic user record first
-            console.log('OAuth user detected, creating user record...');
+            // Check if user profile exists in unified schema
             try {
-              // Create a minimal user record with default role
-              const { error: userError } = await supabase
+              const { data: userProfile } = await supabase
                 .from('users')
-                .insert({
-                  id: data.session.user.id,
-                  email: data.session.user.email || '',
-                  full_name: data.session.user.user_metadata?.full_name || '',
-                  role_id: 'member', // Use string role instead of UUID
-                  status: 'active'
-                });
+                .select('first_name, last_name, phone, street_addr, township_id, subdivision, city, postal_code')
+                .eq('id', data.session.user.id)
+                .single();
 
-              if (userError) {
-                console.log('User creation failed, but continuing to profile completion:', userError);
-                // Continue anyway - profile completion will handle it
+              if (!userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
+                setMessage("Redirecting to complete your profile...");
+                timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
               } else {
-                console.log('User record created successfully');
+                setMessage("Redirecting to dashboard...");
+                timeoutId = setTimeout(() => router.push("/"), 1500);
               }
-            } catch (error) {
-              console.log('User creation error, continuing to profile completion:', error);
-              // Continue anyway - profile completion will handle it
+            } catch (profileError) {
+              console.log('Profile check error, redirecting to profile completion:', profileError);
+              setMessage("Redirecting to complete your profile...");
+              timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
             }
-
-            console.log('Redirecting to profile completion');
-            setMessage("Redirecting to complete your profile...");
-            timeoutId = setTimeout(() => {
-              console.log('Redirecting to /auth/profile-complete');
-              router.push("/auth/profile-complete");
-            }, 2000);
             return;
           }
         }
@@ -183,7 +114,7 @@ const AuthCallback = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          console.log("User authenticated via session:", session.user.id);
+          console.log("User authenticated:", session.user);
           setStatus("success");
           setMessage("Authentication successful! Redirecting...");
           
@@ -192,37 +123,49 @@ const AuthCallback = () => {
             description: "You have successfully signed in.",
           });
           
-          // For OAuth users, always redirect to profile completion first
-          console.log('Session user detected, redirecting to profile completion');
-          setMessage("Redirecting to complete your profile...");
-          timeoutId = setTimeout(() => {
-            console.log('Session redirecting to /auth/profile-complete');
-            router.push("/auth/profile-complete");
-          }, 1500);
+          // Check user profile in unified schema
+          try {
+            const { data: userProfile } = await supabase
+              .from('users')
+              .select('first_name, last_name, phone, street_addr, township_id, subdivision, city, postal_code')
+              .eq('id', session.user.id)
+              .single();
+
+            if (!userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
+              setMessage("Redirecting to complete your profile...");
+              timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
+            } else {
+              setMessage("Redirecting to dashboard...");
+              timeoutId = setTimeout(() => router.push("/"), 1500);
+            }
+          } catch (error) {
+            console.log('Profile check error, redirecting to profile completion:', error);
+            setMessage("Redirecting to complete your profile...");
+            timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
+          }
         } else {
-          // No session found - this should rarely happen after OAuth
-          console.log("No session found after OAuth");
+          // No session found
+          console.log("No session found");
           setStatus("error");
-          setMessage("Authentication incomplete. Redirecting to sign-in...");
+          setMessage("No active session found. Redirecting to sign-in...");
           
           timeoutId = setTimeout(() => router.push("/auth/sign-in"), 2000);
         }
       } catch (error: any) {
         console.error("Unexpected error in auth callback:", error);
         setStatus("error");
-        setMessage("An unexpected error occurred. Redirecting to profile completion...");
+        setMessage("An unexpected error occurred. Redirecting to sign-in...");
         
-        // For OAuth users, try profile completion first before falling back to sign-in
-        timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 2000);
+        timeoutId = setTimeout(() => router.push("/auth/sign-in"), 3000);
       }
     };
 
     // Add a global timeout to prevent infinite loading
     const globalTimeout = setTimeout(() => {
-      console.error("Global timeout reached, redirecting to profile completion");
+      console.error("Global timeout reached, redirecting to sign-in");
       setStatus("error");
-      setMessage("Authentication timeout. Redirecting to profile completion...");
-      router.push("/auth/profile-complete");
+      setMessage("Authentication timeout. Please try signing in again.");
+      router.push("/auth/sign-in");
     }, 15000); // 15 second global timeout
 
     handleAuthCallback();
