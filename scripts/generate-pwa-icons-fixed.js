@@ -8,7 +8,7 @@ if (!fs.existsSync(iconsDir)) {
 }
 
 // Source logo path
-const sourceLogo = path.join(__dirname, '..', 'public', 'WozaMali-uploads', 'Woza Avatar.png');
+const sourceLogo = path.join(__dirname, '..', 'public', 'WozaMali-uploads', 'Woza Y Avatar.png');
 
 // Icon sizes to generate
 const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
