@@ -73,7 +73,7 @@ export const metadata: Metadata = {
   other: {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'default',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
     'apple-mobile-web-app-title': 'Woza Mali',
     'application-name': 'Woza Mali',
     'msapplication-TileColor': '#f59e0b',
@@ -93,7 +93,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Woza Mali" />
         <meta name="application-name" content="Woza Mali" />
         <meta name="msapplication-TileColor" content="#f59e0b" />
@@ -104,6 +104,7 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-192x192.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-192x192.png" />
         <link rel="shortcut icon" href="icons/icon-192x192.png" />
+        <meta name="background-color" content="#000000" />
         <script dangerouslySetInnerHTML={{
           __html: `
             // Immediate service worker cleanup (skip on native Capacitor)
@@ -137,6 +138,14 @@ export default function RootLayout({
         }} />
       </head>
       <body>
+        <div id="splash-screen" class="splash-screen">
+          <div class="splash-logo">
+            <img src="icons/icon-192x192.png" alt="Woza Mali Logo" />
+          </div>
+          <h1 class="splash-app-name">Woza Mali</h1>
+          <p class="splash-tagline">Recycling Rewards</p>
+          <div class="splash-loading"></div>
+        </div>
         <Providers>
           {children}
         </Providers>
