@@ -193,8 +193,8 @@ const ProfileComplete = () => {
         updated_at: new Date().toISOString()
       } as any;
 
-      // Use simple role assignment - just use 'member' as string
-      const roleAssignment = { role_id: 'member' };
+      // Use the resident role ID (which should be a UUID)
+      const roleAssignment = { role_id: residentRoleId };
 
       let lastError: any = null;
       let success = false;
