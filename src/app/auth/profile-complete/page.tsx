@@ -82,12 +82,22 @@ const ProfileComplete = () => {
               user = session.user;
             } else {
               console.error('ProfileComplete: Session fallback also failed:', sessionError || 'No session found');
-              setError('Unable to verify your authentication. Please try signing in again.');
+              setError('No active session found. Please sign in to complete your profile.');
+              setUserLoading(false);
+              // Redirect to sign-in after a short delay
+              setTimeout(() => {
+                router.push('/auth/sign-in');
+              }, 3000);
               return;
             }
           } catch (sessionError) {
             console.error('ProfileComplete: Session fallback threw error:', sessionError);
-            setError('Unable to verify your authentication. Please try signing in again.');
+            setError('No active session found. Please sign in to complete your profile.');
+            setUserLoading(false);
+            // Redirect to sign-in after a short delay
+            setTimeout(() => {
+              router.push('/auth/sign-in');
+            }, 3000);
             return;
           }
         }
