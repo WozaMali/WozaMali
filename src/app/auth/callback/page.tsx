@@ -46,14 +46,28 @@ const AuthCallback = () => {
           let errorMessage = errorDescription || errorParam || "Please try signing in again.";
           
           if (errorParam === 'server_error' && errorDescription?.includes('Database error')) {
-            // For database errors, redirect to sign-in with a helpful message
-            console.log('Database error detected, redirecting to sign-in');
-            setStatus("error");
-            setMessage("There was a temporary issue with account creation. Please try signing in again or use email signup.");
-            timeoutId = setTimeout(() => {
-              console.log('Redirecting to /auth/sign-in due to database error');
-              router.push("/auth/sign-in");
-            }, 3000);
+            // For database errors, try to proceed anyway since we handle user creation in the app
+            console.log('Database error detected, but proceeding to profile completion');
+            setStatus("loading");
+            setMessage("Setting up your account...");
+            
+            // Wait a moment for the session to be established
+            timeoutId = setTimeout(async () => {
+              try {
+                // Try to get the session
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (session?.user) {
+                  console.log('Session found despite database error, redirecting to profile completion');
+                  router.push("/auth/profile-complete");
+                } else {
+                  console.log('No session found, redirecting to sign-in');
+                  router.push("/auth/sign-in");
+                }
+              } catch (error) {
+                console.log('Error getting session, redirecting to sign-in:', error);
+                router.push("/auth/sign-in");
+              }
+            }, 2000);
             return;
           }
           
