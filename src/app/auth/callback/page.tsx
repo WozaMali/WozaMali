@@ -83,16 +83,21 @@ const AuthCallback = () => {
             
             // Check if user profile exists in unified schema
             try {
-              const { data: userProfile } = await supabase
+              const { data: userProfile, error: profileError } = await supabase
                 .from('users')
                 .select('first_name, last_name, phone, street_addr, township_id, subdivision, city, postal_code')
                 .eq('id', data.session.user.id)
                 .single();
 
-              if (!userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
+              console.log('Profile check result:', { userProfile, profileError });
+
+              // If no profile exists or profile is incomplete, redirect to profile completion
+              if (profileError || !userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
+                console.log('Profile incomplete or missing, redirecting to profile completion');
                 setMessage("Redirecting to complete your profile...");
                 timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
               } else {
+                console.log('Profile complete, redirecting to dashboard');
                 setMessage("Redirecting to dashboard...");
                 timeoutId = setTimeout(() => router.push("/"), 1500);
               }
@@ -125,47 +130,53 @@ const AuthCallback = () => {
           
           // Check user profile in unified schema
           try {
-            const { data: userProfile } = await supabase
+            const { data: userProfile, error: profileError } = await supabase
               .from('users')
               .select('first_name, last_name, phone, street_addr, township_id, subdivision, city, postal_code')
               .eq('id', session.user.id)
               .single();
 
-            if (!userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
+            console.log('Session profile check result:', { userProfile, profileError });
+
+            // If no profile exists or profile is incomplete, redirect to profile completion
+            if (profileError || !userProfile || !userProfile.first_name || !userProfile.last_name || !userProfile.township_id || !userProfile.subdivision) {
+              console.log('Session profile incomplete or missing, redirecting to profile completion');
               setMessage("Redirecting to complete your profile...");
               timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
             } else {
+              console.log('Session profile complete, redirecting to dashboard');
               setMessage("Redirecting to dashboard...");
               timeoutId = setTimeout(() => router.push("/"), 1500);
             }
           } catch (error) {
-            console.log('Profile check error, redirecting to profile completion:', error);
+            console.log('Session profile check error, redirecting to profile completion:', error);
             setMessage("Redirecting to complete your profile...");
             timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 1500);
           }
         } else {
-          // No session found
-          console.log("No session found");
+          // No session found - this should rarely happen after OAuth
+          console.log("No session found after OAuth");
           setStatus("error");
-          setMessage("No active session found. Redirecting to sign-in...");
+          setMessage("Authentication incomplete. Redirecting to sign-in...");
           
           timeoutId = setTimeout(() => router.push("/auth/sign-in"), 2000);
         }
       } catch (error: any) {
         console.error("Unexpected error in auth callback:", error);
         setStatus("error");
-        setMessage("An unexpected error occurred. Redirecting to sign-in...");
+        setMessage("An unexpected error occurred. Redirecting to profile completion...");
         
-        timeoutId = setTimeout(() => router.push("/auth/sign-in"), 3000);
+        // For OAuth users, try profile completion first before falling back to sign-in
+        timeoutId = setTimeout(() => router.push("/auth/profile-complete"), 2000);
       }
     };
 
     // Add a global timeout to prevent infinite loading
     const globalTimeout = setTimeout(() => {
-      console.error("Global timeout reached, redirecting to sign-in");
+      console.error("Global timeout reached, redirecting to profile completion");
       setStatus("error");
-      setMessage("Authentication timeout. Please try signing in again.");
-      router.push("/auth/sign-in");
+      setMessage("Authentication timeout. Redirecting to profile completion...");
+      router.push("/auth/profile-complete");
     }, 15000); // 15 second global timeout
 
     handleAuthCallback();
