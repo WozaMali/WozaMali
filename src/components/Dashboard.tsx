@@ -306,6 +306,13 @@ const Dashboard = memo(() => {
             console.log('Dashboard: User profile last_name:', userProfileResult?.last_name);
             console.log('Dashboard: User profile full_name:', userProfileResult?.full_name);
             
+            // Check if user needs to complete their profile
+            if (userProfileResult && (!userProfileResult.first_name || !userProfileResult.last_name)) {
+              console.log('Dashboard: User profile incomplete, redirecting to profile completion');
+              navigate.push('/auth/profile-complete');
+              return;
+            }
+            
             batchUpdateDashboardData({
               nonPetBalance: (nonPetData.status === 'fulfilled' && nonPetData.value !== null) ? nonPetData.value as number : dashboardData.nonPetBalance,
               userAddress: (addressData.status === 'fulfilled') ? (addressData.value as any) : null,

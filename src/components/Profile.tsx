@@ -91,13 +91,13 @@ const Profile = () => {
             created_at
           `)
           .eq('id', user.id) // Use the actual authenticated user's ID
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Profile: Error fetching user data for user:', error);
           console.log('Profile: Error code:', error.code);
           console.log('Profile: Error message:', error.message);
-          // Fallback to minimal user data if user not found in database
+          // Fallback to minimal user data if there's a database error
           setUserData({
             id: user?.id || '',
             email: user?.email || '',
@@ -114,29 +114,28 @@ const Profile = () => {
             postal_code: null,
             created_at: new Date().toISOString()
           });
-        } else {
+        } else if (data) {
           console.log('Profile: Successfully fetched user data from database:', data);
           setUserData(data);
+          
+          // Check if user needs to complete their profile
+          if (!data.first_name || !data.last_name) {
+            console.log('Profile: User profile incomplete, redirecting to profile completion');
+            navigate.push('/auth/profile-complete');
+            return;
+          }
+        } else {
+          console.log('Profile: No user data found in database, redirecting to profile completion');
+          // User not found in database, redirect to profile completion
+          navigate.push('/auth/profile-complete');
+          return;
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
-        // Fallback to minimal user data
-        setUserData({
-          id: user?.id || '',
-          email: user?.email || '',
-          first_name: '',
-          last_name: '',
-          full_name: user?.email?.split('@')[0] || 'User',
-          phone: '',
-          role_id: null,
-          status: 'active',
-          street_addr: null,
-          township_id: null,
-          subdivision: null,
-          city: 'Soweto',
-          postal_code: null,
-          created_at: new Date().toISOString()
-        });
+        console.log('Profile: Error occurred, redirecting to profile completion');
+        // Error occurred, redirect to profile completion
+        navigate.push('/auth/profile-complete');
+        return;
       } finally {
         setLoading(false);
       }
