@@ -140,7 +140,7 @@ export default function RootLayout({
       <body>
         <div id="splash-screen" className="splash-screen">
           <div className="splash-logo">
-            <img src="icons/icon-192x192.png" alt="Woza Mali Logo" />
+            <img src="WozaMali-uploads/w yellow.png" alt="Woza Mali Logo" />
           </div>
           <h1 className="splash-app-name">Woza Mali</h1>
           <p className="splash-tagline">Recycling Rewards</p>

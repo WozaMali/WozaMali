@@ -7,8 +7,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, hsl(var(--color-background)) 0%, hsl(var(--color-muted)) 100%);
+  color: hsl(var(--color-foreground));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -18,47 +18,73 @@
   animation: fadeOut 0.5s ease-in-out 2s forwards;
 }
 
+/* Dark theme splash screen */
+@media (prefers-color-scheme: dark) {
+  .splash-screen {
+    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+    color: #ffffff;
+  }
+}
+
 .splash-logo {
   width: 120px;
   height: 120px;
   margin: 0 auto 2rem;
-  background: #374151;
-  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   animation: pulse 2s infinite;
 }
 
 .splash-logo img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 20px;
+  object-fit: contain;
 }
 
 .splash-app-name {
   font-size: 2rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
-  color: #ffffff;
+  color: hsl(var(--color-foreground));
+}
+
+/* Dark theme app name */
+@media (prefers-color-scheme: dark) {
+  .splash-app-name {
+    color: #ffffff;
+  }
 }
 
 .splash-tagline {
   font-size: 1rem;
-  color: #9ca3af;
+  color: hsl(var(--color-muted-foreground));
   margin-bottom: 2rem;
+}
+
+/* Dark theme tagline */
+@media (prefers-color-scheme: dark) {
+  .splash-tagline {
+    color: #9ca3af;
+  }
 }
 
 .splash-loading {
   width: 40px;
   height: 40px;
-  border: 3px solid #374151;
-  border-top: 3px solid #ffffff;
+  border: 3px solid hsl(var(--color-muted));
+  border-top: 3px solid hsl(var(--color-primary));
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto;
+}
+
+/* Dark theme loading spinner */
+@media (prefers-color-scheme: dark) {
+  .splash-loading {
+    border: 3px solid #374151;
+    border-top: 3px solid #ffffff;
+  }
 }
 
 @keyframes fadeOut {
