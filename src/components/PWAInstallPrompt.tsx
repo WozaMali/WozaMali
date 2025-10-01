@@ -165,7 +165,7 @@ export default function PWAInstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
+    <div className="fixed bottom-20 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
@@ -223,7 +223,7 @@ export function IOSInstallInstructions() {
   if (!showInstructions) return null
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
+    <div className="fixed bottom-20 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
