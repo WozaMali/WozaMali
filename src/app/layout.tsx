@@ -138,13 +138,13 @@ export default function RootLayout({
         }} />
       </head>
       <body>
-        <div id="splash-screen" class="splash-screen">
-          <div class="splash-logo">
+        <div id="splash-screen" className="splash-screen">
+          <div className="splash-logo">
             <img src="icons/icon-192x192.png" alt="Woza Mali Logo" />
           </div>
-          <h1 class="splash-app-name">Woza Mali</h1>
-          <p class="splash-tagline">Recycling Rewards</p>
-          <div class="splash-loading"></div>
+          <h1 className="splash-app-name">Woza Mali</h1>
+          <p className="splash-tagline">Recycling Rewards</p>
+          <div className="splash-loading"></div>
         </div>
         <Providers>
           {children}
