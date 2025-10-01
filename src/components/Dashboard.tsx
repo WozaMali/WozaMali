@@ -300,15 +300,9 @@ const Dashboard = memo(() => {
 
             // Batch updates to reduce re-renders
             const userProfileResult = (userProfileData.status === 'fulfilled') ? (userProfileData.value as any) : null;
-            console.log('Dashboard: User profile result:', userProfileResult);
-            console.log('Dashboard: User ID being queried:', user.id);
-            console.log('Dashboard: User profile first_name:', userProfileResult?.first_name);
-            console.log('Dashboard: User profile last_name:', userProfileResult?.last_name);
-            console.log('Dashboard: User profile full_name:', userProfileResult?.full_name);
             
             // Check if user needs to complete their profile
             if (userProfileResult && (!userProfileResult.first_name || !userProfileResult.last_name)) {
-              console.log('Dashboard: User profile incomplete, redirecting to profile completion');
               navigate.push('/auth/profile-complete');
               return;
             }

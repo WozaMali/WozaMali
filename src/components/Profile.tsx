@@ -226,13 +226,6 @@ const Profile = () => {
     }
   };
 
-  // Debug logging
-  console.log('Profile: userData:', userData);
-  console.log('Profile: userData.full_name:', userData?.full_name);
-  console.log('Profile: userData.first_name:', userData?.first_name);
-  console.log('Profile: userData.last_name:', userData?.last_name);
-  console.log('Profile: user.user_metadata:', user?.user_metadata);
-
   const userProfile = {
     name: userData?.full_name || `${userData?.first_name || ''} ${userData?.last_name || ''}`.trim() || user?.user_metadata?.full_name || "User",
     phone: userData?.phone || user?.user_metadata?.phone || "No phone number",
