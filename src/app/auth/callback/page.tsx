@@ -54,20 +54,30 @@ const AuthCallback = () => {
             // Wait a moment for the session to be established
             timeoutId = setTimeout(async () => {
               try {
-                // Try to get the session
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                // Try multiple times to get the session
+                let session = null;
+                for (let i = 0; i < 3; i++) {
+                  const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+                  if (currentSession?.user) {
+                    session = currentSession;
+                    break;
+                  }
+                  console.log(`Session attempt ${i + 1} failed:`, sessionError);
+                  await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between attempts
+                }
+                
                 if (session?.user) {
                   console.log('Session found despite database error, redirecting to profile completion');
                   router.push("/auth/profile-complete");
                 } else {
-                  console.log('No session found, redirecting to sign-in');
+                  console.log('No session found after multiple attempts, redirecting to sign-in');
                   router.push("/auth/sign-in");
                 }
               } catch (error) {
                 console.log('Error getting session, redirecting to sign-in:', error);
                 router.push("/auth/sign-in");
               }
-            }, 2000);
+            }, 3000);
             return;
           }
           
