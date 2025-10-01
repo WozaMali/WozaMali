@@ -43,16 +43,16 @@ const AuthCallback = () => {
           
           // Show more specific error messages
           let errorTitle = "Authentication Failed";
-          let errorDescription = errorDescription || errorParam || "Please try signing in again.";
+          let errorMessage = errorDescription || errorParam || "Please try signing in again.";
           
           if (errorParam === 'server_error' && errorDescription?.includes('Database error')) {
             errorTitle = "Database Error";
-            errorDescription = "There was an issue creating your account. This might be a temporary server issue. Please try again in a few moments.";
+            errorMessage = "There was an issue creating your account. This might be a temporary server issue. Please try again in a few moments.";
           }
           
           toast({
             title: errorTitle,
-            description: errorDescription,
+            description: errorMessage,
             variant: "destructive",
           });
           

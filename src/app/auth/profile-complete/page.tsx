@@ -81,7 +81,7 @@ const ProfileComplete = () => {
               console.log('ProfileComplete: Found user via session fallback:', session.user.id);
               user = session.user;
             } else {
-              console.error('ProfileComplete: Session fallback also failed:', sessionError);
+              console.error('ProfileComplete: Session fallback also failed:', sessionError || 'No session found');
               setError('Unable to verify your authentication. Please try signing in again.');
               return;
             }
