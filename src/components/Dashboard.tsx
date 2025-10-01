@@ -233,6 +233,11 @@ const Dashboard = memo(() => {
         return userData;
       }
 
+      // Log the error if there was one
+      if (userError) {
+        console.log('Dashboard: Error fetching user profile:', userError);
+      }
+
       // Fallback to minimal user data if not found in users table
       console.log('Dashboard: No user data found in users table, using minimal fallback');
       return {
@@ -296,6 +301,10 @@ const Dashboard = memo(() => {
             // Batch updates to reduce re-renders
             const userProfileResult = (userProfileData.status === 'fulfilled') ? (userProfileData.value as any) : null;
             console.log('Dashboard: User profile result:', userProfileResult);
+            console.log('Dashboard: User ID being queried:', user.id);
+            console.log('Dashboard: User profile first_name:', userProfileResult?.first_name);
+            console.log('Dashboard: User profile last_name:', userProfileResult?.last_name);
+            console.log('Dashboard: User profile full_name:', userProfileResult?.full_name);
             
             batchUpdateDashboardData({
               nonPetBalance: (nonPetData.status === 'fulfilled' && nonPetData.value !== null) ? nonPetData.value as number : dashboardData.nonPetBalance,
